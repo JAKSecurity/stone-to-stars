@@ -29,7 +29,9 @@ export class RunScene extends Phaser.Scene {
   private fireCooldown = 0;
   private spawnCooldown = 0;
   private explorationCooldown = 0;
+  private relicCooldown = 0;
   private paused = false;
+  private finished = false;
   private hud!: Phaser.GameObjects.Text;
 
   constructor() { super('run'); }
@@ -40,7 +42,8 @@ export class RunScene extends Phaser.Scene {
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0; this.fireCooldown = 0; this.spawnCooldown = 0;
-    this.explorationCooldown = 0; this.paused = false;
+    this.explorationCooldown = 0; this.relicCooldown = 0;
+    this.paused = false; this.finished = false;
   }
 
   create() {
@@ -99,13 +102,23 @@ export class RunScene extends Phaser.Scene {
       this.explorationCooldown = 4000;
     }
 
+    // Culture relics appear periodically as walk-over pickups (design: villages/relics give culture).
+    this.relicCooldown -= dt;
+    if (this.relicCooldown <= 0) {
+      const { width, height } = this.scale;
+      this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), 'culture');
+      this.relicCooldown = 5000;
+    }
+
     (this.enemies.getChildren() as any[]).forEach((e) => {
       this.physics.moveToObject(e, this.player, 60);
     });
 
+    // Gems always drift toward the player so a run reliably delivers its resources;
+    // they accelerate once inside pickupRadius (the Magnet perk widens that fast zone).
     (this.gems.getChildren() as any[]).forEach((g) => {
       const d = Phaser.Math.Distance.Between(g.x, g.y, this.player.x, this.player.y);
-      if (d < this.stats.pickupRadius) this.physics.moveToObject(g, this.player, 240);
+      this.physics.moveToObject(g, this.player, d < this.stats.pickupRadius ? 340 : 150);
     });
 
     this.hud.setText(
@@ -220,7 +233,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private finish(died: boolean) {
-    if (this.paused && died) { /* allow finish even if a draft was open */ }
+    if (this.finished) return;
+    this.finished = true;
     this.onComplete({
       collected: { ...this.collected },
       survivedMs: this.elapsed,
