@@ -95,6 +95,7 @@ playtest punch-list loop — on top of our spec-driven base.** Best of both.
 - PartyKit / room-based online multiplayer (we're single-player PvE).
 - His cost figures (~2.7B tokens, 97% cache reads; Max subscriptions) — context, not a tip.
 
-## Still pending
-- The **second post** (`/comments/1tuopn2/` — "my attempt at a 1 prompt temu'd game") — not
-  yet read; same Reddit block. Drop its text the same way and I'll fold it in here.
+## Second post — reviewed, nothing to add
+The **second post** (`/comments/1tuopn2/` — "my attempt at a 1 prompt temu'd game") is
+another good result but, per Jeff, has **no real discussion of how it was built**. Nothing
+to extract; intentionally not folded in.
