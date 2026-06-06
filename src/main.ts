@@ -21,8 +21,11 @@ const game = new Phaser.Game({
   height: 600,
   backgroundColor: '#10141f',
   physics: { default: 'arcade', arcade: { debug: false } },
-  scene: [RunScene],
 });
+// Register the run scene WITHOUT auto-starting it. The first scene listed in the
+// Phaser config force-starts on boot (with no init data), which crashes RunScene.init;
+// adding it manually with autoStart=false keeps it dormant until startRun().
+game.scene.add('run', RunScene, false);
 
 function showCiv() {
   runEl.classList.remove('active');

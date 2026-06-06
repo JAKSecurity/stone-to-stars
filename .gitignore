@@ -8,6 +8,11 @@ dist/
 # Brainstorming companion scratch (not source)
 .superpowers/
 
+# Playwright verification artifacts (not source)
+.playwright-mcp/
+/civ-screen-boot.png
+/run-midplay.png
+
 # OS / editor
 .DS_Store
 Thumbs.db
