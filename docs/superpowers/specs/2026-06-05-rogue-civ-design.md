@@ -53,8 +53,8 @@ Survivor run (5–10 min)  →  4 resources  →  Research tech  →  Build the 
 
 **Engine:** Phaser 3 (WebGL), rendered to a canvas scene.
 
-- **Structure:** timed survival. A fixed clock (target **5–8 minutes**, shorter in early
-  ages and scaling up), escalating enemy waves, capped by a mini-boss.
+- **Structure:** timed survival. A fixed clock (target **5–10 minutes** — shorter in early
+  ages, scaling up as the civ grows), escalating enemy waves, capped by a mini-boss.
 - **Controls:** 8-direction movement (WASD / arrows). Weapons **auto-fire**; the player
   positions and dodges.
 - **In-run draft = roguelike variance.** The player levels up during a run and drafts
