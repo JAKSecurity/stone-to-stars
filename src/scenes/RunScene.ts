@@ -170,8 +170,15 @@ export class RunScene extends Phaser.Scene {
   }
 
   private hitEnemy(bullet: any, enemy: any) {
+    // A pair can fire after either object was destroyed earlier in the same step
+    // (e.g. one bullet overlapping two enemies). Skip spent objects.
+    if (!bullet.active || !enemy.active) return;
+    // Read the bullet's damage BEFORE destroying it — reading getData() from a
+    // destroyed GameObject returns undefined, which would make hp = NaN and leave
+    // the enemy permanently un-killable (NaN <= 0 is always false).
+    const damage = bullet.getData('damage');
     bullet.destroy();
-    const hp = enemy.getData('hp') - bullet.getData('damage');
+    const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
       this.dropGem(enemy.x, enemy.y, enemy.getData('drop'));
       enemy.destroy();

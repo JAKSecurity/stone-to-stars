@@ -6,9 +6,29 @@ below are open.
 
 ---
 
-## 1. [BUG, high] Auto-attack never damages enemies (bullet↔enemy overlap doesn't fire)
+## 1. [RESOLVED 2026-06-06] Auto-attack never damaged enemies (destroy-before-read in `hitEnemy`)
 
-**Status:** Open. Confirmed via live instrumentation. Root cause not yet found.
+**Status:** Fixed in commit on the combat-fix work. Root cause found and verified.
+
+**Root cause:** `RunScene.hitEnemy` called `bullet.destroy()` *before* reading
+`bullet.getData('damage')`. Reading data from a destroyed Phaser GameObject returns
+`undefined`, so `hp = enemy.getData('hp') - undefined = NaN`. Since `NaN <= 0` is always
+false, the enemy's hp was set to `NaN` and it became permanently un-killable (every later
+hit: `NaN - x = NaN`). The bullet↔enemy overlap *was* firing the whole time (bullets were
+destroyed on contact) — the earlier "overlap doesn't fire" hypothesis was wrong. The tell
+was a `null` in a sampled `enemyHps` array: `JSON.stringify(NaN) === "null"`.
+
+**Fix:** read `damage` into a local before `bullet.destroy()`, and bail early if either
+object is already inactive (one bullet overlapping two enemies in a step would otherwise
+re-read the destroyed bullet → NaN again).
+
+**Verified (Playwright, live):** enemies take damage and die, kills grant XP → the player
+levels up → the perk draft renders, is clickable, applies the perk (damage 1.0→1.25), and
+resumes; kill-dropped Industry/Science gems drift in and bank. No more NaN HP.
+
+---
+
+### (historical record of the investigation)
 
 **Symptom:** In a run, the player's auto-fired bullets never damage or kill enemies.
 Enemies only die by colliding with the player (which deals contact damage and drops
