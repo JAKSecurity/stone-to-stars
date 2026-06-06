@@ -13,6 +13,9 @@ dist/
 /civ-screen-boot.png
 /run-midplay.png
 
+# Raw research dumps (distilled versions live in docs/research/)
+/i_had_opus_48_build_temu_league_of_legends.txt
+
 # OS / editor
 .DS_Store
 Thumbs.db
