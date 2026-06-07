@@ -4,10 +4,6 @@ import { RUN_DURATION_MS } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
 import { rollDraft, applyPerk } from '../run/draft';
 
-const GEM_COLOR: Record<Resource, number> = {
-  industry: 0xd9534f, science: 0x58a6ff, culture: 0x3fb950, exploration: 0xe3b341,
-};
-
 interface RunInit {
   modifiers: RunModifiers;
   onComplete: (result: RunResult) => void;
@@ -53,7 +49,10 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.existing(player);
     this.player = player as any;
     (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
-    (this.player.body as Phaser.Physics.Arcade.Body).setSize(28, 36);
+    // Leave the body at its default (the scaled sprite size, ~34x42). An explicit
+    // setSize(w,h) here is interpreted in the texture's *source* pixels and then scaled
+    // by the display scale (~0.28), which shrank the hitbox to ~8x10 and made the player
+    // nearly immune to contact damage.
 
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group();
@@ -137,7 +136,11 @@ export class RunScene extends Phaser.Scene {
     const target = this.nearestEnemy();
     const shots = this.mods.weapons.includes('bronze_spear') ? 2 : 1;
     for (let i = 0; i < shots; i++) {
-      const bullet = this.add.circle(this.player.x, this.player.y, 4, 0xffffff) as any;
+      const bullet = this.add.image(
+        this.player.x, this.player.y,
+        this.mods.weapons.includes('bronze_spear') ? 'shot_bronze' : 'shot_club',
+      ) as any;
+      bullet.setDisplaySize(12, 12);
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
       bullet.setData('damage', 12 * this.stats.damageMult * (i === 1 ? 1.5 : 1));
@@ -150,7 +153,7 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
-  private nearestEnemy(): Phaser.GameObjects.Arc | null {
+  private nearestEnemy(): Phaser.GameObjects.GameObject | null {
     let best: any = null, bestD = Infinity;
     (this.enemies.getChildren() as any[]).forEach((e) => {
       const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
@@ -165,7 +168,8 @@ export class RunScene extends Phaser.Scene {
     const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
     const isScholar = Phaser.Math.Between(0, 2) === 0;
-    const enemy = this.add.circle(x, y, 10, isScholar ? 0x58a6ff : 0xd9534f) as any;
+    const enemy = this.add.image(x, y, isScholar ? 'scholar' : 'beast') as any;
+    enemy.setDisplaySize(isScholar ? 20 : 29, 26);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
     enemy.setData('hp', 24);
@@ -198,7 +202,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private dropGem(x: number, y: number, resource: Resource) {
-    const gem = this.add.rectangle(x, y, 8, 8, GEM_COLOR[resource]) as any;
+    const gem = this.add.image(x, y, 'gem_' + resource) as any;
+    gem.setDisplaySize(14, 14);
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);

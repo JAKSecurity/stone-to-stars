@@ -14,7 +14,7 @@ export const PAL = {
   shieldRed: '#a1542f',
   // enemies
   beast: '#d9534f', beastDark: '#7a2320', scholar: '#58a6ff', scholarDark: '#1f6feb',
-  // resources (MUST match RunScene GEM_COLOR hexes)
+  // resources (gem sprite + resource-icon colors, one per resource)
   exploration: '#e3b341', science: '#58a6ff', industry: '#d9534f', culture: '#3fb950',
   // buildings
   roof: '#8a3b2b', wall: '#b08454', door: '#5d4632',
