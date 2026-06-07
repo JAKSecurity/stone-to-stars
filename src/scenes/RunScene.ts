@@ -3,6 +3,11 @@ import { RunModifiers, RunResult, Resource } from '../game/types';
 import { RUN_DURATION_MS } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
 import { rollDraft, applyPerk } from '../run/draft';
+import {
+  EquippedWeapon, initialWeapons,
+  weaponShot, WeaponShot,
+} from '../run/weapons';
+import { WEAPONS } from '../run/weaponData';
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -22,7 +27,8 @@ export class RunScene extends Phaser.Scene {
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
-  private fireCooldown = 0;
+  private equipped: EquippedWeapon[] = initialWeapons();
+  private weaponCooldowns: Record<string, number> = {};
   private spawnCooldown = 0;
   private explorationCooldown = 0;
   private relicCooldown = 0;
@@ -37,7 +43,9 @@ export class RunScene extends Phaser.Scene {
     this.onComplete = data.onComplete;
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
-    this.elapsed = 0; this.fireCooldown = 0; this.spawnCooldown = 0;
+    this.elapsed = 0; this.spawnCooldown = 0;
+    this.equipped = initialWeapons();
+    this.weaponCooldowns = {};
     this.explorationCooldown = 0; this.relicCooldown = 0;
     this.paused = false; this.finished = false;
   }
@@ -85,10 +93,13 @@ export class RunScene extends Phaser.Scene {
     if (this.keys.up.isDown) b.setVelocityY(-speed);
     if (this.keys.down.isDown) b.setVelocityY(speed);
 
-    this.fireCooldown -= dt;
-    if (this.fireCooldown <= 0) {
-      this.fire();
-      this.fireCooldown = 500 / this.stats.fireRateMult;
+    for (const w of this.equipped) {
+      this.weaponCooldowns[w.id] = (this.weaponCooldowns[w.id] ?? 0) - dt;
+      if (this.weaponCooldowns[w.id] <= 0) {
+        const shot = weaponShot(WEAPONS[w.id], w.level, this.stats.damageMult);
+        this.fireWeapon(shot);
+        this.weaponCooldowns[w.id] = shot.cooldownMs / this.stats.fireRateMult;
+      }
     }
 
     this.spawnCooldown -= dt;
@@ -132,23 +143,24 @@ export class RunScene extends Phaser.Scene {
     if (this.elapsed >= RUN_DURATION_MS) this.finish(false);
   }
 
-  private fire() {
-    const target = this.nearestEnemy();
-    const shots = this.mods.weapons.includes('bronze_spear') ? 2 : 1;
-    for (let i = 0; i < shots; i++) {
-      const bullet = this.add.image(
-        this.player.x, this.player.y,
-        this.mods.weapons.includes('bronze_spear') ? 'shot_bronze' : 'shot_club',
-      ) as any;
+  private fireWeapon(shot: WeaponShot) {
+    const target = this.nearestEnemy() as any;
+    const baseAngle = target
+      ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
+      : -Math.PI / 2;
+    for (let i = 0; i < shot.count; i++) {
+      // fan the volley around the aim angle when there is more than one projectile
+      const offset = shot.count > 1
+        ? (i - (shot.count - 1) / 2) * (shot.spread / (shot.count - 1))
+        : 0;
+      const angle = baseAngle + offset;
+      const bullet = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
       bullet.setDisplaySize(12, 12);
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
-      bullet.setData('damage', 12 * this.stats.damageMult * (i === 1 ? 1.5 : 1));
-      if (target) {
-        this.physics.moveToObject(bullet, target, 420);
-      } else {
-        bullet.body.setVelocity(0, -420);
-      }
+      bullet.setData('damage', shot.damage);
+      bullet.setData('pierce', shot.pierce);
+      bullet.body.setVelocity(Math.cos(angle) * shot.speed, Math.sin(angle) * shot.speed);
       this.time.delayedCall(1200, () => bullet.destroy());
     }
   }
@@ -177,14 +189,21 @@ export class RunScene extends Phaser.Scene {
   }
 
   private hitEnemy(bullet: any, enemy: any) {
-    // A pair can fire after either object was destroyed earlier in the same step
-    // (e.g. one bullet overlapping two enemies). Skip spent objects.
     if (!bullet.active || !enemy.active) return;
-    // Read the bullet's damage BEFORE destroying it — reading getData() from a
-    // destroyed GameObject returns undefined, which would make hp = NaN and leave
-    // the enemy permanently un-killable (NaN <= 0 is always false).
+    // A piercing bullet stays alive; make sure it never hits the SAME enemy twice.
+    let hitSet = bullet.getData('hitSet') as Set<any> | undefined;
+    if (!hitSet) { hitSet = new Set(); bullet.setData('hitSet', hitSet); }
+    if (hitSet.has(enemy)) return;
+    hitSet.add(enemy);
+
     const damage = bullet.getData('damage');
-    bullet.destroy();
+    const pierce = bullet.getData('pierce') ?? 0;
+    if (pierce > 0) {
+      bullet.setData('pierce', pierce - 1);
+    } else {
+      bullet.destroy();
+    }
+
     const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
       this.dropGem(enemy.x, enemy.y, enemy.getData('drop'));
