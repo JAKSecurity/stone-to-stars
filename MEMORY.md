@@ -6,7 +6,11 @@ A free browser game: a Phaser survivor mini-game feeds a tech-tree + base-camp c
 PvE, free, no monetization; builds to static files for GitHub Pages. Stack: TypeScript + Vite +
 Phaser (run scene) + HTML/CSS DOM (civ screen).
 
-## Current state (2026-06-06)
+## Current state (2026-06-07)
+- **Iron slice foundations shipped (2026-06-07):** RC-006 (data-driven multi-weapon system)
+  + RC-007 (data-driven enemies/biomes + expedition pick screen + age scaling) built via
+  subagent-driven-development and merged to `main`. **86 Vitest tests green; `npm run build`
+  clean.** RC-008 (Iron content) is planned and is the next build — details in the sections below.
 - **P0+P1 vertical slice: shipped.** Full loop works end-to-end and is Playwright-verified:
   timed survivor run → bank 4 resources (exploration/science/industry/culture) → research a
   tech tree → build base-camp buildings → cross Stone→Bronze → persists to localStorage.
@@ -22,7 +26,7 @@ Phaser (run scene) + HTML/CSS DOM (civ screen).
   fixed. Also fixed a player-hitbox regression (body was ~8×10, now ~34×42). Dev sprite
   preview at `/art-preview.html`. **50 Vitest tests green; `npm run build` clean.**
 - **On `main`, pushed and in sync** with `github.com/JAKSecurity/rogue-civ` (private).
-  Single branch — the art-pass / art-fixes branches were merged and deleted.
+  Each ticket's feature branch is merged and deleted after its reviews + Playwright verify.
 
 ## Architecture
 - Pure logic (unit-tested, no Phaser/DOM): `src/economy`, `src/tech`, `src/camp`, `src/run`, `src/state`.
@@ -81,7 +85,9 @@ Ticket: `docs/tickets/RC-008-iron-content.md` (has carried-over review notes). T
   `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` (Iron slice — current)
 - Plans: `docs/superpowers/plans/2026-06-05-rogue-civ-vertical-slice.md`,
   `docs/superpowers/plans/2026-06-06-art-pass.md`,
-  `docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md` (next to build)
+  `docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md` (shipped),
+  `docs/superpowers/plans/2026-06-07-rc007-enemy-biome-expedition.md` (shipped),
+  `docs/superpowers/plans/2026-06-07-rc008-iron-content.md` (**next to build** — has a Jeff art-ratification gate)
 - Known issues: `docs/KNOWN_ISSUES.md` (combat bug resolved; remaining = P2 balance + 2 minors)
 - Build-tip research: `docs/research/2026-06-06-lmao-build-tips.md`
 - Hub tracking: `docs/BACKLOG.md` (registered in AI Assistant as slug `rogue-civ`)
