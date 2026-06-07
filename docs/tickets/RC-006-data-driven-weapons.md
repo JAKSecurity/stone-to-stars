@@ -1,7 +1,20 @@
 # RC-006: Data-driven weapon system
-**Status**: Open  **Priority**: P1  **Type**: Feature
-**Created**: 2026-06-07
+**Status**: Delivered  **Priority**: P1  **Type**: Feature
+**Created**: 2026-06-07  **Resolved**: 2026-06-07
 **Capability**: C3 (Content & ages)
+
+## Resolution (2026-06-07)
+Built via subagent-driven-development from
+`docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md`. `WeaponDef` catalog +
+pure `weapons.ts` (slots/level/evolve/firing-params/blended-draft) with 22 new unit tests
+(72 total green); `RunScene` rewired to per-weapon-cooldown firing + a blended level-up
+draft. Two-stage reviews (spec + quality) per unit + a final holistic review, all passed.
+Playwright-verified live: two weapons firing simultaneously (shot_club + shot_bronze,
+distinct damages), weapon level-up raises damage (club 12→16), blended draft renders and a
+trusted click applies + resumes + tracks ownedPerks, no NaN, all four resources farmed.
+Evolution mechanism present but dormant (no `evolvesTo` content until RC-008). Deferred
+follow-ups captured: retire unused `rollDraft` (RC-007); evolution catalog-integrity test +
+`evolvesTo` content (RC-008); bullet `hitSet` perf + draft level label (RC-009).
 
 ## Summary
 First foundation of the Iron slice. Replace `RunScene`'s hardcoded single-weapon firing
@@ -12,11 +25,11 @@ content regression — club + bronze spear still work. Evolution *content* lands
 this ticket ships the mechanism and unit-tests it with a fixture.
 
 ## Acceptance Criteria
-- [ ] `WeaponDef` type + catalog (club, bronze_spear) — `src/run/weaponData.ts`
-- [ ] Pure weapon logic — `src/run/weapons.ts` (slots/level/evolve/firing-params/draft-options), unit-tested
-- [ ] `RunScene` fires each equipped weapon on its own cooldown (data-driven), with pierce
-- [ ] Level-up draft offers a blend of new-weapon / weapon-level / perk / evolve options
-- [ ] All unit tests green; `npm run build` clean; live-verified via Playwright (no NaN-HP regression)
+- [x] `WeaponDef` type + catalog (club, bronze_spear) — `src/run/weaponData.ts`
+- [x] Pure weapon logic — `src/run/weapons.ts` (slots/level/evolve/firing-params/draft-options), unit-tested
+- [x] `RunScene` fires each equipped weapon on its own cooldown (data-driven), with pierce
+- [x] Level-up draft offers a blend of new-weapon / weapon-level / perk / evolve options
+- [x] All unit tests green (72); `npm run build` clean; live-verified via Playwright (no NaN-HP regression)
 
 ## References
 - Plan: `docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md`

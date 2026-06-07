@@ -43,13 +43,25 @@ before content. Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.m
 Decomposed into four C3 tickets: **RC-006** weapons → **RC-007** enemy/biome/expedition
 systems → **RC-008** Iron content (folds in RC-003) → **RC-009** juice + balance.
 
+## RC-006 — data-driven weapons: SHIPPED (2026-06-07)
+First Iron-slice foundation done (subagent-driven-development; merged to `main`).
+`WeaponDef` catalog (`src/run/weaponData.ts`) + pure `src/run/weapons.ts` (4-slot loadout,
+civ-gated draftable pool, level-ups, perk-paired evolution mechanism) with 22 new unit tests
+(**72 total green**). `RunScene` now fires each equipped weapon on its own cooldown (replaced
+the hardcoded club/spear conditional) and the level-up draft offers a blend of
+new-weapon/level/perk/evolve. Playwright-verified live: two weapons firing at once, level-up
+raises damage, trusted-click draft applies + tracks ownedPerks, no NaN. Evolution is wired
+but dormant until content lands (RC-008). Deferred: retire unused `rollDraft` (RC-007);
+evolution catalog-integrity test (RC-008); bullet `hitSet` perf + draft level label (RC-009).
+
 ## Next step
-**RC-006 — data-driven weapon system** (the first foundation). A build-ready, TDD,
-bite-sized plan exists: `docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md`.
-Execute it via `superpowers:subagent-driven-development` (8 tasks: WeaponDef catalog →
-pure `weapons.ts` logic → RunScene multi-weapon firing + blended draft → Playwright verify).
-After RC-006, write the RC-007 plan, then build, etc. RC-004 (D2 gems) stays a separate
-later art ticket.
+**RC-007 — enemy + biome + expedition systems** (second foundation): `enemyData.ts`,
+`biomeData.ts`, `expedition.ts` (available biome×tier runs + age-scaled difficulty), a
+flat-grid expedition pick screen, the `iron` age plumbing, and 3 base biomes — BEFORE Iron
+content. **Write its plan first** (`superpowers:writing-plans`) from spec §3b/§3c/§5, then
+build via subagent-driven-development. Ticket: `docs/tickets/RC-007-enemy-biome-expedition.md`.
+Then RC-008 (Iron content; folds in RC-003) → RC-009 (juice + balance).
+RC-004 (D2 gems) stays a separate later art ticket.
 
 ## Key docs
 - Design specs: `docs/superpowers/specs/2026-06-05-rogue-civ-design.md`,

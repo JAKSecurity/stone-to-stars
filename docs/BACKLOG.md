@@ -23,7 +23,7 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-003 | Hero evolves visually by age (Bronze/Iron gear) | Open | P2 | C3 | docs/tickets/RC-003-hero-evolves-by-age.md |
 | RC-004 | Multi-tier gems (Diablo II–inspired faceting + quality progression) | Open | P3 | C3 | docs/tickets/RC-004-multi-tier-gems.md |
 | RC-005 | Scope + plan the next age (Iron) content slice | Delivered | P1 | C3 | docs/tickets/RC-005-content-ages-iron-slice.md |
-| RC-006 | Data-driven weapon system | Open | P1 | C3 | docs/tickets/RC-006-data-driven-weapons.md |
+| RC-006 | Data-driven weapon system | Delivered | P1 | C3 | docs/tickets/RC-006-data-driven-weapons.md |
 | RC-007 | Enemy + biome + expedition systems | Open | P2 | C3 | docs/tickets/RC-007-enemy-biome-expedition.md |
 | RC-008 | Iron age content (techs/buildings/biome/enemies/weapons) | Open | P2 | C3 | docs/tickets/RC-008-iron-content.md |
 | RC-009 | Juice + balance pass | Open | P2 | C3 | docs/tickets/RC-009-juice-balance.md |
