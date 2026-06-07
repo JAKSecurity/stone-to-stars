@@ -32,25 +32,38 @@ Phaser (run scene) + HTML/CSS DOM (civ screen).
   `phaserTextures.ts` (run textures) and `domSprite.ts` (civ canvases). `STYLE` in
   `palette.ts` toggles flat/shaded globally. Pure parts unit-tested; visuals via Playwright.
 
+## Iron slice (C3) — scoped & planned (2026-06-07)
+**RC-005 delivered.** Brainstormed with Jeff; five ratified anchors: **systems+content** ·
+**multi-weapon civ-gated pool w/ evolutions** (Vampire-Survivors style) · **pick an
+expedition each run** · **expeditions are biomes** (place + resource bias + signature
+enemies) · **Iron = metallurgy** (deep mining/smelting; Industry+Science lean). Key code
+finding driving the plan: techs/buildings are already data-driven, but **weapons & enemies
+are hardcoded in `RunScene`** and **difficulty doesn't scale by age** — so foundations come
+before content. Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md`.
+Decomposed into four C3 tickets: **RC-006** weapons → **RC-007** enemy/biome/expedition
+systems → **RC-008** Iron content (folds in RC-003) → **RC-009** juice + balance.
+
 ## Next step
-**RC-005 — scope + plan the next age (Iron) content slice** (capability **C3, Content & ages**).
-The slice and art pass are both done; the next thrust is depth. Start with
-`superpowers:brainstorming` **with Jeff** (which ages, new techs/buildings/enemies, weapon
-evolutions, and the deferred P2 juice/balance items), then `superpowers:writing-plans`, then
-decompose into C3 follow-on tickets before building. Ticket:
-`docs/tickets/RC-005-content-ages-iron-slice.md`.
-Queued future art (lower priority): RC-003 (hero evolves by age), RC-004 (Diablo-II multi-tier gems).
+**RC-006 — data-driven weapon system** (the first foundation). A build-ready, TDD,
+bite-sized plan exists: `docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md`.
+Execute it via `superpowers:subagent-driven-development` (8 tasks: WeaponDef catalog →
+pure `weapons.ts` logic → RunScene multi-weapon firing + blended draft → Playwright verify).
+After RC-006, write the RC-007 plan, then build, etc. RC-004 (D2 gems) stays a separate
+later art ticket.
 
 ## Key docs
 - Design specs: `docs/superpowers/specs/2026-06-05-rogue-civ-design.md`,
-  `docs/superpowers/specs/2026-06-06-art-pass-design.md`
+  `docs/superpowers/specs/2026-06-06-art-pass-design.md`,
+  `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` (Iron slice — current)
 - Plans: `docs/superpowers/plans/2026-06-05-rogue-civ-vertical-slice.md`,
-  `docs/superpowers/plans/2026-06-06-art-pass.md`
+  `docs/superpowers/plans/2026-06-06-art-pass.md`,
+  `docs/superpowers/plans/2026-06-06-rc006-data-driven-weapons.md` (next to build)
 - Known issues: `docs/KNOWN_ISSUES.md` (combat bug resolved; remaining = P2 balance + 2 minors)
 - Build-tip research: `docs/research/2026-06-06-lmao-build-tips.md`
 - Hub tracking: `docs/BACKLOG.md` (registered in AI Assistant as slug `rogue-civ`)
-- Tickets: `docs/tickets/` — RC-003 (hero age-evolution), RC-004 (D2 multi-tier gems),
-  RC-005 (next-age content scope/plan — the active next step)
+- Tickets: `docs/tickets/` — RC-005 (Iron slice scope/plan — Delivered), RC-006 (data-driven
+  weapons — next), RC-007 (enemy/biome/expedition systems), RC-008 (Iron content; folds in
+  RC-003 hero age-evolution), RC-009 (juice + balance); RC-004 (D2 multi-tier gems — later art)
 - Art pipeline: `src/art/` + dev preview page `art-preview.html` (`/art-preview.html` in dev)
 
 ## Commands
