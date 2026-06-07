@@ -96,4 +96,12 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Medieval projectile + hero sprites are registered and valid', () => {
+    const medievalSpriteIds = ['shot_bolt', 'shot_slash', 'shot_halberd', 'shot_flail', 'hero_medieval'];
+    for (const id of medievalSpriteIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

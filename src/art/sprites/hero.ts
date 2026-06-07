@@ -72,6 +72,60 @@ export const HERO_IRON: SpriteDef = {
   ],
 };
 
+// Medieval Age variant — plate-armored knight hero. Same 120×150 canvas and pose family.
+// Full steel/steelBlue plate (greaves, cuirass, pauldrons, vambraces), great helm with
+// dark visor slit, kite shield with royal/crimson heraldry, upright longsword.
+// First-pass art; reviewed at the Medieval Phase C gate.
+export const HERO_MEDIEVAL: SpriteDef = {
+  id: 'hero_medieval',
+  w: 120,
+  h: 150,
+  prims: [
+    // legs — full plate greaves over steel cuisses
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 34, rx: 4, color: PAL.steel, role: 'leg' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 34, rx: 4, color: PAL.steel, role: 'leg' },
+    { kind: 'rect', x: 49, y: 108, w: 10, h: 22, rx: 2, color: PAL.steelBlue, role: 'greave' },
+    { kind: 'rect', x: 62, y: 108, w: 10, h: 22, rx: 2, color: PAL.steelBlue, role: 'greave' },
+    // longsword — vertical shaft on right side (same position as HERO spear)
+    { kind: 'line', x1: 85, y1: 20, x2: 85, y2: 120, width: 3, color: PAL.steelBlue, role: 'blade' },
+    // crossguard — horizontal bar at grip transition
+    { kind: 'rect', x: 80, y: 118, w: 10, h: 3, color: PAL.bone, role: 'crossguard' },
+    // grip — short bone handle
+    { kind: 'rect', x: 83, y: 121, w: 4, h: 9, color: PAL.bone, role: 'grip' },
+    // sword tip — triangular steel point at the top
+    { kind: 'poly', points: [[85, 8], [81, 20], [89, 20]], color: PAL.steel, role: 'tip' },
+    // plate cuirass (trapezoid, heavier than iron)
+    { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.steel, role: 'cuirass' },
+    // steelBlue ridges across the breastplate
+    { kind: 'rect', x: 44, y: 68, w: 32, h: 4, rx: 1, color: PAL.steelBlue, role: 'ridge' },
+    { kind: 'rect', x: 44, y: 79, w: 32, h: 4, rx: 1, color: PAL.steelBlue, role: 'ridge' },
+    { kind: 'rect', x: 44, y: 90, w: 32, h: 4, rx: 1, color: PAL.steelBlue, role: 'ridge' },
+    // pauldrons — wide plate shoulder guards
+    { kind: 'rect', x: 34, y: 56, w: 16, h: 10, rx: 3, color: PAL.steelBlue, role: 'pauldron' },
+    { kind: 'rect', x: 70, y: 56, w: 16, h: 10, rx: 3, color: PAL.steelBlue, role: 'pauldron' },
+    // gorget (steel collar covering throat)
+    { kind: 'rect', x: 43, y: 56, w: 34, h: 7, rx: 3, color: PAL.steel, role: 'gorget' },
+    // arms — full plate vambraces + rerebraces (skin covered by plate)
+    { kind: 'rect', x: 33, y: 64, w: 9, h: 28, rx: 4, color: PAL.steel, role: 'arm' },
+    { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.steel, role: 'arm' },
+    { kind: 'rect', x: 33, y: 74, w: 9, h: 16, rx: 2, color: PAL.steelBlue, role: 'vambrace' },
+    { kind: 'rect', x: 78, y: 72, w: 9, h: 18, rx: 2, color: PAL.steelBlue, role: 'vambrace' },
+    // great helm — full enclosing bowl with flat top
+    { kind: 'poly', points: [[44, 40], [44, 26], [48, 19], [60, 17], [72, 19], [76, 26], [76, 40]], color: PAL.steel, role: 'helm' },
+    // visor slit — dark horizontal bar across face (no skin visible)
+    { kind: 'rect', x: 46, y: 33, w: 28, h: 5, color: PAL.castleStoneDark, role: 'visor' },
+    // helm ridges for detail
+    { kind: 'rect', x: 44, y: 26, w: 32, h: 3, rx: 1, color: PAL.steelBlue, role: 'helmRidge' },
+    // kite shield — pointed-bottom heater shape at same shield position as HERO
+    { kind: 'poly', points: [[22, 72], [48, 72], [48, 90], [35, 100], [22, 90]], color: PAL.royal, role: 'shield' },
+    // heraldry cross — crimson cross on the kite shield
+    { kind: 'rect', x: 32, y: 73, w: 6, h: 26, color: PAL.crimson, role: 'heraldry' },
+    { kind: 'rect', x: 23, y: 81, w: 24, h: 6, color: PAL.crimson, role: 'heraldry' },
+    // shield boss — steel center boss
+    { kind: 'circle', cx: 35, cy: 84, r: 4, color: PAL.steel, role: 'boss' },
+  ],
+};
+
 // Classical Age variant — Greek hoplite hero. Same 120×150 canvas and pose family.
 // Bronze-gold cuirass, toga tunic, oxblood-plumed Corinthian helm, hoplon shield, spear.
 // First-pass art; reviewed at the Classical Phase C gate.

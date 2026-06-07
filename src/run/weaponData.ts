@@ -140,6 +140,78 @@ export const WEAPONS: Record<string, WeaponDef> = {
     evolvesTo: 'chakram', evolveRequiresPerk: 'sharpen',
   },
 
+  // --- Medieval Age base weapons ---
+  crossbow: {
+    id: 'crossbow', name: 'Crossbow', tier: 'medieval',
+    projectileSprite: 'shot_bolt',
+    cooldownMs: 650, damage: 30, count: 1, spread: 0, speed: 560,
+    behavior: 'pierce', pierce: 2,
+    maxLevel: 5,
+    levelScaling: { damage: 9, cooldownMs: -40 },
+    evolvesTo: 'arbalest', evolveRequiresPerk: 'magnet',
+  },
+  longsword: {
+    id: 'longsword', name: 'Longsword', tier: 'medieval',
+    projectileSprite: 'shot_slash',
+    cooldownMs: 420, damage: 28, count: 1, spread: 0, speed: 470,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 8, cooldownMs: -30 },
+    evolvesTo: 'greatsword', evolveRequiresPerk: 'vigor',
+  },
+  halberd: {
+    id: 'halberd', name: 'Halberd', tier: 'medieval',
+    projectileSprite: 'shot_halberd',
+    cooldownMs: 820, damage: 44, count: 1, spread: 0, speed: 420,
+    behavior: 'pierce', pierce: 3,
+    maxLevel: 5,
+    levelScaling: { damage: 13, cooldownMs: -50 },
+    evolvesTo: 'poleaxe', evolveRequiresPerk: 'sharpen',
+  },
+  flail: {
+    id: 'flail', name: 'Flail', tier: 'medieval',
+    projectileSprite: 'shot_flail',
+    cooldownMs: 560, damage: 18, count: 3, spread: 0.5, speed: 360,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 6 },
+    evolvesTo: 'morningstar', evolveRequiresPerk: 'rapid',
+  },
+
+  // --- Medieval Age evolved forms ---
+  arbalest: {
+    id: 'arbalest', name: 'Arbalest', tier: 'medieval',
+    projectileSprite: 'shot_bolt',
+    cooldownMs: 540, damage: 42, count: 2, spread: 0.15, speed: 600,
+    behavior: 'pierce', pierce: 4,
+    maxLevel: 5,
+    levelScaling: { damage: 12, cooldownMs: -40 },
+  },
+  greatsword: {
+    id: 'greatsword', name: 'Greatsword', tier: 'medieval',
+    projectileSprite: 'shot_slash',
+    cooldownMs: 460, damage: 30, count: 3, spread: 0.45, speed: 490,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 9 },
+  },
+  poleaxe: {
+    id: 'poleaxe', name: 'Poleaxe', tier: 'medieval',
+    projectileSprite: 'shot_halberd',
+    cooldownMs: 640, damage: 62, count: 2, spread: 0.2, speed: 460,
+    behavior: 'pierce', pierce: 5,
+    maxLevel: 5,
+    levelScaling: { damage: 16, cooldownMs: -50 },
+  },
+  morningstar: {
+    id: 'morningstar', name: 'Morningstar', tier: 'medieval',
+    projectileSprite: 'shot_flail',
+    cooldownMs: 460, damage: 26, count: 4, spread: 0.6, speed: 380,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 8 },
+  },
+
   // --- Classical Age evolved forms ---
   pilum_storm: {
     id: 'pilum_storm', name: 'Pilum Storm', tier: 'classical',

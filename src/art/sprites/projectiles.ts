@@ -91,6 +91,56 @@ export const SHOT_DISCUS: SpriteDef = {
   ],
 };
 
+// Medieval Age projectile sprites
+
+export const SHOT_BOLT: SpriteDef = {
+  id: 'shot_bolt', w: 14, h: 10, shadow: false,
+  prims: [
+    // shaft — narrow bone/leather poly running left to right
+    { kind: 'poly', points: [[1, 4], [11, 4], [11, 6], [1, 6]], color: PAL.bone, role: 'shaft' },
+    // steel head — triangular point at the right end
+    { kind: 'poly', points: [[11, 2], [13, 5], [11, 8]], color: PAL.steel, role: 'head' },
+    // fletching — small leather fin at the tail
+    { kind: 'poly', points: [[1, 4], [4, 1], [4, 4]], color: PAL.leather, role: 'fletching' },
+    { kind: 'poly', points: [[1, 6], [4, 9], [4, 6]], color: PAL.leather, role: 'fletching' },
+  ],
+};
+
+export const SHOT_SLASH: SpriteDef = {
+  id: 'shot_slash', w: 16, h: 14, shadow: false,
+  prims: [
+    // sword-slash arc — a steel/steelBlue crescent poly
+    { kind: 'poly', points: [[2, 12], [1, 7], [3, 3], [7, 1], [11, 2], [13, 5], [10, 4], [7, 3], [4, 5], [3, 8], [5, 12]], color: PAL.steel, role: 'arc' },
+    // inner highlight — steelBlue accent along the inner curve
+    { kind: 'poly', points: [[4, 11], [3, 7], [5, 4], [8, 3], [10, 4], [8, 5], [5, 6], [4, 9]], color: PAL.steelBlue, role: 'shine' },
+  ],
+};
+
+export const SHOT_HALBERD: SpriteDef = {
+  id: 'shot_halberd', w: 16, h: 14, shadow: false,
+  prims: [
+    // leather shaft stub — short vertical bar at the bottom
+    { kind: 'rect', x: 7, y: 9, w: 3, h: 5, color: PAL.leather, role: 'shaft' },
+    // steel axe blade — large poly sweeping right
+    { kind: 'poly', points: [[4, 8], [8, 1], [15, 3], [14, 8], [9, 9]], color: PAL.steel, role: 'blade' },
+    // blade edge — dark steel highlight along the top
+    { kind: 'poly', points: [[8, 1], [15, 3], [14, 5], [9, 3]], color: PAL.steelBlue, role: 'edge' },
+  ],
+};
+
+export const SHOT_FLAIL: SpriteDef = {
+  id: 'shot_flail', w: 14, h: 14, shadow: false,
+  prims: [
+    // spiked ball body — ironDark circle
+    { kind: 'circle', cx: 7, cy: 7, r: 4, color: PAL.ironDark, role: 'ball' },
+    // steel spike triangles radiating outward
+    { kind: 'poly', points: [[7, 1], [5, 3], [9, 3]], color: PAL.steel, role: 'spike' },
+    { kind: 'poly', points: [[13, 7], [11, 5], [11, 9]], color: PAL.steel, role: 'spike' },
+    { kind: 'poly', points: [[7, 13], [5, 11], [9, 11]], color: PAL.steel, role: 'spike' },
+    { kind: 'poly', points: [[1, 7], [3, 5], [3, 9]], color: PAL.steel, role: 'spike' },
+  ],
+};
+
 export const PROJECTILES: SpriteDef[] = [
   SHOT_CLUB,
   SHOT_BRONZE,
@@ -102,4 +152,8 @@ export const PROJECTILES: SpriteDef[] = [
   SHOT_GLADIUS,
   SHOT_BALLISTA,
   SHOT_DISCUS,
+  SHOT_BOLT,
+  SHOT_SLASH,
+  SHOT_HALBERD,
+  SHOT_FLAIL,
 ];
