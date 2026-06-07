@@ -9,9 +9,9 @@ export const HERO: SpriteDef = {
     // legs
     { kind: 'rect', x: 49, y: 96, w: 10, h: 34, rx: 4, color: PAL.leather, role: 'leg' },
     { kind: 'rect', x: 62, y: 96, w: 10, h: 34, rx: 4, color: PAL.leather, role: 'leg' },
-    // spear
-    { kind: 'line', x1: 90, y1: 22, x2: 78, y2: 134, width: 4, color: PAL.wood, role: 'spear' },
-    { kind: 'poly', points: [[90, 13], [84, 29], [97, 27]], color: PAL.metal, role: 'spearTip' },
+    // spear (vertical shaft so the tip lines up squarely with it)
+    { kind: 'line', x1: 85, y1: 18, x2: 85, y2: 134, width: 4, color: PAL.wood, role: 'spear' },
+    { kind: 'poly', points: [[85, 6], [79, 22], [91, 22]], color: PAL.metal, role: 'spearTip' },
     // tunic (trapezoid)
     { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.tunic, role: 'body' },
     { kind: 'rect', x: 43, y: 57, w: 34, h: 8, rx: 4, color: PAL.trim, role: 'trim' },
