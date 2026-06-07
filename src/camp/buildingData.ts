@@ -76,4 +76,10 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     yield:{science:9}, runBonus:{ draftChoices:1 }, maxLevel:3 },
   bank: { id:'bank', name:'Bank', baseCost:{industry:45,exploration:40},
     yield:{exploration:7,culture:4}, runBonus:{ maxHp:45 }, maxLevel:3 },
+  factory: { id:'factory', name:'Factory', baseCost:{industry:90,science:40},
+    yield:{industry:14}, runBonus:{ damageMult:0.18, weapons:['flamethrower'] }, maxLevel:3 },
+  powerplant: { id:'powerplant', name:'Power Plant', baseCost:{science:70,industry:50},
+    yield:{science:11}, runBonus:{ damageMult:0.16 }, maxLevel:3 },
+  arsenal: { id:'arsenal', name:'Arsenal', baseCost:{industry:80,science:40},
+    yield:{industry:12}, runBonus:{ maxHp:50, weapons:['dynamite'] }, maxLevel:3 },
 };

@@ -442,4 +442,111 @@ export const BANK: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK];
+// FACTORY — industrial plant: hutBase(false) + tall riveted smokestack with steam/coal smoke puffs,
+// riveted castIron wall plating, furnace glow at a vent. Distinct from iron-age foundry/smelter.
+export const FACTORY: SpriteDef = {
+  id: 'factory',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — factory front replaces it
+    // castIron wall plating overlay — heavy riveted industrial cladding
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 2, color: PAL.castIron, role: 'wallPlating' },
+    // rivet rows across the plating (three horizontal bands of dark dots, rendered as thin rects)
+    { kind: 'rect', x: 24, y: 56, w: 48, h: 3, rx: 1, color: PAL.rivet, role: 'rivetBand' },
+    { kind: 'rect', x: 24, y: 66, w: 48, h: 3, rx: 1, color: PAL.rivet, role: 'rivetBand' },
+    { kind: 'rect', x: 24, y: 76, w: 48, h: 3, rx: 1, color: PAL.rivet, role: 'rivetBand' },
+    // rivet dot accents at corners of the plating
+    { kind: 'circle', cx: 28, cy: 57, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 68, cy: 57, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 28, cy: 77, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 68, cy: 77, r: 2, color: PAL.rivet, role: 'rivet' },
+    // tall smokestack rising from the right side of the roof — main industrial read
+    { kind: 'rect', x: 60, y: 8, w: 12, h: 46, rx: 2, color: PAL.castIron, role: 'smokestack' },
+    // rivet bands on the smokestack
+    { kind: 'rect', x: 58, y: 20, w: 16, h: 3, rx: 1, color: PAL.rivet, role: 'stackRivet' },
+    { kind: 'rect', x: 58, y: 36, w: 16, h: 3, rx: 1, color: PAL.rivet, role: 'stackRivet' },
+    // smokestack cap (flared top)
+    { kind: 'rect', x: 57, y: 6, w: 18, h: 5, rx: 2, color: PAL.rivet, role: 'stackCap' },
+    // steam/coal smoke puffs bilging from the stack top
+    { kind: 'circle', cx: 66, cy: 3, r: 4, color: PAL.steam, role: 'smoke' },
+    { kind: 'circle', cx: 72, cy: 1, r: 3, color: PAL.coal, role: 'smoke' },
+    { kind: 'circle', cx: 60, cy: 2, r: 3, color: PAL.steam, role: 'smoke' },
+    // furnace vent on the lower left of the plating — glowing furnace opening
+    { kind: 'rect', x: 28, y: 80, w: 16, h: 9, rx: 3, color: PAL.coal, role: 'vent' },
+    { kind: 'rect', x: 30, y: 82, w: 12, h: 6, rx: 2, color: PAL.furnace, role: 'furnaceGlow' },
+    { kind: 'rect', x: 33, y: 84, w: 6, h: 3, rx: 1, color: PAL.ember, role: 'furnaceCore' },
+  ],
+};
+
+// POWERPLANT — a power station: hutBase(false) + copper coils/pipes + electric arc/spark (cyan zigzag) + castIron tank.
+export const POWERPLANT: SpriteDef = {
+  id: 'powerplant',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — power station front replaces it
+    // castIron main body / generator hall (darker, heavier than the hut base)
+    { kind: 'rect', x: 20, y: 44, w: 56, h: 46, rx: 2, color: PAL.castIron, role: 'hallBody' },
+    // rivet band across the hall top
+    { kind: 'rect', x: 20, y: 48, w: 56, h: 3, rx: 1, color: PAL.rivet, role: 'rivetBand' },
+    // large copper boiler tank (dome-topped cylinder on the left)
+    { kind: 'rect', x: 22, y: 56, w: 20, h: 28, rx: 3, color: PAL.copper, role: 'boilerBody' },
+    { kind: 'circle', cx: 32, cy: 56, r: 10, color: PAL.copper, role: 'boilerDome' },
+    // copper pipe running from the boiler across to the right
+    { kind: 'rect', x: 42, y: 60, w: 30, h: 6, rx: 3, color: PAL.copper, role: 'pipe' },
+    // pipe elbow joint (small circle at the junction)
+    { kind: 'circle', cx: 44, cy: 63, r: 4, color: PAL.copper, role: 'pipeJoint' },
+    // steam release valve on the boiler (small circle on top)
+    { kind: 'circle', cx: 32, cy: 46, r: 3, color: PAL.steam, role: 'valve' },
+    { kind: 'rect', x: 30, y: 43, w: 4, h: 5, rx: 1, color: PAL.copper, role: 'valveStem' },
+    // electric arc / spark — cyan zigzag poly (distinctive electric read)
+    { kind: 'poly', points: [[62, 48], [56, 58], [62, 56], [56, 68]], color: PAL.electric, role: 'arc' },
+    { kind: 'poly', points: [[68, 46], [62, 56], [68, 54], [62, 66]], color: PAL.electric, role: 'arc' },
+    // insulator discs flanking the arc (small castIron circles — reads as electrical insulator stack)
+    { kind: 'circle', cx: 58, cy: 70, r: 4, color: PAL.castIron, role: 'insulator' },
+    { kind: 'circle', cx: 68, cy: 70, r: 4, color: PAL.castIron, role: 'insulator' },
+    { kind: 'circle', cx: 58, cy: 70, r: 2, color: PAL.rivet, role: 'insulatorCore' },
+    { kind: 'circle', cx: 68, cy: 70, r: 2, color: PAL.rivet, role: 'insulatorCore' },
+    // control panel / switch box on the lower right (riveted castIron plate with electric indicator)
+    { kind: 'rect', x: 54, y: 74, w: 18, h: 14, rx: 2, color: PAL.rivet, role: 'controlPanel' },
+    { kind: 'circle', cx: 60, cy: 81, r: 3, color: PAL.electric, role: 'indicator' },
+    { kind: 'circle', cx: 68, cy: 81, r: 3, color: PAL.steam, role: 'indicator' },
+  ],
+};
+
+// ARSENAL — a munitions depot: hutBase() + stacked furnace/castIron shells/barrels + copper/steam crate, riveted door.
+// Distinct from medieval armory (industrial shells/barrels vs medieval blades/shields).
+export const ARSENAL: SpriteDef = {
+  id: 'arsenal',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(), // keep the standard door — it gets a riveted overlay
+    // riveted castIron door overlay (militarised, industrial look over the standard door)
+    { kind: 'rect', x: 41, y: 65, w: 14, h: 25, rx: 1, color: PAL.castIron, role: 'ironDoor' },
+    { kind: 'rect', x: 41, y: 70, w: 14, h: 3, rx: 1, color: PAL.rivet, role: 'doorRivet' },
+    { kind: 'rect', x: 41, y: 79, w: 14, h: 3, rx: 1, color: PAL.rivet, role: 'doorRivet' },
+    { kind: 'circle', cx: 52, cy: 80, r: 2, color: PAL.copper, role: 'doorKnob' },
+    // stacked artillery shells against the left wall (furnace orange + castIron base — military read)
+    { kind: 'poly', points: [[14, 90], [22, 90], [20, 72], [16, 72]], color: PAL.castIron, role: 'shell' },
+    { kind: 'poly', points: [[16, 72], [20, 72], [18, 64]], color: PAL.furnace, role: 'shellNose' },
+    { kind: 'poly', points: [[22, 90], [30, 90], [28, 72], [24, 72]], color: PAL.castIron, role: 'shell' },
+    { kind: 'poly', points: [[24, 72], [28, 72], [26, 64]], color: PAL.furnace, role: 'shellNose' },
+    // a third shell leaning: wider base reads as heavy ordnance
+    { kind: 'poly', points: [[14, 90], [30, 90], [28, 84], [16, 84]], color: PAL.rivet, role: 'shellBase' },
+    // copper/steam packing crate to the right — stamped military crate look
+    { kind: 'rect', x: 64, y: 68, w: 20, h: 18, rx: 2, color: PAL.copper, role: 'crate' },
+    { kind: 'rect', x: 64, y: 72, w: 20, h: 3, rx: 1, color: PAL.castIron, role: 'crateStripe' },
+    { kind: 'rect', x: 64, y: 79, w: 20, h: 3, rx: 1, color: PAL.castIron, role: 'crateStripe' },
+    // steam pressure gauge on the crate lid (small circle — industrial detail)
+    { kind: 'circle', cx: 74, cy: 68, r: 4, color: PAL.steam, role: 'gauge' },
+    { kind: 'circle', cx: 74, cy: 68, r: 2, color: PAL.castIron, role: 'gaugeNeedle' },
+    // powder barrel beside the crate (coal dark body, copper hoop bands)
+    { kind: 'rect', x: 66, y: 82, w: 14, h: 9, rx: 4, color: PAL.coal, role: 'powderBarrel' },
+    { kind: 'rect', x: 64, y: 83, w: 18, h: 3, rx: 1, color: PAL.copper, role: 'barrelHoop' },
+    { kind: 'rect', x: 64, y: 88, w: 18, h: 2, rx: 1, color: PAL.copper, role: 'barrelHoop' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK, FACTORY, POWERPLANT, ARSENAL];

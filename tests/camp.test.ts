@@ -7,9 +7,9 @@ import { research } from '../src/tech/tech';
 const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
 
 describe('camp', () => {
-  it('defines granary, mine, forge, smelter, foundry, deep_mine, classical buildings (academy, market, workshop), medieval buildings (armory, cathedral, keep), and renaissance buildings (bank, gunsmith, university)', () => {
+  it('defines granary, mine, forge, smelter, foundry, deep_mine, classical buildings (academy, market, workshop), medieval buildings (armory, cathedral, keep), renaissance buildings (bank, gunsmith, university), and industrial buildings (arsenal, factory, powerplant)', () => {
     expect(Object.keys(BUILDINGS).sort()).toEqual(
-      ['academy', 'armory', 'bank', 'cathedral', 'deep_mine', 'forge', 'foundry', 'granary', 'gunsmith', 'keep', 'market', 'mine', 'smelter', 'university', 'workshop'],
+      ['academy', 'armory', 'arsenal', 'bank', 'cathedral', 'deep_mine', 'forge', 'foundry', 'factory', 'granary', 'gunsmith', 'keep', 'market', 'mine', 'powerplant', 'smelter', 'university', 'workshop'].sort(),
     );
   });
 
