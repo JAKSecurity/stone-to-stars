@@ -1,17 +1,19 @@
 import './style.css';
 import Phaser from 'phaser';
-import { CivState, RunModifiers, RunResult } from './game/types';
+import { CivState, RunModifiers, RunResult, Expedition } from './game/types';
 import { newCivState, applyRunResult } from './state/civState';
 import { load, save } from './state/saveLoad';
 import { research } from './tech/tech';
 import { build, upgradeBuilding } from './camp/camp';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen } from './ui/civScreen';
+import { renderExpeditionScreen } from './ui/expeditionScreen';
 import { RunScene } from './scenes/RunScene';
 import { registerTextures } from './art/phaserTextures';
 
 const civEl = document.getElementById('civ')!;
 const runEl = document.getElementById('run')!;
+const expEl = document.getElementById('expedition')!;
 
 let civ: CivState = load() ?? newCivState();
 
@@ -32,6 +34,7 @@ game.events.once(Phaser.Core.Events.READY, () => registerTextures(game));
 
 function showCiv() {
   runEl.classList.remove('active');
+  expEl.classList.remove('active');
   civEl.classList.remove('hidden');
   renderCivScreen(civEl, civ, {
     onResearch: (id) => { civ = research(civ, id); persist(); showCiv(); },
@@ -42,12 +45,23 @@ function showCiv() {
 }
 
 function startRun() {
+  // Step 1: choose an expedition.
   civEl.classList.add('hidden');
+  expEl.classList.add('active');
+  renderExpeditionScreen(expEl, civ, {
+    onPick: (expedition: Expedition) => launchExpedition(expedition),
+    onBack: () => { expEl.classList.remove('active'); showCiv(); },
+  });
+}
+
+function launchExpedition(expedition: Expedition) {
+  expEl.classList.remove('active');
   runEl.classList.add('active');
   const modifiers: RunModifiers = computeRunModifiers(civ);
   game.scene.stop('run');
   game.scene.start('run', {
     modifiers,
+    expedition,
     onComplete: (result: RunResult) => onRunComplete(result),
   });
 }
