@@ -19,6 +19,16 @@ shape-data pipeline. **Folds in RC-003** (hero sprite reflects the Iron age).
 - [ ] Reachable end-to-end: research Iron Working → cross into Iron → run Deep Caverns; tests green; Playwright-verified
 - [ ] Write the RC-008 implementation plan before building
 
+## Notes (carried from RC-007 review)
+- **Add a `name` field to `EnemyDef`.** The expedition pick screen lists a biome's foes via
+  `Object.keys(spawnTable)` — raw enemy ids. Fine for `beast`/`scholar`, but new Iron enemies
+  (cave dweller, rock golem, automaton, Iron Golem) need human names. Add `EnemyDef.name` and
+  have `expeditionScreen.ts` display `ENEMIES[id].name`.
+- The systems are art-free and complete; this ticket adds `ENEMIES`/`BIOMES`/`WEAPONS` entries
+  + sprites only (no engine work). Wire `evolvesTo`/`evolveRequiresPerk` on the new weapons and
+  add a catalog-integrity test asserting every `evolvesTo` references a real weapon (carried
+  from RC-006 review).
+
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §4
 - Depends on RC-007 (systems). Folds in RC-003. Decomposed from RC-005.
