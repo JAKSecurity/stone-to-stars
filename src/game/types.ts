@@ -6,6 +6,28 @@ export type AgeId = 'stone' | 'bronze';
 /** Ascending order; index = how advanced. */
 export const AGE_ORDER: AgeId[] = ['stone', 'bronze'];
 
+export interface WeaponDef {
+  id: string;
+  name: string;
+  tier: AgeId;                 // for pool gating / display
+  projectileSprite: string;    // art registry texture id (e.g. 'shot_club')
+  cooldownMs: number;          // base time between volleys
+  damage: number;              // base damage per projectile
+  count: number;               // projectiles per volley
+  spread: number;              // total fan angle (radians) across the volley when count > 1
+  speed: number;               // projectile px/s
+  behavior: 'straight' | 'pierce' | 'orbit' | 'cone' | 'lob';
+  pierce?: number;             // distinct enemies a projectile passes through (behavior 'pierce')
+  maxLevel: number;
+  levelScaling: {              // per-level deltas applied (level - 1) times
+    damage?: number;
+    cooldownMs?: number;
+    count?: number;
+  };
+  evolvesTo?: string;          // weapon id of the evolved form
+  evolveRequiresPerk?: string; // perk id that, owned while this weapon is maxed, enables evolution
+}
+
 export interface RunBonus {
   maxHp?: number;       // flat add
   damageMult?: number;  // additive fraction, 0.1 = +10%
