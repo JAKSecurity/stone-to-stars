@@ -16,6 +16,7 @@ interface RunInit {
   modifiers: RunModifiers;
   expedition: Expedition;
   onComplete: (result: RunResult) => void;
+  heroSprite?: string;
 }
 
 export class RunScene extends Phaser.Scene {
@@ -42,6 +43,7 @@ export class RunScene extends Phaser.Scene {
   private paused = false;
   private finished = false;
   private hud!: Phaser.GameObjects.Text;
+  private heroSprite = 'hero';
 
   constructor() { super('run'); }
 
@@ -50,6 +52,7 @@ export class RunScene extends Phaser.Scene {
     this.onComplete = data.onComplete;
     this.expedition = data.expedition;
     this.biome = BIOMES[data.expedition.biomeId];
+    this.heroSprite = data.heroSprite ?? 'hero';
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0; this.spawnCooldown = 0;
@@ -62,7 +65,7 @@ export class RunScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-    const player = this.add.image(width / 2, height / 2, 'hero');
+    const player = this.add.image(width / 2, height / 2, this.heroSprite);
     player.setDisplaySize(34, 42); // scale 120x150 art down to play size
     this.physics.add.existing(player);
     this.player = player as any;

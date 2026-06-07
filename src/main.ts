@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import { CivState, RunModifiers, RunResult, Expedition } from './game/types';
 import { newCivState, applyRunResult } from './state/civState';
 import { load, save } from './state/saveLoad';
-import { research } from './tech/tech';
+import { research, getAge } from './tech/tech';
 import { build, upgradeBuilding } from './camp/camp';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen } from './ui/civScreen';
@@ -62,6 +62,7 @@ function launchExpedition(expedition: Expedition) {
   game.scene.start('run', {
     modifiers,
     expedition,
+    heroSprite: getAge(civ) === 'iron' ? 'hero_iron' : 'hero',
     onComplete: (result: RunResult) => onRunComplete(result),
   });
 }

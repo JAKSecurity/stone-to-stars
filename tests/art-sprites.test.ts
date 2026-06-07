@@ -51,4 +51,9 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Iron Age hero sprite is registered and valid', () => {
+    expect(SPRITES['hero_iron'], 'sprite hero_iron should be registered').toBeDefined();
+    expect(validateSpriteDef(SPRITES['hero_iron']), `sprite hero_iron: ${validateSpriteDef(SPRITES['hero_iron']).join('; ')}`).toEqual([]);
+  });
 });
