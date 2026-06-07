@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rogue · Civ — Art Preview</title>
+<style>
+  body { margin: 0; font-family: ui-monospace, Consolas, monospace; background: #0b0e16; color: #cbd5e1; }
+  header {
+    position: sticky; top: 0; z-index: 5; background: #0b0e16;
+    padding: 14px 22px; border-bottom: 1px solid #2a3344;
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: 0.04em; }
+  .sub { font-size: 12px; color: #6b7686; }
+  button { font-family: inherit; font-size: 13px; background: #1f2a3a; color: #cbd5e1;
+    border: 1px solid #2a3344; padding: 6px 12px; cursor: pointer; border-radius: 4px; }
+  button.active { background: #238636; border-color: #2ea043; color: #fff; }
+  .controls { margin-left: auto; display: flex; gap: 14px; align-items: center; font-size: 13px; }
+  input[type=range] { vertical-align: middle; }
+  #grid { display: flex; flex-wrap: wrap; gap: 30px; padding: 28px; align-items: flex-end; }
+  .card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  canvas { border: 1px solid #2a3344; image-rendering: auto; }
+  .cap { font-size: 12px; color: #94a3b8; text-align: center; }
+  .empty { padding: 40px; color: #6b7686; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Rogue · Civ — Art Preview</h1>
+      <div class="sub">renders every registered SpriteDef through the real art pipeline</div>
+    </div>
+    <span>style:</span>
+    <button id="flat" class="active">flat</button>
+    <button id="shaded">shaded</button>
+    <div class="controls">
+      <label>scale <input id="scale" type="range" min="1" max="6" value="3" step="0.5" /></label>
+      <span id="scaleval">3x</span>
+      <button id="bg">bg: dark</button>
+    </div>
+  </header>
+  <div id="grid"></div>
+
+  <script type="module">
+    import { SPRITES } from '/src/art/registry.ts';
+    import { renderSprite } from '/src/art/render.ts';
+
+    let style = 'flat';
+    let scale = 3;
+    let lightBg = false;
+    const grid = document.getElementById('grid');
+
+    function draw() {
+      grid.innerHTML = '';
+      const defs = Object.values(SPRITES);
+      if (defs.length === 0) { grid.innerHTML = '<div class="empty">no sprites registered yet</div>'; return; }
+      const bg = lightBg ? '#cdd3da' : '#10141f';
+      for (const def of defs) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const c = document.createElement('canvas');
+        c.width = Math.round(def.w * scale);
+        c.height = Math.round(def.h * scale);
+        c.style.background = bg;
+        const ctx = c.getContext('2d');
+        ctx.scale(scale, scale);
+        renderSprite(ctx, def, style);
+        const cap = document.createElement('div');
+        cap.className = 'cap';
+        cap.textContent = `${def.id}   ${def.w}×${def.h}`;
+        card.appendChild(c);
+        card.appendChild(cap);
+        grid.appendChild(card);
+      }
+    }
+
+    function setStyle(s) {
+      style = s;
+      document.getElementById('flat').classList.toggle('active', s === 'flat');
+      document.getElementById('shaded').classList.toggle('active', s === 'shaded');
+      draw();
+    }
+    document.getElementById('flat').onclick = () => setStyle('flat');
+    document.getElementById('shaded').onclick = () => setStyle('shaded');
+
+    const scaleEl = document.getElementById('scale');
+    scaleEl.oninput = () => {
+      scale = parseFloat(scaleEl.value);
+      document.getElementById('scaleval').textContent = `${scale}x`;
+      draw();
+    };
+
+    const bgBtn = document.getElementById('bg');
+    bgBtn.onclick = () => { lightBg = !lightBg; bgBtn.textContent = `bg: ${lightBg ? 'light' : 'dark'}`; draw(); };
+
+    draw();
+  </script>
+</body>
+</html>
