@@ -70,7 +70,10 @@ export interface BiomeDef {
   id: string;
   name: string;
   minAge: AgeId;                                    // unlock gate
-  resourceBias: Partial<Record<Resource, number>>; // >1 faucets that resource faster
+  // Resource lean shown on the pick screen. For exploration/culture the value also
+  // scales the in-run passive faucet (>1 = faster tick/relics). Industry/science are
+  // faucetted by the spawn table composition, so their value is display-only.
+  resourceBias: Partial<Record<Resource, number>>;
   spawnTable: Record<string, number>;              // enemyId -> spawn weight
   tint: string;                                     // run background color
 }

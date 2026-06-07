@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { AGE_ORDER } from '../src/game/types';
-import { tierScaling } from '../src/run/expedition';
+import { tierScaling, availableExpeditions, pickEnemy } from '../src/run/expedition';
+import { newCivState } from '../src/state/civState';
+import { research } from '../src/tech/tech';
+
+const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
 
 describe('age order', () => {
   it('runs stone → bronze → iron', () => {
@@ -17,12 +21,6 @@ describe('tierScaling', () => {
     expect(tierScaling(2)).toEqual({ hpMult: 2, speedMult: 1.2, spawnRateMult: 1.5, dropMult: 2 });
   });
 });
-
-import { availableExpeditions, pickEnemy } from '../src/run/expedition';
-import { newCivState } from '../src/state/civState';
-import { research } from '../src/tech/tech';
-
-const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
 
 describe('availableExpeditions', () => {
   it('a fresh (stone) civ gets only the stone biomes at tier 0', () => {
