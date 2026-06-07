@@ -12,6 +12,8 @@ dist/
 .playwright-mcp/
 /civ-screen-boot.png
 /run-midplay.png
+/rc0*.png
+/nightly-*.png
 
 # Raw research dumps (distilled versions live in docs/research/)
 /i_had_opus_48_build_temu_league_of_legends.txt
