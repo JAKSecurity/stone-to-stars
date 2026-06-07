@@ -1,7 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import {
   MAX_WEAPON_SLOTS, initialWeapons, addWeapon, levelWeapon,
+  evolutionFor, applyEvolve,
 } from '../src/run/weapons';
+import { WeaponDef } from '../src/game/types';
+
+// A self-contained fixture so the test does not depend on RC-008 content.
+const FIXTURE: Record<string, WeaponDef> = {
+  spark: {
+    id: 'spark', name: 'Spark', tier: 'stone', projectileSprite: 'x',
+    cooldownMs: 500, damage: 5, count: 1, spread: 0, speed: 400, behavior: 'straight',
+    maxLevel: 3, levelScaling: {}, evolvesTo: 'blaze', evolveRequiresPerk: 'sharpen',
+  },
+  blaze: {
+    id: 'blaze', name: 'Blaze', tier: 'bronze', projectileSprite: 'x',
+    cooldownMs: 400, damage: 12, count: 2, spread: 0.2, speed: 440, behavior: 'cone',
+    maxLevel: 3, levelScaling: {},
+  },
+};
 
 describe('weapons — slots', () => {
   it('a run starts with only the base club at level 1', () => {
@@ -35,5 +51,31 @@ describe('weapons — slots', () => {
     const eq = [{ id: 'club', level: 1 }];
     levelWeapon(eq, 'club');
     expect(eq).toEqual([{ id: 'club', level: 1 }]);
+  });
+});
+
+describe('weapons — evolution', () => {
+  it('evolutionFor returns the evolved id when maxed and the perk is owned', () => {
+    const r = evolutionFor({ id: 'spark', level: 3 }, ['sharpen'], FIXTURE);
+    expect(r).toBe('blaze');
+  });
+
+  it('evolutionFor returns null when below max level', () => {
+    expect(evolutionFor({ id: 'spark', level: 2 }, ['sharpen'], FIXTURE)).toBeNull();
+  });
+
+  it('evolutionFor returns null when the required perk is not owned', () => {
+    expect(evolutionFor({ id: 'spark', level: 3 }, ['rapid'], FIXTURE)).toBeNull();
+  });
+
+  it('evolutionFor returns null for a weapon with no evolution', () => {
+    expect(evolutionFor({ id: 'blaze', level: 3 }, ['sharpen'], FIXTURE)).toBeNull();
+  });
+
+  it('applyEvolve replaces the weapon with its evolved form at level 1', () => {
+    const eq = [{ id: 'club', level: 2 }, { id: 'spark', level: 3 }];
+    expect(applyEvolve(eq, 'spark', 'blaze')).toEqual([
+      { id: 'club', level: 2 }, { id: 'blaze', level: 1 },
+    ]);
   });
 });
