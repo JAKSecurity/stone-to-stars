@@ -20,7 +20,7 @@ export const HERO: SpriteDef = {
     { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.skin, role: 'arm' },
     // head + hair
     { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
-    { kind: 'poly', points: [[45, 38], [60, 20], [75, 38]], color: PAL.hair, role: 'hair' },
+    { kind: 'poly', points: [[43, 37], [44, 28], [49, 23], [55, 21], [60, 21], [65, 21], [71, 23], [76, 28], [77, 37]], color: PAL.hair, role: 'hair' },
     // shield
     { kind: 'circle', cx: 35, cy: 84, r: 13, color: PAL.shieldRed, role: 'shield' },
     { kind: 'circle', cx: 35, cy: 84, r: 4, color: PAL.trim, role: 'boss' },
