@@ -20,6 +20,10 @@ shape-data pipeline. **Folds in RC-003** (hero sprite reflects the Iron age).
 - [ ] Write the RC-008 implementation plan before building
 
 ## Notes (carried from RC-007 review)
+- **Fix the age label in `src/ui/civScreen.ts:41`.** It's a binary `getAge(civ) === 'bronze' ?
+  'Bronze' : 'Stone'`, so reaching Iron will display as "Stone". Make it render all ages (e.g.
+  capitalize `getAge(civ)` or a label map) — this MUST land with the iron-gating tech or the HUD
+  is wrong the moment a player crosses into Iron.
 - **Add a `name` field to `EnemyDef`.** The expedition pick screen lists a biome's foes via
   `Object.keys(spawnTable)` — raw enemy ids. Fine for `beast`/`scholar`, but new Iron enemies
   (cave dweller, rock golem, automaton, Iron Golem) need human names. Add `EnemyDef.name` and
