@@ -12,6 +12,18 @@ export function tierScaling(tier: number): ExpeditionScaling {
   };
 }
 
+/** Weighted random pick of an enemy id from a biome spawn table. Pure (rng injected). */
+export function pickEnemy(spawnTable: Record<string, number>, rng: () => number): string {
+  const entries = Object.entries(spawnTable);
+  const total = entries.reduce((sum, [, w]) => sum + w, 0);
+  let r = rng() * total;
+  for (const [id, w] of entries) {
+    r -= w;
+    if (r < 0) return id;
+  }
+  return entries[entries.length - 1][0]; // float-safe fallback
+}
+
 /**
  * Every expedition the player can currently run: each unlocked biome (minAge reached)
  * offered at tiers from its minAge index up to the civ's current age index.
