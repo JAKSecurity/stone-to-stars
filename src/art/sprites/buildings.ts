@@ -42,11 +42,13 @@ export const MINE: SpriteDef = {
   h: 96,
   prims: [
     ...hutBase(false), // wall + roof only — the door is replaced by a mine shaft below
-    // timber-framed mine shaft entrance (lintel + two posts + dark opening)
-    { kind: 'rect', x: 35, y: 57, w: 26, h: 5, rx: 1, color: PAL.wood, role: 'lintel' },
+    // timber-framed mine shaft: dark opening FIRST (behind), then the frame on top
+    // (posts + lintel) so the timber reads as in front of the opening — matters once
+    // the 'shaded' style outlines each prim.
+    { kind: 'rect', x: 40, y: 62, w: 16, h: 29, rx: 7, color: '#171311', role: 'shaft' },
     { kind: 'rect', x: 37, y: 60, w: 4, h: 31, color: PAL.wood, role: 'post' },
     { kind: 'rect', x: 55, y: 60, w: 4, h: 31, color: PAL.wood, role: 'post' },
-    { kind: 'rect', x: 40, y: 62, w: 16, h: 29, rx: 7, color: '#171311', role: 'shaft' },
+    { kind: 'rect', x: 35, y: 57, w: 26, h: 5, rx: 1, color: PAL.wood, role: 'lintel' },
     // ore piled to the LEFT of the shaft mouth (clear of the entrance)
     { kind: 'circle', cx: 27, cy: 88, r: 4, color: PAL.rock, role: 'ore' },
     { kind: 'circle', cx: 34, cy: 89, r: 4, color: PAL.rock, role: 'ore' },
