@@ -8,12 +8,12 @@ describe('weaponData', () => {
   });
 
   it('every weapon has a positive cooldown, damage, count, and maxLevel', () => {
-    for (const def of Object.values(WEAPONS)) {
+    for (const [key, def] of Object.entries(WEAPONS)) {
       expect(def.cooldownMs).toBeGreaterThan(0);
       expect(def.damage).toBeGreaterThan(0);
       expect(def.count).toBeGreaterThanOrEqual(1);
       expect(def.maxLevel).toBeGreaterThanOrEqual(1);
-      expect(def.id).toBe(def.id); // id present
+      expect(def.id).toBe(key); // catalog key matches the entry's own id
     }
   });
 

@@ -1,6 +1,5 @@
-import { WeaponDef } from '../game/types';
+import { WeaponDef, Perk } from '../game/types';
 import { WEAPONS } from './weaponData';
-import { Perk } from '../game/types';
 import { PERKS } from './draft';
 
 export const MAX_WEAPON_SLOTS = 4;
