@@ -38,4 +38,12 @@ export const BIOMES: Record<string, BiomeDef> = {
     spawnTable: { harpy: 6, hoplite: 3, centaur: 3, cyclops: 1 },
     tint: '#171019',
   },
+  // Medieval Age biome — tech-gated behind masonry. Dragon at weight 1 is a rare mini-boss.
+  // Proper mini-boss wave timing (boss room, announce, scaling) is deferred to a later ticket.
+  cursed_keep: {
+    id: 'cursed_keep', name: 'The Cursed Keep', minAge: 'medieval', requiresTech: 'masonry',
+    resourceBias: { industry: 1, culture: 1 },
+    spawnTable: { skeleton: 6, knight: 3, gargoyle: 3, dragon: 1 },
+    tint: '#0a0c10',
+  },
 };

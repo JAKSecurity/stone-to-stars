@@ -328,4 +328,161 @@ export const CYCLOPS: SpriteDef = {
   ],
 };
 
-export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS];
+// A bony undead warrior. Canvas 26x34.
+// bone-colored skull and ribcage, thin limbs, a rusty short sword. Cheap, rattling silhouette.
+export const SKELETON: SpriteDef = {
+  id: 'skeleton',
+  w: 26,
+  h: 34,
+  prims: [
+    // thin shin bones — back behind torso
+    { kind: 'rect', x: 5, y: 24, w: 3, h: 10, rx: 1, color: PAL.bone, role: 'leg' },
+    { kind: 'rect', x: 14, y: 24, w: 3, h: 10, rx: 1, color: PAL.bone, role: 'leg' },
+    // pelvic/hip bony plate
+    { kind: 'poly', points: [[4, 22], [22, 22], [20, 26], [6, 26]], color: PAL.castleStoneDark, role: 'pelvis' },
+    // ribcage — narrow upright rect, slightly lighter than the pelvis
+    { kind: 'rect', x: 7, y: 11, w: 12, h: 12, rx: 2, color: PAL.bone, role: 'ribcage' },
+    // rib line details across the cage
+    { kind: 'line', x1: 7, y1: 14, x2: 19, y2: 14, width: 1, color: PAL.castleStoneDark, role: 'rib' },
+    { kind: 'line', x1: 7, y1: 17, x2: 19, y2: 17, width: 1, color: PAL.castleStoneDark, role: 'rib' },
+    { kind: 'line', x1: 7, y1: 20, x2: 19, y2: 20, width: 1, color: PAL.castleStoneDark, role: 'rib' },
+    // left arm — thin bone reaching down
+    { kind: 'rect', x: 3, y: 13, w: 3, h: 9, rx: 1, color: PAL.bone, role: 'arm' },
+    // right arm — angled out holding sword
+    { kind: 'poly', points: [[19, 13], [23, 11], [24, 15], [20, 17]], color: PAL.bone, role: 'arm' },
+    // rusty short sword in right hand (iron-colored, dull)
+    { kind: 'line', x1: 22, y1: 10, x2: 26, y2: 2, width: 2, color: PAL.ironDark, role: 'sword' },
+    { kind: 'poly', points: [[20, 9], [22, 7], [24, 9], [22, 11]], color: PAL.ironDark, role: 'crossguard' },
+    // skull — round, bone colored
+    { kind: 'circle', cx: 13, cy: 7, r: 6, color: PAL.bone, role: 'skull' },
+    // dark hollow eye sockets — distinctive undead read
+    { kind: 'circle', cx: 10, cy: 6, r: 2, color: PAL.castleStoneDark, role: 'eye-socket' },
+    { kind: 'circle', cx: 16, cy: 6, r: 2, color: PAL.castleStoneDark, role: 'eye-socket' },
+    // nose cavity — small dark triangle
+    { kind: 'poly', points: [[12, 8], [14, 8], [13, 10]], color: PAL.castleStoneDark, role: 'nose' },
+  ],
+};
+
+// A fully armored plate knight. Canvas 30x40.
+// steel/steelBlue plate body, great helm with dark visor slit, kite shield with royal/crimson
+// heraldry, broadsword. Tanky upright silhouette — heavier than Hoplite.
+export const KNIGHT: SpriteDef = {
+  id: 'knight',
+  w: 30,
+  h: 40,
+  prims: [
+    // armored boots / sabaton (feet)
+    { kind: 'rect', x: 6, y: 32, w: 7, h: 8, rx: 1, color: PAL.steelBlue, role: 'leg' },
+    { kind: 'rect', x: 17, y: 32, w: 7, h: 8, rx: 1, color: PAL.steelBlue, role: 'leg' },
+    // kite shield — large, on the left side, with heraldry
+    { kind: 'poly', points: [[0, 16], [10, 14], [10, 28], [5, 32], [0, 28]], color: PAL.steel, role: 'shield' },
+    { kind: 'poly', points: [[2, 18], [8, 16], [8, 26], [5, 30], [2, 26]], color: PAL.royal, role: 'shield-face' },
+    // crimson cross heraldry on shield
+    { kind: 'rect', x: 4, y: 19, w: 2, h: 8, rx: 0, color: PAL.crimson, role: 'heraldry' },
+    { kind: 'rect', x: 2, y: 22, w: 6, h: 2, rx: 0, color: PAL.crimson, role: 'heraldry' },
+    // plate torso — broad and flat
+    { kind: 'poly', points: [[9, 14], [21, 14], [23, 32], [7, 32]], color: PAL.steelBlue, role: 'torso' },
+    // chest plate highlight (steel color, slightly lighter)
+    { kind: 'poly', points: [[11, 16], [19, 16], [20, 26], [10, 26]], color: PAL.steel, role: 'chest-plate' },
+    // right arm holding broadsword
+    { kind: 'poly', points: [[21, 16], [26, 14], [27, 20], [22, 22]], color: PAL.steelBlue, role: 'arm' },
+    // broadsword — straight line up from right hand
+    { kind: 'line', x1: 24, y1: 14, x2: 26, y2: 2, width: 3, color: PAL.steel, role: 'sword' },
+    { kind: 'poly', points: [[21, 13], [24, 11], [27, 13], [24, 15]], color: PAL.steelBlue, role: 'crossguard' },
+    // great helm — broad flat-topped
+    { kind: 'poly', points: [[9, 14], [21, 14], [20, 6], [10, 6]], color: PAL.steelBlue, role: 'helm' },
+    // helm top — slightly rounded
+    { kind: 'rect', x: 10, y: 2, w: 10, h: 6, rx: 2, color: PAL.steelBlue, role: 'helm-top' },
+    // visor slit — narrow dark horizontal gap, ominous
+    { kind: 'rect', x: 11, y: 9, w: 8, h: 3, rx: 1, color: '#0d0f12', role: 'visor' },
+  ],
+};
+
+// A winged stone gargoyle in a crouching perch posture. Canvas 38x32.
+// castleStone/castleStoneDark body, broad bat-wings spread wide, horns, glowing eyes.
+// Wide horizontal silhouette — clearly a flyer, distinct from Harpy.
+export const GARGOYLE: SpriteDef = {
+  id: 'gargoyle',
+  w: 38,
+  h: 32,
+  prims: [
+    // left wing — broad sweeping stone-colored poly, angled low
+    { kind: 'poly', points: [[18, 14], [0, 6], [0, 22], [14, 22]], color: PAL.castleStoneDark, role: 'wing' },
+    // left wing inner webbing (lighter stone)
+    { kind: 'poly', points: [[18, 15], [2, 10], [2, 20], [14, 22]], color: PAL.castleStone, role: 'wing-inner' },
+    // right wing — mirror
+    { kind: 'poly', points: [[20, 14], [38, 6], [38, 22], [24, 22]], color: PAL.castleStoneDark, role: 'wing' },
+    // right wing inner webbing
+    { kind: 'poly', points: [[20, 15], [36, 10], [36, 20], [24, 22]], color: PAL.castleStone, role: 'wing-inner' },
+    // squat crouching torso — wide and hunched
+    { kind: 'poly', points: [[12, 14], [26, 14], [28, 28], [10, 28]], color: PAL.castleStoneDark, role: 'body' },
+    // gargoyle stone texture on body
+    { kind: 'poly', points: [[13, 16], [25, 16], [24, 24], [14, 24]], color: PAL.castleStone, role: 'body-detail' },
+    // thick clawed feet gripping the ledge
+    { kind: 'poly', points: [[10, 26], [14, 31], [16, 31], [14, 26]], color: PAL.castleStoneDark, role: 'claw' },
+    { kind: 'poly', points: [[22, 26], [24, 31], [26, 31], [28, 26]], color: PAL.castleStoneDark, role: 'claw' },
+    // blocky head — square and heavy with horns
+    { kind: 'poly', points: [[13, 8], [25, 8], [26, 16], [12, 16]], color: PAL.castleStoneDark, role: 'head' },
+    // two stone horns jutting upward
+    { kind: 'poly', points: [[15, 8], [13, 2], [17, 7]], color: PAL.castleStoneDark, role: 'horn' },
+    { kind: 'poly', points: [[23, 8], [25, 2], [21, 7]], color: PAL.castleStoneDark, role: 'horn' },
+    // glowing eyes — amber, supernatural glow
+    { kind: 'circle', cx: 16, cy: 12, r: 2, color: PAL.ember, role: 'eye' },
+    { kind: 'circle', cx: 22, cy: 12, r: 2, color: PAL.ember, role: 'eye' },
+    { kind: 'circle', cx: 16, cy: 12, r: 1, color: '#ffffff', role: 'eye-glint' },
+    { kind: 'circle', cx: 22, cy: 12, r: 1, color: '#ffffff', role: 'eye-glint' },
+  ],
+};
+
+// The mini-boss: a winged dragon. Canvas 58x48.
+// crimson/oxblood barrel body, massive spread wings (polys), serpentine neck + horned head,
+// a tail, bone claws/teeth. The biggest, most imposing medieval enemy.
+export const DRAGON: SpriteDef = {
+  id: 'dragon',
+  w: 58,
+  h: 48,
+  prims: [
+    // tail — serpentine sweeping left and down
+    { kind: 'poly', points: [[10, 30], [0, 38], [4, 42], [14, 34]], color: PAL.oxblood, role: 'tail' },
+    { kind: 'poly', points: [[4, 40], [0, 46], [6, 48], [10, 42]], color: PAL.crimson, role: 'tail-tip' },
+    // left wing — broad and massive, sweeping behind and below
+    { kind: 'poly', points: [[20, 20], [0, 8], [2, 28], [18, 32]], color: PAL.oxblood, role: 'wing' },
+    // left wing membrane (slightly lighter inner panel)
+    { kind: 'poly', points: [[20, 21], [4, 12], [5, 26], [18, 32]], color: PAL.crimson, role: 'wing-membrane' },
+    // left wing bone spars
+    { kind: 'line', x1: 20, y1: 20, x2: 2, y2: 10, width: 2, color: PAL.oxblood, role: 'wing-spar' },
+    { kind: 'line', x1: 20, y1: 22, x2: 3, y2: 22, width: 2, color: PAL.oxblood, role: 'wing-spar' },
+    // right wing — mirror, sweeping right
+    { kind: 'poly', points: [[38, 20], [58, 8], [56, 28], [40, 32]], color: PAL.oxblood, role: 'wing' },
+    // right wing membrane
+    { kind: 'poly', points: [[38, 21], [54, 12], [53, 26], [40, 32]], color: PAL.crimson, role: 'wing-membrane' },
+    // right wing bone spars
+    { kind: 'line', x1: 38, y1: 20, x2: 56, y2: 10, width: 2, color: PAL.oxblood, role: 'wing-spar' },
+    { kind: 'line', x1: 38, y1: 22, x2: 55, y2: 22, width: 2, color: PAL.oxblood, role: 'wing-spar' },
+    // barrel body — large central mass
+    { kind: 'poly', points: [[12, 24], [20, 14], [38, 14], [46, 24], [42, 38], [16, 38]], color: PAL.oxblood, role: 'body' },
+    // belly scales — lighter crimson ventral stripe
+    { kind: 'poly', points: [[18, 26], [38, 26], [36, 36], [22, 36]], color: PAL.crimson, role: 'belly' },
+    // bone claws — two pairs on the body flanks
+    { kind: 'poly', points: [[14, 36], [10, 44], [14, 46], [16, 38]], color: PAL.bone, role: 'claw' },
+    { kind: 'poly', points: [[44, 36], [48, 44], [44, 46], [42, 38]], color: PAL.bone, role: 'claw' },
+    { kind: 'poly', points: [[8, 42], [6, 48], [10, 48]], color: PAL.bone, role: 'claw-tip' },
+    { kind: 'poly', points: [[50, 42], [52, 48], [48, 48]], color: PAL.bone, role: 'claw-tip' },
+    // neck — serpentine rising up and left toward the head
+    { kind: 'poly', points: [[22, 14], [28, 6], [36, 8], [38, 14]], color: PAL.oxblood, role: 'neck' },
+    // head — elongated wedge, horned
+    { kind: 'poly', points: [[22, 4], [38, 2], [42, 10], [36, 12], [20, 10]], color: PAL.oxblood, role: 'head' },
+    // two prominent horns atop the head
+    { kind: 'poly', points: [[26, 4], [24, -1], [30, 3]], color: PAL.bone, role: 'horn' },
+    { kind: 'poly', points: [[34, 2], [36, -1], [32, 2]], color: PAL.bone, role: 'horn' },
+    // jaw line with bone teeth
+    { kind: 'poly', points: [[22, 10], [42, 10], [40, 12], [20, 12]], color: PAL.crimson, role: 'jaw' },
+    { kind: 'poly', points: [[26, 10], [27, 13], [29, 10]], color: PAL.bone, role: 'tooth' },
+    { kind: 'poly', points: [[32, 10], [33, 13], [35, 10]], color: PAL.bone, role: 'tooth' },
+    // glowing reptilian eye
+    { kind: 'circle', cx: 28, cy: 7, r: 3, color: PAL.ember, role: 'eye' },
+    { kind: 'circle', cx: 28, cy: 7, r: 1, color: '#ffffff', role: 'eye-glint' },
+  ],
+};
+
+export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON];

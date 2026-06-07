@@ -42,4 +42,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     baseHp: 75, speed: 95, contactDamage: 12, drop: 'industry', xp: 7, displaySize: { w: 42, h: 40 } },
   cyclops: { id: 'cyclops', name: 'Cyclops', sprite: 'cyclops',
     baseHp: 260, speed: 35, contactDamage: 22, drop: 'industry', xp: 28, displaySize: { w: 50, h: 56 } },
+  skeleton: { id: 'skeleton', name: 'Skeleton', sprite: 'skeleton',
+    baseHp: 35, speed: 90, contactDamage: 8, drop: 'industry', xp: 4, displaySize: { w: 26, h: 34 } },
+  knight: { id: 'knight', name: 'Knight', sprite: 'knight',
+    baseHp: 130, speed: 50, contactDamage: 16, drop: 'industry', xp: 11, displaySize: { w: 30, h: 40 } },
+  gargoyle: { id: 'gargoyle', name: 'Gargoyle', sprite: 'gargoyle',
+    baseHp: 70, speed: 105, contactDamage: 12, drop: 'culture', xp: 7, displaySize: { w: 38, h: 32 } },
+  dragon: { id: 'dragon', name: 'Dragon', sprite: 'dragon',
+    baseHp: 320, speed: 45, contactDamage: 26, drop: 'industry', xp: 34, displaySize: { w: 58, h: 48 } },
 };
