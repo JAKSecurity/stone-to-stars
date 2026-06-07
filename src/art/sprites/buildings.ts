@@ -37,9 +37,13 @@ export const MINE: SpriteDef = {
   h: 96,
   prims: [
     ...hutBase(),
-    // crossed pickaxe handles on the wall (an X of two lines)
-    { kind: 'line', x1: 28, y1: 58, x2: 44, y2: 80, width: 3, color: PAL.metal, role: 'pick' },
-    { kind: 'line', x1: 44, y1: 58, x2: 28, y2: 80, width: 3, color: PAL.metal, role: 'pick' },
+    // crossed pick + hammer mounted across the hut face — wood handles, metal heads.
+    { kind: 'line', x1: 38, y1: 80, x2: 58, y2: 56, width: 3, color: PAL.wood, role: 'pickHandle' },
+    { kind: 'line', x1: 58, y1: 80, x2: 38, y2: 56, width: 3, color: PAL.wood, role: 'hammerHandle' },
+    // pick head: a double-pointed bar across the top of its (right-leaning) handle
+    { kind: 'poly', points: [[51, 58], [58, 53], [65, 57], [58, 60]], color: PAL.metal, role: 'pickHead' },
+    // hammer head: a solid block at the top of its (left-leaning) handle
+    { kind: 'rect', x: 31, y: 52, w: 15, h: 8, rx: 1, color: PAL.metal, role: 'hammerHead' },
     // mound of mined rock/ore in front of the hut
     { kind: 'poly', points: [[58, 90], [88, 90], [82, 76], [70, 70], [62, 78]], color: PAL.rock, role: 'mound' },
     // a couple of chunky ore boulders sitting on the mound

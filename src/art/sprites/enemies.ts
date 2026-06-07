@@ -2,35 +2,38 @@ import { SpriteDef } from '../types';
 import { PAL } from '../palette';
 
 // A low, four-legged hostile beast facing right. Canvas 40x36.
-// Front (head + eyes + horn) is on the right side near x=30..38.
+// Head + muzzle + fang on the right; spiky back ridge; tail trailing left.
 export const BEAST: SpriteDef = {
   id: 'beast',
   w: 40,
   h: 36,
   prims: [
-    // legs (drawn first so the body overlaps their tops)
-    { kind: 'rect', x: 7, y: 22, w: 4, h: 10, rx: 2, color: PAL.beastDark, role: 'leg' },
-    { kind: 'rect', x: 13, y: 23, w: 4, h: 9, rx: 2, color: PAL.beastDark, role: 'leg' },
-    { kind: 'rect', x: 22, y: 23, w: 4, h: 9, rx: 2, color: PAL.beastDark, role: 'leg' },
-    { kind: 'rect', x: 28, y: 22, w: 4, h: 10, rx: 2, color: PAL.beastDark, role: 'leg' },
-    // back ridge spikes for ferocity (behind the body so they peek over the top)
-    { kind: 'poly', points: [[12, 16], [15, 7], [18, 16]], color: PAL.beastDark, role: 'ridge' },
-    { kind: 'poly', points: [[18, 16], [21, 9], [24, 16]], color: PAL.beastDark, role: 'ridge' },
+    // tail trailing off the back-left (behind the body)
+    { kind: 'poly', points: [[8, 17], [1, 13], [6, 24]], color: PAL.beast, role: 'tail' },
+    // legs (behind the body)
+    { kind: 'rect', x: 9, y: 25, w: 5, h: 8, rx: 2, color: PAL.beastDark, role: 'leg' },
+    { kind: 'rect', x: 15, y: 26, w: 5, h: 7, rx: 2, color: PAL.beastDark, role: 'leg' },
+    { kind: 'rect', x: 24, y: 25, w: 5, h: 8, rx: 2, color: PAL.beastDark, role: 'leg' },
+    { kind: 'rect', x: 30, y: 26, w: 5, h: 7, rx: 2, color: PAL.beastDark, role: 'leg' },
     // low torso
-    { kind: 'rect', x: 6, y: 13, w: 26, h: 13, rx: 6, color: PAL.beast, role: 'body' },
-    // tail trailing off the back-left
-    { kind: 'poly', points: [[6, 16], [2, 12], [7, 20]], color: PAL.beast, role: 'tail' },
-    // head at the front (right)
-    { kind: 'circle', cx: 32, cy: 18, r: 7, color: PAL.beast, role: 'head' },
-    // horn / spike above the snout
-    { kind: 'poly', points: [[33, 9], [30, 14], [37, 13]], color: PAL.metal, role: 'horn' },
-    // snout
-    { kind: 'rect', x: 35, y: 18, w: 4, h: 5, rx: 2, color: PAL.beastDark, role: 'snout' },
-    // menacing eyes (whites + dark pupils)
-    { kind: 'circle', cx: 31, cy: 16, r: 2, color: '#ffffff', role: 'eyeWhite' },
-    { kind: 'circle', cx: 35, cy: 16, r: 2, color: '#ffffff', role: 'eyeWhite' },
-    { kind: 'circle', cx: 31, cy: 16, r: 1, color: '#222222', role: 'pupil' },
-    { kind: 'circle', cx: 35, cy: 16, r: 1, color: '#222222', role: 'pupil' },
+    { kind: 'rect', x: 6, y: 14, w: 27, h: 13, rx: 7, color: PAL.beast, role: 'body' },
+    // spiky back ridge along the spine
+    { kind: 'poly', points: [[9, 15], [12, 8], [15, 15]], color: PAL.beastDark, role: 'ridge' },
+    { kind: 'poly', points: [[15, 15], [18, 7], [21, 15]], color: PAL.beastDark, role: 'ridge' },
+    { kind: 'poly', points: [[21, 15], [24, 9], [27, 15]], color: PAL.beastDark, role: 'ridge' },
+    // head
+    { kind: 'circle', cx: 30, cy: 17, r: 8, color: PAL.beast, role: 'head' },
+    // pointed ear
+    { kind: 'poly', points: [[26, 12], [28, 3], [33, 11]], color: PAL.beastDark, role: 'ear' },
+    // muzzle jutting forward
+    { kind: 'poly', points: [[36, 14], [40, 18], [38, 23], [33, 22]], color: PAL.beast, role: 'muzzle' },
+    // nose
+    { kind: 'circle', cx: 38, cy: 18, r: 2, color: PAL.beastDark, role: 'nose' },
+    // bared fang
+    { kind: 'poly', points: [[34, 22], [37, 22], [36, 26]], color: '#ffffff', role: 'fang' },
+    // angry eye
+    { kind: 'circle', cx: 31, cy: 15, r: 2, color: '#ffffff', role: 'eyeWhite' },
+    { kind: 'circle', cx: 32, cy: 15, r: 1, color: '#222222', role: 'pupil' },
   ],
 };
 
