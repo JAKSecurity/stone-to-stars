@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 import { RunModifiers, RunResult, Resource } from '../game/types';
 import { RUN_DURATION_MS } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
-import { rollDraft, applyPerk } from '../run/draft';
+import { applyPerk } from '../run/draft';
 import {
-  EquippedWeapon, initialWeapons,
-  weaponShot, WeaponShot,
+  EquippedWeapon, initialWeapons, addWeapon, levelWeapon, applyEvolve,
+  weaponShot, WeaponShot, rollRunDraft, DraftOption,
 } from '../run/weapons';
 import { WEAPONS } from '../run/weaponData';
 
@@ -28,6 +28,7 @@ export class RunScene extends Phaser.Scene {
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
   private equipped: EquippedWeapon[] = initialWeapons();
+  private ownedPerks: string[] = [];
   private weaponCooldowns: Record<string, number> = {};
   private spawnCooldown = 0;
   private explorationCooldown = 0;
@@ -45,6 +46,7 @@ export class RunScene extends Phaser.Scene {
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0; this.spawnCooldown = 0;
     this.equipped = initialWeapons();
+    this.ownedPerks = [];
     this.weaponCooldowns = {};
     this.explorationCooldown = 0; this.relicCooldown = 0;
     this.paused = false; this.finished = false;
@@ -243,27 +245,59 @@ export class RunScene extends Phaser.Scene {
   private openDraft() {
     this.paused = true;
     this.physics.pause();
-    const picks = rollDraft(() => Math.random(), this.mods.draftChoices);
+    const picks = rollRunDraft(() => Math.random(), this.mods.draftChoices, {
+      equipped: this.equipped,
+      ownedPerks: this.ownedPerks,
+      pool: this.mods.weapons,
+    });
     const { width, height } = this.scale;
     const panel = this.add.container(0, 0).setDepth(20);
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
     panel.add(bg);
-    const title = this.add.text(width / 2, height / 2 - 120, 'Level up — choose a perk',
+    const title = this.add.text(width / 2, height / 2 - 120, 'Level up — choose one',
       { fontSize: '20px', color: '#fff' }).setOrigin(0.5);
     panel.add(title);
-    picks.forEach((perk, i) => {
+    picks.forEach((opt, i) => {
       const y = height / 2 - 50 + i * 56;
-      const card = this.add.rectangle(width / 2, y, 360, 48, 0x238636).setInteractive({ useHandCursor: true });
-      const label = this.add.text(width / 2, y, `${perk.name} — ${perk.desc}`,
-        { fontSize: '16px', color: '#fff' }).setOrigin(0.5);
+      const card = this.add.rectangle(width / 2, y, 380, 48, 0x238636)
+        .setInteractive({ useHandCursor: true });
+      const label = this.add.text(width / 2, y, this.draftLabel(opt),
+        { fontSize: '15px', color: '#fff' }).setOrigin(0.5);
       card.on('pointerdown', () => {
-        this.stats = applyPerk(this.stats, perk);
+        this.applyDraftOption(opt);
         panel.destroy();
         this.paused = false;
         this.physics.resume();
       });
       panel.add(card); panel.add(label);
     });
+  }
+
+  private draftLabel(o: DraftOption): string {
+    switch (o.kind) {
+      case 'perk': return `${o.perk.name} — ${o.perk.desc}`;
+      case 'newWeapon': return `New weapon: ${WEAPONS[o.weaponId].name}`;
+      case 'levelWeapon': return `Upgrade: ${WEAPONS[o.weaponId].name}`;
+      case 'evolve': return `Evolve: ${WEAPONS[o.fromId].name} → ${WEAPONS[o.toId].name}`;
+    }
+  }
+
+  private applyDraftOption(o: DraftOption) {
+    switch (o.kind) {
+      case 'perk':
+        this.stats = applyPerk(this.stats, o.perk);
+        this.ownedPerks.push(o.perk.id);
+        break;
+      case 'newWeapon':
+        this.equipped = addWeapon(this.equipped, o.weaponId);
+        break;
+      case 'levelWeapon':
+        this.equipped = levelWeapon(this.equipped, o.weaponId);
+        break;
+      case 'evolve':
+        this.equipped = applyEvolve(this.equipped, o.fromId, o.toId);
+        break;
+    }
   }
 
   private finish(died: boolean) {
