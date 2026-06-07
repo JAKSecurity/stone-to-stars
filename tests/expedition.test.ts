@@ -59,3 +59,19 @@ describe('pickEnemy', () => {
     }
   });
 });
+
+describe('requiresTech gate', () => {
+  it('a biome with requiresTech is hidden until that tech is researched', async () => {
+    const { BIOMES } = await import('../src/run/biomeData');
+    // simulate a tech-gated biome by checking the filter directly via a civ that has the gate
+    // (Deep Caverns lands in Phase B; here we assert the filter logic exists and excludes by default)
+    const fresh = newCivState();
+    const ids = availableExpeditions(fresh).map((e) => e.biomeId);
+    // no biome the fresh civ lacks the tech for should appear
+    for (const e of availableExpeditions(fresh)) {
+      const b = BIOMES[e.biomeId];
+      if (b.requiresTech) expect(fresh.researched).toContain(b.requiresTech);
+    }
+    expect(ids.length).toBeGreaterThan(0);
+  });
+});

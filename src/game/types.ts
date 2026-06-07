@@ -76,6 +76,7 @@ export interface BiomeDef {
   // faucetted by the spawn table composition, so their value is display-only.
   resourceBias: Partial<Record<Resource, number>>;
   spawnTable: Record<string, number>;              // enemyId -> spawn weight
+  requiresTech?: string;                            // biome hidden until this tech is researched
   tint: string;                                     // run background color
 }
 

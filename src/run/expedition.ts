@@ -1,6 +1,6 @@
 import { Expedition, ExpeditionScaling, CivState, AGE_ORDER } from '../game/types';
 import { BIOMES } from './biomeData';
-import { getAge } from '../tech/tech';
+import { getAge, isResearched } from '../tech/tech';
 
 /** Difficulty multipliers for a tier (tier = an AGE_ORDER index; 0 = baseline). */
 export function tierScaling(tier: number): ExpeditionScaling {
@@ -34,6 +34,7 @@ export function availableExpeditions(civ: CivState): Expedition[] {
   for (const biome of Object.values(BIOMES)) {
     const minIdx = AGE_ORDER.indexOf(biome.minAge);
     if (minIdx > curIdx) continue;
+    if (biome.requiresTech && !isResearched(civ, biome.requiresTech)) continue;
     for (let tier = minIdx; tier <= curIdx; tier++) {
       out.push({ biomeId: biome.id, tier, scaling: tierScaling(tier) });
     }
