@@ -19,3 +19,15 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .cell .lvl { font-size: 0.7rem; opacity: 0.7; }
 .startrun { display: block; width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
 .cost { font-size: 0.8rem; opacity: 0.75; }
+
+#expedition { display: none; }
+#expedition.active { display: block; }
+.exp-wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
+.exp-wrap h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
+.exp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+.exp-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; color: inherit; }
+.exp-card:hover { border-color: #58a6ff; }
+.exp-card .name { font-weight: 600; }
+.exp-card .meta { font-size: 0.8rem; opacity: 0.8; margin-top: 6px; line-height: 1.5; }
+.exp-card .tier { float: right; font-size: 0.75rem; opacity: 0.7; }
+.exp-back { margin-top: 16px; padding: 10px 16px; background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; cursor: pointer; }
