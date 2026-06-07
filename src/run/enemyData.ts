@@ -50,4 +50,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     baseHp: 70, speed: 105, contactDamage: 12, drop: 'culture', xp: 7, displaySize: { w: 38, h: 32 } },
   dragon: { id: 'dragon', name: 'Dragon', sprite: 'dragon',
     baseHp: 320, speed: 45, contactDamage: 26, drop: 'industry', xp: 34, displaySize: { w: 58, h: 48 } },
+  musketeer: { id: 'musketeer', name: 'Musketeer', sprite: 'musketeer',
+    baseHp: 60, speed: 80, contactDamage: 13, drop: 'science', xp: 7, displaySize: { w: 28, h: 38 } },
+  pikeman: { id: 'pikeman', name: 'Pikeman', sprite: 'pikeman',
+    baseHp: 150, speed: 55, contactDamage: 18, drop: 'industry', xp: 12, displaySize: { w: 30, h: 42 } },
+  grenadier: { id: 'grenadier', name: 'Grenadier', sprite: 'grenadier',
+    baseHp: 85, speed: 100, contactDamage: 15, drop: 'industry', xp: 9, displaySize: { w: 30, h: 38 } },
+  dreadnought: { id: 'dreadnought', name: 'Dreadnought', sprite: 'dreadnought',
+    baseHp: 380, speed: 40, contactDamage: 30, drop: 'industry', xp: 40, displaySize: { w: 56, h: 54 } },
 };

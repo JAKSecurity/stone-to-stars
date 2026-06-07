@@ -112,4 +112,12 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Renaissance enemy sprites are registered and valid', () => {
+    const renaissanceIds = ['musketeer', 'pikeman', 'grenadier', 'dreadnought'];
+    for (const id of renaissanceIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

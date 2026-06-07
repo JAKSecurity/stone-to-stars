@@ -46,4 +46,12 @@ export const BIOMES: Record<string, BiomeDef> = {
     spawnTable: { skeleton: 6, knight: 3, gargoyle: 3, dragon: 1 },
     tint: '#0a0c10',
   },
+  // Renaissance Age biome — minAge-gated only (intentional variety; no requiresTech).
+  // Dreadnought at weight 1 is a rare mini-boss encounter (proper wave mechanics deferred).
+  plague_city: {
+    id: 'plague_city', name: 'Plague City', minAge: 'renaissance',
+    resourceBias: { industry: 1, science: 1 },
+    spawnTable: { musketeer: 5, pikeman: 3, grenadier: 3, dreadnought: 1 },
+    tint: '#0c1410',
+  },
 };

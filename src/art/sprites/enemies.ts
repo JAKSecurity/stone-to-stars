@@ -485,4 +485,213 @@ export const DRAGON: SpriteDef = {
   ],
 };
 
-export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON];
+// A coated Renaissance soldier with a long musket. Canvas 28x38.
+// blued/velvet long coat, wide-brim blued hat, skin face; a walnut/blued musket barrel
+// extends from the right hand upward — tall thin weapon, upright stance.
+export const MUSKETEER: SpriteDef = {
+  id: 'musketeer',
+  w: 28,
+  h: 38,
+  prims: [
+    // legs — dark trousers
+    { kind: 'rect', x: 8, y: 26, w: 5, h: 12, rx: 1, color: PAL.blued, role: 'leg' },
+    { kind: 'rect', x: 15, y: 26, w: 5, h: 12, rx: 1, color: PAL.blued, role: 'leg' },
+    // boots (walnut, below trouser hem)
+    { kind: 'rect', x: 7, y: 33, w: 6, h: 5, rx: 1, color: PAL.walnut, role: 'boot' },
+    { kind: 'rect', x: 14, y: 33, w: 6, h: 5, rx: 1, color: PAL.walnut, role: 'boot' },
+    // long coat — velvet, trapezoid flaring to hem
+    { kind: 'poly', points: [[7, 16], [21, 16], [24, 36], [4, 36]], color: PAL.velvet, role: 'coat' },
+    // coat front lapels (blued trim)
+    { kind: 'poly', points: [[12, 16], [16, 16], [14, 28], [12, 28]], color: PAL.blued, role: 'lapel' },
+    // coat cuffs at the hem edge
+    { kind: 'rect', x: 4, y: 32, w: 20, h: 3, rx: 1, color: PAL.blued, role: 'coat-hem' },
+    // torso / chest
+    { kind: 'rect', x: 9, y: 14, w: 10, h: 14, rx: 2, color: PAL.blued, role: 'torso' },
+    // left arm at side
+    { kind: 'poly', points: [[7, 16], [4, 28], [7, 29], [10, 17]], color: PAL.blued, role: 'arm' },
+    // right arm raised holding musket
+    { kind: 'poly', points: [[18, 16], [22, 14], [23, 20], [19, 22]], color: PAL.blued, role: 'arm' },
+    // right hand
+    { kind: 'circle', cx: 22, cy: 15, r: 2, color: PAL.skin, role: 'hand' },
+    // musket — long walnut stock then blued barrel extending upward
+    { kind: 'line', x1: 22, y1: 16, x2: 25, y2: 1, width: 3, color: PAL.walnut, role: 'musket-stock' },
+    { kind: 'line', x1: 24, y1: 10, x2: 26, y2: 0, width: 2, color: PAL.blued, role: 'musket-barrel' },
+    // musket lock mechanism (small rect at mid-barrel)
+    { kind: 'rect', x: 22, y: 8, w: 4, h: 3, rx: 0, color: PAL.iron, role: 'lock' },
+    // head
+    { kind: 'circle', cx: 14, cy: 9, r: 6, color: PAL.skin, role: 'head' },
+    // wide-brim hat — blued, flat brim + rounded crown
+    { kind: 'rect', x: 6, y: 4, w: 16, h: 3, rx: 1, color: PAL.blued, role: 'hat-brim' },
+    { kind: 'rect', x: 9, y: 1, w: 10, h: 5, rx: 2, color: PAL.blued, role: 'hat-crown' },
+    // hat band (velvet)
+    { kind: 'rect', x: 9, y: 4, w: 10, h: 2, rx: 0, color: PAL.velvet, role: 'hat-band' },
+    // eyes
+    { kind: 'circle', cx: 12, cy: 9, r: 1, color: '#1a0a0a', role: 'eye' },
+    { kind: 'circle', cx: 16, cy: 9, r: 1, color: '#1a0a0a', role: 'eye' },
+  ],
+};
+
+// A steel-plated pike soldier with a morion helmet. Canvas 30x42.
+// steel/blued breastplate + morion (comb-crested helm), holding an extremely long
+// pike (line + steel tip). Tallest of the four; tanky upright silhouette.
+export const PIKEMAN: SpriteDef = {
+  id: 'pikeman',
+  w: 30,
+  h: 42,
+  prims: [
+    // armored boots
+    { kind: 'rect', x: 7, y: 34, w: 6, h: 8, rx: 1, color: PAL.ironDark, role: 'boot' },
+    { kind: 'rect', x: 17, y: 34, w: 6, h: 8, rx: 1, color: PAL.ironDark, role: 'boot' },
+    // armored leg plates (steel)
+    { kind: 'rect', x: 8, y: 26, w: 5, h: 10, rx: 1, color: PAL.steel, role: 'leg-plate' },
+    { kind: 'rect', x: 17, y: 26, w: 5, h: 10, rx: 1, color: PAL.steel, role: 'leg-plate' },
+    // knee cops (blued roundels)
+    { kind: 'circle', cx: 11, cy: 27, r: 3, color: PAL.blued, role: 'knee' },
+    { kind: 'circle', cx: 19, cy: 27, r: 3, color: PAL.blued, role: 'knee' },
+    // torso breastplate — broad, riveted steel
+    { kind: 'poly', points: [[7, 16], [23, 16], [25, 34], [5, 34]], color: PAL.steel, role: 'torso' },
+    // breastplate centre line
+    { kind: 'line', x1: 15, y1: 17, x2: 15, y2: 33, width: 1, color: PAL.blued, role: 'centerline' },
+    // rivet details
+    { kind: 'circle', cx: 10, cy: 20, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 20, cy: 20, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 10, cy: 28, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 20, cy: 28, r: 1, color: PAL.blued, role: 'rivet' },
+    // pauldrons (blued shoulder guards)
+    { kind: 'poly', points: [[5, 16], [2, 24], [7, 26], [9, 17]], color: PAL.blued, role: 'pauldron' },
+    { kind: 'poly', points: [[25, 16], [28, 24], [23, 26], [21, 17]], color: PAL.blued, role: 'pauldron' },
+    // right arm — gauntleted, holding pike
+    { kind: 'rect', x: 22, y: 18, w: 5, h: 12, rx: 1, color: PAL.steel, role: 'arm' },
+    { kind: 'rect', x: 21, y: 28, w: 6, h: 5, rx: 1, color: PAL.blued, role: 'gauntlet' },
+    // pike shaft — very long, line from low right up through top
+    { kind: 'line', x1: 24, y1: 36, x2: 23, y2: 0, width: 3, color: PAL.walnut, role: 'pike-shaft' },
+    // pike steel tip — elongated triangle at top
+    { kind: 'poly', points: [[20, 3], [23, 0], [26, 3], [24, 10], [22, 10]], color: PAL.steel, role: 'pike-tip' },
+    // morion helmet — bowl base with swept brim and comb crest
+    { kind: 'poly', points: [[8, 16], [22, 16], [22, 8], [8, 8]], color: PAL.blued, role: 'helm-bowl' },
+    // morion brim — wider than the bowl
+    { kind: 'rect', x: 5, y: 14, w: 20, h: 3, rx: 1, color: PAL.steel, role: 'helm-brim' },
+    // comb crest running top-to-back
+    { kind: 'poly', points: [[12, 8], [15, 3], [18, 8]], color: PAL.steel, role: 'comb' },
+    // face (skin strip between brim and cheek guard)
+    { kind: 'rect', x: 9, y: 10, w: 12, h: 5, rx: 1, color: PAL.skin, role: 'face' },
+    // eyes
+    { kind: 'circle', cx: 13, cy: 12, r: 1, color: '#1a0a0a', role: 'eye' },
+    { kind: 'circle', cx: 17, cy: 12, r: 1, color: '#1a0a0a', role: 'eye' },
+  ],
+};
+
+// A fast crimson-coated grenadier with a lit grenade. Canvas 30x38.
+// crimson/blued coat + distinctive mitre cap; holding a round ironDark grenade
+// with a gunfire spark and smoke puff. Distinct lean silhouette vs. Musketeer.
+export const GRENADIER: SpriteDef = {
+  id: 'grenadier',
+  w: 30,
+  h: 38,
+  prims: [
+    // legs — dark blue-grey trousers
+    { kind: 'rect', x: 9, y: 26, w: 5, h: 10, rx: 1, color: PAL.blued, role: 'leg' },
+    { kind: 'rect', x: 16, y: 26, w: 5, h: 10, rx: 1, color: PAL.blued, role: 'leg' },
+    // black knee-high boots
+    { kind: 'rect', x: 8, y: 31, w: 6, h: 7, rx: 1, color: '#1a1a1a', role: 'boot' },
+    { kind: 'rect', x: 15, y: 31, w: 6, h: 7, rx: 1, color: '#1a1a1a', role: 'boot' },
+    // crimson coat — shorter and tighter than musketeer's velvet coat
+    { kind: 'poly', points: [[8, 15], [22, 15], [24, 34], [6, 34]], color: PAL.crimson, role: 'coat' },
+    // blued coat facing / front panels
+    { kind: 'poly', points: [[13, 15], [17, 15], [16, 26], [14, 26]], color: PAL.blued, role: 'facing' },
+    // coat brass buttons (small circles on facing)
+    { kind: 'circle', cx: 15, cy: 18, r: 1, color: PAL.gunfire, role: 'button' },
+    { kind: 'circle', cx: 15, cy: 21, r: 1, color: PAL.gunfire, role: 'button' },
+    { kind: 'circle', cx: 15, cy: 24, r: 1, color: PAL.gunfire, role: 'button' },
+    // torso under coat
+    { kind: 'rect', x: 10, y: 13, w: 10, h: 14, rx: 2, color: PAL.crimson, role: 'torso' },
+    // left arm — down at side
+    { kind: 'poly', points: [[8, 16], [5, 27], [8, 28], [11, 17]], color: PAL.crimson, role: 'arm-left' },
+    // right arm — raised, holding grenade out
+    { kind: 'poly', points: [[19, 14], [24, 9], [26, 13], [21, 18]], color: PAL.crimson, role: 'arm-right' },
+    { kind: 'circle', cx: 25, cy: 10, r: 2, color: PAL.skin, role: 'hand' },
+    // grenade — dark iron ball
+    { kind: 'circle', cx: 26, cy: 7, r: 4, color: PAL.ironDark, role: 'grenade' },
+    // grenade highlight
+    { kind: 'circle', cx: 24, cy: 5, r: 1, color: PAL.iron, role: 'grenade-glint' },
+    // lit fuse / gunfire spark at top of grenade
+    { kind: 'poly', points: [[25, 3], [27, 0], [29, 2], [27, 4]], color: PAL.gunfire, role: 'spark' },
+    // smoke puff (smoke-colored blobs around fuse)
+    { kind: 'circle', cx: 28, cy: 2, r: 2, color: PAL.smoke, role: 'smoke' },
+    { kind: 'circle', cx: 26, cy: 0, r: 1, color: PAL.powder, role: 'smoke' },
+    // head
+    { kind: 'circle', cx: 15, cy: 8, r: 5, color: PAL.skin, role: 'head' },
+    // mitre cap — tall front plate tapering to a point, blued with crimson panel
+    { kind: 'poly', points: [[11, 6], [14, 0], [16, 0], [19, 6]], color: PAL.blued, role: 'mitre' },
+    { kind: 'poly', points: [[12, 6], [14, 1], [16, 1], [18, 6]], color: PAL.crimson, role: 'mitre-panel' },
+    // mitre cap base band
+    { kind: 'rect', x: 10, y: 5, w: 10, h: 3, rx: 1, color: PAL.blued, role: 'mitre-band' },
+    // eyes — alert, forward-facing
+    { kind: 'circle', cx: 13, cy: 9, r: 1, color: '#1a0a0a', role: 'eye' },
+    { kind: 'circle', cx: 17, cy: 9, r: 1, color: '#1a0a0a', role: 'eye' },
+  ],
+};
+
+// A hulking ironclad mini-boss in riveted blued/steel plate. Canvas 56x54.
+// Massively broad shoulders, heavy pauldrons, a grated visor, and a gunfire-glow
+// chest port. The biggest Renaissance enemy — imposing, mechanical, intimidating.
+export const DREADNOUGHT: SpriteDef = {
+  id: 'dreadnought',
+  w: 56,
+  h: 54,
+  prims: [
+    // heavy armored legs — pillar-wide
+    { kind: 'rect', x: 8, y: 36, w: 16, h: 18, rx: 2, color: PAL.blued, role: 'leg' },
+    { kind: 'rect', x: 32, y: 36, w: 16, h: 18, rx: 2, color: PAL.blued, role: 'leg' },
+    // leg plate rivets
+    { kind: 'circle', cx: 16, cy: 40, r: 1, color: PAL.steel, role: 'rivet' },
+    { kind: 'circle', cx: 40, cy: 40, r: 1, color: PAL.steel, role: 'rivet' },
+    // knee cops — large domed roundels
+    { kind: 'circle', cx: 16, cy: 37, r: 4, color: PAL.steel, role: 'knee' },
+    { kind: 'circle', cx: 40, cy: 37, r: 4, color: PAL.steel, role: 'knee' },
+    // massive torso — barrel-wide iron plate body
+    { kind: 'poly', points: [[4, 38], [8, 14], [20, 8], [36, 8], [48, 14], [52, 38], [44, 44], [12, 44]], color: PAL.blued, role: 'torso' },
+    // chest plate overlay — lighter steel panel
+    { kind: 'poly', points: [[12, 16], [44, 16], [46, 36], [32, 40], [24, 40], [10, 36]], color: PAL.steel, role: 'chest-plate' },
+    // rivet rows across chest plate
+    { kind: 'circle', cx: 18, cy: 20, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 28, cy: 20, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 38, cy: 20, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 16, cy: 30, r: 1, color: PAL.blued, role: 'rivet' },
+    { kind: 'circle', cx: 40, cy: 30, r: 1, color: PAL.blued, role: 'rivet' },
+    // chest port — the signature: a circular opening with gunfire glow
+    { kind: 'circle', cx: 28, cy: 28, r: 6, color: PAL.ironDark, role: 'chest-port' },
+    { kind: 'circle', cx: 28, cy: 28, r: 4, color: PAL.gunfire, role: 'port-glow' },
+    { kind: 'circle', cx: 28, cy: 28, r: 2, color: '#ffffff', role: 'port-core' },
+    // grate bars across the port (ironDark lines)
+    { kind: 'line', x1: 22, y1: 28, x2: 34, y2: 28, width: 2, color: PAL.ironDark, role: 'grate' },
+    { kind: 'line', x1: 28, y1: 22, x2: 28, y2: 34, width: 2, color: PAL.ironDark, role: 'grate' },
+    // massive pauldrons — dominating the shoulders
+    { kind: 'poly', points: [[2, 14], [0, 30], [10, 36], [14, 18]], color: PAL.blued, role: 'pauldron' },
+    { kind: 'poly', points: [[54, 14], [56, 30], [46, 36], [42, 18]], color: PAL.blued, role: 'pauldron' },
+    // pauldron plates (steel overlay on each)
+    { kind: 'poly', points: [[4, 16], [2, 28], [8, 32], [12, 20]], color: PAL.steel, role: 'pauldron-plate' },
+    { kind: 'poly', points: [[52, 16], [54, 28], [48, 32], [44, 20]], color: PAL.steel, role: 'pauldron-plate' },
+    // massive arm gauntlets
+    { kind: 'rect', x: 0, y: 28, w: 12, h: 18, rx: 2, color: PAL.blued, role: 'arm' },
+    { kind: 'rect', x: 44, y: 28, w: 12, h: 18, rx: 2, color: PAL.blued, role: 'arm' },
+    // iron fists — balled, very wide
+    { kind: 'rect', x: -1, y: 42, w: 14, h: 12, rx: 3, color: PAL.steel, role: 'fist' },
+    { kind: 'rect', x: 43, y: 42, w: 14, h: 12, rx: 3, color: PAL.steel, role: 'fist' },
+    // neck — thick cylindrical collar
+    { kind: 'rect', x: 22, y: 8, w: 12, h: 8, rx: 2, color: PAL.blued, role: 'neck' },
+    // great helm — broad, flat-topped with heavy cheek guards
+    { kind: 'poly', points: [[14, 10], [42, 10], [40, 0], [16, 0]], color: PAL.blued, role: 'helm' },
+    // helm top reinforcing band (steel)
+    { kind: 'rect', x: 16, y: 0, w: 24, h: 3, rx: 1, color: PAL.steel, role: 'helm-top' },
+    // cheek guards — heavy flanges
+    { kind: 'rect', x: 12, y: 6, w: 5, h: 8, rx: 1, color: PAL.blued, role: 'cheek-guard' },
+    { kind: 'rect', x: 39, y: 6, w: 5, h: 8, rx: 1, color: PAL.blued, role: 'cheek-guard' },
+    // grated visor — a row of narrow slits
+    { kind: 'rect', x: 17, y: 4, w: 22, h: 5, rx: 1, color: PAL.ironDark, role: 'visor' },
+    { kind: 'line', x1: 18, y1: 5, x2: 38, y2: 5, width: 1, color: PAL.gunfire, role: 'visor-glow' },
+    { kind: 'line', x1: 18, y1: 7, x2: 38, y2: 7, width: 1, color: PAL.gunfire, role: 'visor-glow' },
+  ],
+};
+
+export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT];
