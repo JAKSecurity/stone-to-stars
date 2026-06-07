@@ -18,7 +18,7 @@ export class RunScene extends Phaser.Scene {
   private onComplete!: (r: RunResult) => void;
   private stats = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] });
 
-  private player!: Phaser.GameObjects.Arc & { body: Phaser.Physics.Arcade.Body };
+  private player!: Phaser.GameObjects.Image & { body: Phaser.Physics.Arcade.Body };
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
   private gems!: Phaser.Physics.Arcade.Group;
@@ -48,9 +48,12 @@ export class RunScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-    this.player = this.add.circle(width / 2, height / 2, 12, 0x5bd1ff) as any;
-    this.physics.add.existing(this.player);
-    this.player.body.setCollideWorldBounds(true);
+    const player = this.add.image(width / 2, height / 2, 'hero');
+    player.setDisplaySize(34, 42); // scale 120x150 art down to play size
+    this.physics.add.existing(player);
+    this.player = player as any;
+    (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
+    (this.player.body as Phaser.Physics.Arcade.Body).setSize(28, 36);
 
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group();

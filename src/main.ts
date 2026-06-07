@@ -8,6 +8,7 @@ import { build, upgradeBuilding } from './camp/camp';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen } from './ui/civScreen';
 import { RunScene } from './scenes/RunScene';
+import { registerTextures } from './art/phaserTextures';
 
 const civEl = document.getElementById('civ')!;
 const runEl = document.getElementById('run')!;
@@ -26,6 +27,8 @@ const game = new Phaser.Game({
 // Phaser config force-starts on boot (with no init data), which crashes RunScene.init;
 // adding it manually with autoStart=false keeps it dormant until startRun().
 game.scene.add('run', RunScene, false);
+// Render all sprite-def textures once the texture manager is ready.
+game.events.once(Phaser.Core.Events.READY, () => registerTextures(game));
 
 function showCiv() {
   runEl.classList.remove('active');
