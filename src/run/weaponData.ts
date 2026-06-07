@@ -212,6 +212,78 @@ export const WEAPONS: Record<string, WeaponDef> = {
     levelScaling: { damage: 8 },
   },
 
+  // --- Renaissance Age base weapons ---
+  musket: {
+    id: 'musket', name: 'Musket', tier: 'renaissance',
+    projectileSprite: 'shot_musket',
+    cooldownMs: 900, damage: 58, count: 1, spread: 0, speed: 640,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 16, cooldownMs: -60 },
+    evolvesTo: 'rifle', evolveRequiresPerk: 'sharpen',
+  },
+  blunderbuss: {
+    id: 'blunderbuss', name: 'Blunderbuss', tier: 'renaissance',
+    projectileSprite: 'shot_pellet',
+    cooldownMs: 750, damage: 14, count: 5, spread: 0.7, speed: 420,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 5 },
+    evolvesTo: 'scattergun', evolveRequiresPerk: 'rapid',
+  },
+  volley_pistols: {
+    id: 'volley_pistols', name: 'Volley Pistols', tier: 'renaissance',
+    projectileSprite: 'shot_pistol',
+    cooldownMs: 520, damage: 20, count: 2, spread: 0.2, speed: 560,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 7, cooldownMs: -30 },
+    evolvesTo: 'revolver_volley', evolveRequiresPerk: 'swift',
+  },
+  grenade: {
+    id: 'grenade', name: 'Grenade', tier: 'renaissance',
+    projectileSprite: 'shot_grenade',
+    cooldownMs: 1000, damage: 40, count: 2, spread: 0.4, speed: 300,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 12 },
+    evolvesTo: 'cluster_bomb', evolveRequiresPerk: 'vigor',
+  },
+
+  // --- Renaissance Age evolved forms ---
+  rifle: {
+    id: 'rifle', name: 'Rifle', tier: 'renaissance',
+    projectileSprite: 'shot_musket',
+    cooldownMs: 700, damage: 78, count: 1, spread: 0, speed: 700,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 20, cooldownMs: -60 },
+  },
+  scattergun: {
+    id: 'scattergun', name: 'Scattergun', tier: 'renaissance',
+    projectileSprite: 'shot_pellet',
+    cooldownMs: 620, damage: 18, count: 7, spread: 0.8, speed: 440,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 6 },
+  },
+  revolver_volley: {
+    id: 'revolver_volley', name: 'Revolver Volley', tier: 'renaissance',
+    projectileSprite: 'shot_pistol',
+    cooldownMs: 420, damage: 26, count: 3, spread: 0.25, speed: 580,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 9, cooldownMs: -30 },
+  },
+  cluster_bomb: {
+    id: 'cluster_bomb', name: 'Cluster Bomb', tier: 'renaissance',
+    projectileSprite: 'shot_grenade',
+    cooldownMs: 820, damage: 48, count: 4, spread: 0.6, speed: 320,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 14 },
+  },
+
   // --- Classical Age evolved forms ---
   pilum_storm: {
     id: 'pilum_storm', name: 'Pilum Storm', tier: 'classical',

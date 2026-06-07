@@ -120,4 +120,12 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Renaissance projectile + hero sprites are registered and valid', () => {
+    const renaissanceSpriteIds = ['shot_musket', 'shot_pellet', 'shot_pistol', 'shot_grenade', 'hero_renaissance'];
+    for (const id of renaissanceSpriteIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

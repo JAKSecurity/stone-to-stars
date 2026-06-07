@@ -141,6 +141,51 @@ export const SHOT_FLAIL: SpriteDef = {
   ],
 };
 
+// Renaissance Age projectile sprites
+
+export const SHOT_MUSKET: SpriteDef = {
+  id: 'shot_musket', w: 12, h: 12, shadow: false,
+  prims: [
+    // lead ball body — ironDark
+    { kind: 'circle', cx: 6, cy: 6, r: 5, color: PAL.ironDark, role: 'ball' },
+    // smoke/gunfire glint — small highlight circle
+    { kind: 'circle', cx: 4, cy: 4, r: 2, color: PAL.smoke, role: 'glint' },
+    { kind: 'circle', cx: 3, cy: 3, r: 1, color: PAL.gunfire, role: 'spark' },
+  ],
+};
+
+export const SHOT_PELLET: SpriteDef = {
+  id: 'shot_pellet', w: 10, h: 10, shadow: false,
+  prims: [
+    // scatter pellet — small powder/ironDark circle
+    { kind: 'circle', cx: 5, cy: 5, r: 4, color: PAL.ironDark, role: 'ball' },
+    { kind: 'circle', cx: 4, cy: 4, r: 1, color: PAL.powder, role: 'sheen' },
+  ],
+};
+
+export const SHOT_PISTOL: SpriteDef = {
+  id: 'shot_pistol', w: 12, h: 12, shadow: false,
+  prims: [
+    // pistol ball — ironDark body with brass rim
+    { kind: 'circle', cx: 6, cy: 6, r: 5, color: PAL.ironDark, role: 'ball' },
+    // brass rim ring — slightly smaller, offset for rim look
+    { kind: 'poly', points: [[6, 1], [10, 3], [11, 6], [10, 9], [6, 11], [2, 9], [1, 6], [2, 3]], color: PAL.brass, role: 'rim' },
+    { kind: 'circle', cx: 6, cy: 6, r: 3, color: PAL.ironDark, role: 'center' },
+  ],
+};
+
+export const SHOT_GRENADE: SpriteDef = {
+  id: 'shot_grenade', w: 14, h: 14, shadow: false,
+  prims: [
+    // bomb body — ironDark circle
+    { kind: 'circle', cx: 7, cy: 8, r: 5, color: PAL.ironDark, role: 'body' },
+    // walnut fuse — short rect at top
+    { kind: 'rect', x: 6, y: 1, w: 3, h: 4, rx: 1, color: PAL.walnut, role: 'fuse' },
+    // gunfire spark at tip of fuse — small triangle poly
+    { kind: 'poly', points: [[6, 1], [8, 1], [7, -1]], color: PAL.gunfire, role: 'spark' },
+  ],
+};
+
 export const PROJECTILES: SpriteDef[] = [
   SHOT_CLUB,
   SHOT_BRONZE,
@@ -156,4 +201,8 @@ export const PROJECTILES: SpriteDef[] = [
   SHOT_SLASH,
   SHOT_HALBERD,
   SHOT_FLAIL,
+  SHOT_MUSKET,
+  SHOT_PELLET,
+  SHOT_PISTOL,
+  SHOT_GRENADE,
 ];

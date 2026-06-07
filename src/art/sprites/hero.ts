@@ -126,6 +126,74 @@ export const HERO_MEDIEVAL: SpriteDef = {
   ],
 };
 
+// Renaissance Age variant — musketeer/duelist hero. Same 120×150 canvas and pose family.
+// Velvet/walnut buff coat over a blued/steel breastplate, wide-brim blued hat with velvet/gold
+// plume, blued boots, and a blued flintlock pistol in the shield arm position + steel rapier.
+// First-pass art; reviewed at the Renaissance Phase C gate.
+export const HERO_RENAISSANCE: SpriteDef = {
+  id: 'hero_renaissance',
+  w: 120,
+  h: 150,
+  prims: [
+    // boots — blued leather tall boots
+    { kind: 'rect', x: 48, y: 96, w: 11, h: 34, rx: 4, color: PAL.blued, role: 'boot' },
+    { kind: 'rect', x: 62, y: 96, w: 11, h: 34, rx: 4, color: PAL.blued, role: 'boot' },
+    // boot cuffs — velvet fold at top of boots
+    { kind: 'rect', x: 48, y: 96, w: 11, h: 7, rx: 2, color: PAL.velvet, role: 'cuff' },
+    { kind: 'rect', x: 62, y: 96, w: 11, h: 7, rx: 2, color: PAL.velvet, role: 'cuff' },
+    // rapier — thin steel blade on right side
+    { kind: 'line', x1: 85, y1: 16, x2: 85, y2: 118, width: 2, color: PAL.steel, role: 'blade' },
+    // rapier crossguard — horizontal bar at grip transition
+    { kind: 'rect', x: 80, y: 116, w: 10, h: 3, color: PAL.brass, role: 'crossguard' },
+    // rapier grip — blued handle
+    { kind: 'rect', x: 83, y: 119, w: 4, h: 8, rx: 1, color: PAL.blued, role: 'grip' },
+    // rapier tip — narrow steel point
+    { kind: 'poly', points: [[85, 4], [83, 16], [87, 16]], color: PAL.steel, role: 'tip' },
+    // buff coat body — velvet/walnut trapezoid
+    { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.velvet, role: 'coat' },
+    // blued steel breastplate overlay — slightly inset
+    { kind: 'poly', points: [[46, 62], [74, 62], [70, 96], [50, 96]], color: PAL.blued, role: 'breastplate' },
+    // breastplate steel edge-lines
+    { kind: 'rect', x: 48, y: 70, w: 24, h: 3, rx: 1, color: PAL.steel, role: 'plateRidge' },
+    { kind: 'rect', x: 48, y: 80, w: 24, h: 3, rx: 1, color: PAL.steel, role: 'plateRidge' },
+    // coat lapels — walnut folded collar either side
+    { kind: 'poly', points: [[46, 60], [55, 60], [52, 72], [44, 68]], color: PAL.walnut, role: 'lapel' },
+    { kind: 'poly', points: [[74, 60], [65, 60], [68, 72], [76, 68]], color: PAL.walnut, role: 'lapel' },
+    // pauldrons — blued epaulettes
+    { kind: 'rect', x: 35, y: 58, w: 14, h: 7, rx: 3, color: PAL.blued, role: 'pauldron' },
+    { kind: 'rect', x: 71, y: 58, w: 14, h: 7, rx: 3, color: PAL.blued, role: 'pauldron' },
+    // gorget — steel collar
+    { kind: 'rect', x: 44, y: 57, w: 32, h: 6, rx: 3, color: PAL.steel, role: 'gorget' },
+    // arms — skin upper arms, blued vambraces
+    { kind: 'rect', x: 33, y: 64, w: 9, h: 28, rx: 4, color: PAL.skin, role: 'arm' },
+    { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.skin, role: 'arm' },
+    { kind: 'rect', x: 33, y: 76, w: 9, h: 14, rx: 2, color: PAL.blued, role: 'vambrace' },
+    { kind: 'rect', x: 78, y: 74, w: 9, h: 16, rx: 2, color: PAL.blued, role: 'vambrace' },
+    // flintlock pistol — held in shield position (left arm area)
+    // barrel — blued rectangle
+    { kind: 'rect', x: 18, y: 80, w: 20, h: 4, rx: 1, color: PAL.blued, role: 'barrel' },
+    // lock mechanism — small walnut rect behind barrel
+    { kind: 'rect', x: 22, y: 78, w: 8, h: 8, rx: 1, color: PAL.walnut, role: 'lock' },
+    // hammer/flint — small ironDark poly above lock
+    { kind: 'poly', points: [[25, 78], [28, 75], [30, 78], [28, 80]], color: PAL.ironDark, role: 'hammer' },
+    // grip — walnut angled handle
+    { kind: 'poly', points: [[22, 86], [30, 86], [28, 96], [20, 94]], color: PAL.walnut, role: 'pistolGrip' },
+    // head — skin
+    { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    // hair — visible under hat brim
+    { kind: 'poly', points: [[44, 42], [45, 34], [50, 30], [55, 29], [60, 29], [65, 29], [70, 30], [75, 34], [76, 42]], color: PAL.hair, role: 'hair' },
+    // wide-brim hat — blued felt, broad brim
+    { kind: 'poly', points: [[36, 40], [84, 40], [80, 36], [40, 36]], color: PAL.blued, role: 'brim' },
+    // hat crown — blued tall crown
+    { kind: 'poly', points: [[44, 36], [46, 20], [60, 18], [74, 20], [76, 36]], color: PAL.blued, role: 'crown' },
+    // hat band — velvet band at base of crown
+    { kind: 'rect', x: 44, y: 34, w: 32, h: 4, rx: 1, color: PAL.velvet, role: 'hatband' },
+    // gold plume — feather poly sweeping up from hat band
+    { kind: 'poly', points: [[72, 34], [80, 18], [83, 20], [76, 34], [74, 36]], color: PAL.gold, role: 'plume' },
+    { kind: 'poly', points: [[74, 30], [82, 16], [84, 18], [78, 30]], color: PAL.velvet, role: 'plumeDark' },
+  ],
+};
+
 // Classical Age variant — Greek hoplite hero. Same 120×150 canvas and pose family.
 // Bronze-gold cuirass, toga tunic, oxblood-plumed Corinthian helm, hoplon shield, spear.
 // First-pass art; reviewed at the Classical Phase C gate.
