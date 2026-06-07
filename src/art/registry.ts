@@ -1,5 +1,9 @@
 import { Prim, SpriteDef } from './types';
 import { HERO } from './sprites/hero';
+import { GEMS } from './sprites/gems';
+import { PROJECTILES } from './sprites/projectiles';
+import { ENEMIES } from './sprites/enemies';
+import { BUILDINGS } from './sprites/buildings';
 
 const HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -40,7 +44,7 @@ export function validateSpriteDef(def: SpriteDef): string[] {
   return e;
 }
 
-// Sprites are added here as Tasks 5, 7, 8, 9 land them.
-export const SPRITES: Record<string, SpriteDef> = {
-  [HERO.id]: HERO,
-};
+// All sprite defs, keyed by id. New sprite modules get spread into this list.
+export const SPRITES: Record<string, SpriteDef> = Object.fromEntries(
+  [HERO, ...GEMS, ...PROJECTILES, ...ENEMIES, ...BUILDINGS].map((d) => [d.id, d]),
+);
