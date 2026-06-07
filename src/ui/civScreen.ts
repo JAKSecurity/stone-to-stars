@@ -38,7 +38,8 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   }
   const ageSpan = document.createElement('span');
   ageSpan.className = 'age';
-  ageSpan.innerHTML = `Age: <strong>${getAge(civ) === 'bronze' ? 'Bronze' : 'Stone'}</strong>`;
+  const age = getAge(civ);
+  ageSpan.innerHTML = `Age: <strong>${age.charAt(0).toUpperCase()}${age.slice(1)}</strong>`;
   bar.appendChild(ageSpan);
   wrap.appendChild(bar);
 
