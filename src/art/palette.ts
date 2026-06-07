@@ -19,5 +19,10 @@ export const PAL = {
   // buildings
   roof: '#8a3b2b', wall: '#b08454', door: '#5d4632',
   grain: '#e3b341', rock: '#6e6a66', fire: '#ff8c42',
+  // iron age — cold metal, cavern stone, automaton brass, molten fire
+  iron: '#9aa3ab', ironDark: '#5a636b', steel: '#c0c8cf',
+  caveStone: '#6b6560', caveStoneDark: '#3f3a36',
+  brass: '#b9933f', brassDark: '#6f5520', rune: '#5ad1c7',
+  molten: '#ff6a2b', ember: '#ffd152',
   shadow: 'rgba(0,0,0,0.28)',
 } as const;
