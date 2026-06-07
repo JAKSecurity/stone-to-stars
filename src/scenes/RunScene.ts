@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource } from '../game/types';
+import { RunModifiers, RunResult, Resource, Expedition, BiomeDef } from '../game/types';
 import { RUN_DURATION_MS } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
 import { applyPerk } from '../run/draft';
@@ -8,9 +8,13 @@ import {
   weaponShot, WeaponShot, rollRunDraft, DraftOption,
 } from '../run/weapons';
 import { WEAPONS } from '../run/weaponData';
+import { BIOMES } from '../run/biomeData';
+import { ENEMIES } from '../run/enemyData';
+import { pickEnemy } from '../run/expedition';
 
 interface RunInit {
   modifiers: RunModifiers;
+  expedition: Expedition;
   onComplete: (result: RunResult) => void;
 }
 
@@ -18,6 +22,8 @@ export class RunScene extends Phaser.Scene {
   private mods!: RunModifiers;
   private onComplete!: (r: RunResult) => void;
   private stats = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] });
+  private expedition!: Expedition;
+  private biome!: BiomeDef;
 
   private player!: Phaser.GameObjects.Image & { body: Phaser.Physics.Arcade.Body };
   private enemies!: Phaser.Physics.Arcade.Group;
@@ -42,6 +48,8 @@ export class RunScene extends Phaser.Scene {
   init(data: RunInit) {
     this.mods = data.modifiers;
     this.onComplete = data.onComplete;
+    this.expedition = data.expedition;
+    this.biome = BIOMES[data.expedition.biomeId];
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0; this.spawnCooldown = 0;
@@ -79,6 +87,7 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
     this.physics.add.overlap(this.player, this.gems, (_p, g) => this.collectGem(g as any));
 
+    this.cameras.main.setBackgroundColor(this.biome.tint);
     this.hud = this.add.text(8, 8, '', { fontSize: '14px', color: '#fff' }).setDepth(10);
   }
 
@@ -108,13 +117,13 @@ export class RunScene extends Phaser.Scene {
     if (this.spawnCooldown <= 0) {
       this.spawnEnemy();
       const ramp = 1 + this.elapsed / 60000;
-      this.spawnCooldown = Math.max(250, 1100 / ramp);
+      this.spawnCooldown = Math.max(250, 1100 / (ramp * this.expedition.scaling.spawnRateMult));
     }
 
     this.explorationCooldown -= dt;
     if (this.explorationCooldown <= 0) {
       this.collected.exploration += 1;
-      this.explorationCooldown = 4000;
+      this.explorationCooldown = 4000 / (this.biome.resourceBias.exploration ?? 1);
     }
 
     // Culture relics appear periodically as walk-over pickups (design: villages/relics give culture).
@@ -122,11 +131,11 @@ export class RunScene extends Phaser.Scene {
     if (this.relicCooldown <= 0) {
       const { width, height } = this.scale;
       this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), 'culture');
-      this.relicCooldown = 5000;
+      this.relicCooldown = 5000 / (this.biome.resourceBias.culture ?? 1);
     }
 
     (this.enemies.getChildren() as any[]).forEach((e) => {
-      this.physics.moveToObject(e, this.player, 60);
+      this.physics.moveToObject(e, this.player, e.getData('speed'));
     });
 
     // Gems always drift toward the player so a run reliably delivers its resources;
@@ -181,13 +190,18 @@ export class RunScene extends Phaser.Scene {
     const edge = Phaser.Math.Between(0, 3);
     const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
-    const isScholar = Phaser.Math.Between(0, 2) === 0;
-    const enemy = this.add.image(x, y, isScholar ? 'scholar' : 'beast') as any;
-    enemy.setDisplaySize(isScholar ? 20 : 29, 26);
+
+    const def = ENEMIES[pickEnemy(this.biome.spawnTable, () => Math.random())];
+    const sc = this.expedition.scaling;
+    const enemy = this.add.image(x, y, def.sprite) as any;
+    enemy.setDisplaySize(def.displaySize.w, def.displaySize.h);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
-    enemy.setData('hp', 24);
-    enemy.setData('drop', isScholar ? 'science' : 'industry');
+    enemy.setData('hp', def.baseHp * sc.hpMult);
+    enemy.setData('drop', def.drop);
+    enemy.setData('xp', def.xp);
+    enemy.setData('speed', def.speed * sc.speedMult);
+    enemy.setData('contactDamage', def.contactDamage);
   }
 
   private hitEnemy(bullet: any, enemy: any) {
@@ -208,16 +222,20 @@ export class RunScene extends Phaser.Scene {
 
     const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
-      this.dropGem(enemy.x, enemy.y, enemy.getData('drop'));
+      const drops = Math.max(1, Math.round(this.expedition.scaling.dropMult));
+      for (let d = 0; d < drops; d++) {
+        const jitter = drops > 1 ? Phaser.Math.Between(-10, 10) : 0;
+        this.dropGem(enemy.x + jitter, enemy.y + jitter, enemy.getData('drop'));
+      }
       enemy.destroy();
-      this.gainXp(3);
+      this.gainXp(enemy.getData('xp'));
     } else {
       enemy.setData('hp', hp);
     }
   }
 
   private hitPlayer(enemy: any) {
-    this.stats.hp -= 6;
+    this.stats.hp -= enemy.getData('contactDamage');
     enemy.destroy();
     if (this.stats.hp <= 0) this.finish(true);
   }
