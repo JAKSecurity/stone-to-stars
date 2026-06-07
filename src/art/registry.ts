@@ -1,4 +1,5 @@
 import { Prim, SpriteDef } from './types';
+import { HERO } from './sprites/hero';
 
 const HEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -40,4 +41,6 @@ export function validateSpriteDef(def: SpriteDef): string[] {
 }
 
 // Sprites are added here as Tasks 5, 7, 8, 9 land them.
-export const SPRITES: Record<string, SpriteDef> = {};
+export const SPRITES: Record<string, SpriteDef> = {
+  [HERO.id]: HERO,
+};
