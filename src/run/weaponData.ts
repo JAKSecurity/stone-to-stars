@@ -284,6 +284,78 @@ export const WEAPONS: Record<string, WeaponDef> = {
     levelScaling: { damage: 14 },
   },
 
+  // --- Industrial Age base weapons ---
+  gatling: {
+    id: 'gatling', name: 'Gatling Gun', tier: 'industrial',
+    projectileSprite: 'shot_bullet',
+    cooldownMs: 180, damage: 16, count: 1, spread: 0, speed: 700,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 5, cooldownMs: -15 },
+    evolvesTo: 'minigun', evolveRequiresPerk: 'rapid',
+  },
+  flamethrower: {
+    id: 'flamethrower', name: 'Flamethrower', tier: 'industrial',
+    projectileSprite: 'shot_fire',
+    cooldownMs: 140, damage: 10, count: 3, spread: 0.45, speed: 320,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 4 },
+    evolvesTo: 'inferno', evolveRequiresPerk: 'sharpen',
+  },
+  dynamite: {
+    id: 'dynamite', name: 'Dynamite', tier: 'industrial',
+    projectileSprite: 'shot_dynamite',
+    cooldownMs: 1100, damage: 60, count: 3, spread: 0.5, speed: 300,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 18 },
+    evolvesTo: 'tnt_barrel', evolveRequiresPerk: 'vigor',
+  },
+  tesla_coil: {
+    id: 'tesla_coil', name: 'Tesla Coil', tier: 'industrial',
+    projectileSprite: 'shot_spark',
+    cooldownMs: 600, damage: 34, count: 1, spread: 0, speed: 620,
+    behavior: 'pierce', pierce: 4,
+    maxLevel: 5,
+    levelScaling: { damage: 11, cooldownMs: -40 },
+    evolvesTo: 'arc_reactor', evolveRequiresPerk: 'magnet',
+  },
+
+  // --- Industrial Age evolved forms ---
+  minigun: {
+    id: 'minigun', name: 'Minigun', tier: 'industrial',
+    projectileSprite: 'shot_bullet',
+    cooldownMs: 120, damage: 20, count: 2, spread: 0.12, speed: 760,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 6, cooldownMs: -10 },
+  },
+  inferno: {
+    id: 'inferno', name: 'Inferno', tier: 'industrial',
+    projectileSprite: 'shot_fire',
+    cooldownMs: 120, damage: 14, count: 5, spread: 0.55, speed: 340,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 5 },
+  },
+  tnt_barrel: {
+    id: 'tnt_barrel', name: 'TNT Barrel', tier: 'industrial',
+    projectileSprite: 'shot_dynamite',
+    cooldownMs: 900, damage: 76, count: 4, spread: 0.6, speed: 320,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 22 },
+  },
+  arc_reactor: {
+    id: 'arc_reactor', name: 'Arc Reactor', tier: 'industrial',
+    projectileSprite: 'shot_spark',
+    cooldownMs: 480, damage: 46, count: 2, spread: 0.2, speed: 660,
+    behavior: 'pierce', pierce: 6,
+    maxLevel: 5,
+    levelScaling: { damage: 14, cooldownMs: -40 },
+  },
+
   // --- Classical Age evolved forms ---
   pilum_storm: {
     id: 'pilum_storm', name: 'Pilum Storm', tier: 'classical',

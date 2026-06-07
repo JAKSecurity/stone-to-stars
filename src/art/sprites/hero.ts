@@ -194,6 +194,84 @@ export const HERO_RENAISSANCE: SpriteDef = {
   ],
 };
 
+// Industrial Age variant — steampunk soldier hero. Same 120×150 canvas and pose family.
+// Riveted castIron/rivet breastplate over a walnut/coal long coat, copper shoulder/arm
+// fittings, steam/copper strap goggles with electric lenses on the head, and a steam-rifle
+// (castIron/copper long gun with a line barrel + block body) in place of a spear.
+// Distinct from all prior heroes. First-pass art; reviewed at the Industrial Phase C gate.
+export const HERO_INDUSTRIAL: SpriteDef = {
+  id: 'hero_industrial',
+  w: 120,
+  h: 150,
+  prims: [
+    // boots — coal-dark heavy industrial boots
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 34, rx: 3, color: PAL.coal, role: 'boot' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 34, rx: 3, color: PAL.coal, role: 'boot' },
+    // boot copper trim bands
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 5, rx: 1, color: PAL.copper, role: 'bootTrim' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 5, rx: 1, color: PAL.copper, role: 'bootTrim' },
+    // steam-rifle — long gun held on right side (replacing spear)
+    // barrel — long castIron line
+    { kind: 'line', x1: 85, y1: 22, x2: 85, y2: 130, width: 5, color: PAL.castIron, role: 'barrel' },
+    // copper barrel band fittings
+    { kind: 'rect', x: 82, y: 40, w: 6, h: 4, color: PAL.copper, role: 'band' },
+    { kind: 'rect', x: 82, y: 70, w: 6, h: 4, color: PAL.copper, role: 'band' },
+    { kind: 'rect', x: 82, y: 100, w: 6, h: 4, color: PAL.copper, role: 'band' },
+    // rifle body/stock block
+    { kind: 'rect', x: 80, y: 112, w: 10, h: 8, rx: 2, color: PAL.walnut, role: 'stock' },
+    // muzzle cap
+    { kind: 'poly', points: [[82, 22], [88, 22], [87, 16], [83, 16]], color: PAL.copper, role: 'muzzle' },
+    // walnut/coal long coat body (trapezoid)
+    { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.walnut, role: 'coat' },
+    // coal under-layer visible at coat seam
+    { kind: 'poly', points: [[56, 62], [64, 62], [62, 96], [58, 96]], color: PAL.coal, role: 'seam' },
+    // castIron riveted breastplate overlay
+    { kind: 'poly', points: [[46, 62], [74, 62], [70, 96], [50, 96]], color: PAL.castIron, role: 'breastplate' },
+    // rivet accents on breastplate
+    { kind: 'circle', cx: 52, cy: 70, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 68, cy: 70, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 52, cy: 82, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 68, cy: 82, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 60, cy: 76, r: 2, color: PAL.rivet, role: 'rivet' },
+    // copper gorget / collar
+    { kind: 'rect', x: 44, y: 57, w: 32, h: 6, rx: 3, color: PAL.copper, role: 'gorget' },
+    // copper shoulder fittings / pauldrons
+    { kind: 'rect', x: 34, y: 58, w: 14, h: 8, rx: 3, color: PAL.copper, role: 'pauldron' },
+    { kind: 'rect', x: 72, y: 58, w: 14, h: 8, rx: 3, color: PAL.copper, role: 'pauldron' },
+    // arms — walnut coat sleeves with copper vambraces
+    { kind: 'rect', x: 33, y: 64, w: 9, h: 28, rx: 4, color: PAL.walnut, role: 'arm' },
+    { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.walnut, role: 'arm' },
+    { kind: 'rect', x: 33, y: 76, w: 9, h: 14, rx: 2, color: PAL.copper, role: 'vambrace' },
+    { kind: 'rect', x: 78, y: 74, w: 9, h: 16, rx: 2, color: PAL.copper, role: 'vambrace' },
+    // head — skin
+    { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    // hair visible below goggle strap
+    { kind: 'poly', points: [[44, 42], [45, 34], [50, 30], [55, 29], [60, 29], [65, 29], [70, 30], [75, 34], [76, 42]], color: PAL.hair, role: 'hair' },
+    // steam/copper goggle strap band across the forehead
+    { kind: 'rect', x: 43, y: 34, w: 34, h: 8, rx: 4, color: PAL.steam, role: 'goggleStrap' },
+    // copper strap buckle detail
+    { kind: 'rect', x: 43, y: 36, w: 4, h: 4, color: PAL.copper, role: 'buckle' },
+    { kind: 'rect', x: 73, y: 36, w: 4, h: 4, color: PAL.copper, role: 'buckle' },
+    // electric lens circles (goggles)
+    { kind: 'circle', cx: 53, cy: 38, r: 6, color: PAL.copper, role: 'goggleRim' },
+    { kind: 'circle', cx: 67, cy: 38, r: 6, color: PAL.copper, role: 'goggleRim' },
+    { kind: 'circle', cx: 53, cy: 38, r: 4, color: PAL.electric, role: 'lens' },
+    { kind: 'circle', cx: 67, cy: 38, r: 4, color: PAL.electric, role: 'lens' },
+    // steam highlight on goggle lenses
+    { kind: 'circle', cx: 51, cy: 36, r: 1, color: PAL.steam, role: 'lensGlint' },
+    { kind: 'circle', cx: 65, cy: 36, r: 1, color: PAL.steam, role: 'lensGlint' },
+    // castIron cap / helm above the goggles
+    { kind: 'poly', points: [[44, 36], [45, 26], [50, 20], [60, 18], [70, 20], [75, 26], [76, 36]], color: PAL.castIron, role: 'helm' },
+    // rivet row on the helm
+    { kind: 'circle', cx: 50, cy: 24, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 60, cy: 21, r: 2, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 70, cy: 24, r: 2, color: PAL.rivet, role: 'rivet' },
+    // steam-pressure gauge on the breastplate (copper circle with electric needle)
+    { kind: 'circle', cx: 60, cy: 88, r: 5, color: PAL.steam, role: 'gauge' },
+    { kind: 'poly', points: [[60, 85], [62, 89], [58, 89]], color: PAL.electric, role: 'needle' },
+  ],
+};
+
 // Classical Age variant — Greek hoplite hero. Same 120×150 canvas and pose family.
 // Bronze-gold cuirass, toga tunic, oxblood-plumed Corinthian helm, hoplon shield, spear.
 // First-pass art; reviewed at the Classical Phase C gate.

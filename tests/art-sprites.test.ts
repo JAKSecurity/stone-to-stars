@@ -144,4 +144,12 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Industrial projectile + hero sprites are registered and valid', () => {
+    const industrialSpriteIds = ['shot_bullet', 'shot_fire', 'shot_dynamite', 'shot_spark', 'hero_industrial'];
+    for (const id of industrialSpriteIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

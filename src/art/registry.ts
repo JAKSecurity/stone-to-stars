@@ -1,5 +1,5 @@
 import { Prim, SpriteDef } from './types';
-import { HERO, HERO_IRON, HERO_CLASSICAL, HERO_MEDIEVAL, HERO_RENAISSANCE } from './sprites/hero';
+import { HERO, HERO_IRON, HERO_CLASSICAL, HERO_MEDIEVAL, HERO_RENAISSANCE, HERO_INDUSTRIAL } from './sprites/hero';
 import { GEMS } from './sprites/gems';
 import { PROJECTILES } from './sprites/projectiles';
 import { ENEMIES } from './sprites/enemies';
@@ -46,5 +46,5 @@ export function validateSpriteDef(def: SpriteDef): string[] {
 
 // All sprite defs, keyed by id. New sprite modules get spread into this list.
 export const SPRITES: Record<string, SpriteDef> = Object.fromEntries(
-  [HERO, HERO_IRON, HERO_CLASSICAL, HERO_MEDIEVAL, HERO_RENAISSANCE, ...GEMS, ...PROJECTILES, ...ENEMIES, ...BUILDINGS].map((d) => [d.id, d]),
+  [HERO, HERO_IRON, HERO_CLASSICAL, HERO_MEDIEVAL, HERO_RENAISSANCE, HERO_INDUSTRIAL, ...GEMS, ...PROJECTILES, ...ENEMIES, ...BUILDINGS].map((d) => [d.id, d]),
 );

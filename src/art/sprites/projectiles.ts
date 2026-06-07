@@ -186,6 +186,58 @@ export const SHOT_GRENADE: SpriteDef = {
   ],
 };
 
+// Industrial Age projectile sprites
+
+export const SHOT_BULLET: SpriteDef = {
+  id: 'shot_bullet', w: 10, h: 10, shadow: false,
+  prims: [
+    // elongated copper/brass bullet body — horizontal teardrop poly
+    { kind: 'poly', points: [[1, 4], [7, 3], [9, 5], [7, 7], [1, 6]], color: PAL.copper, role: 'body' },
+    // brass casing at the base
+    { kind: 'rect', x: 1, y: 4, w: 3, h: 2, color: PAL.brass, role: 'casing' },
+    // steam-coloured glint highlight on the tip
+    { kind: 'poly', points: [[7, 3], [9, 5], [8, 4]], color: PAL.steam, role: 'glint' },
+  ],
+};
+
+export const SHOT_FIRE: SpriteDef = {
+  id: 'shot_fire', w: 14, h: 14, shadow: false,
+  prims: [
+    // furnace/ember flame teardrop — outer flame body
+    { kind: 'poly', points: [[7, 1], [11, 5], [12, 9], [9, 13], [5, 13], [2, 9], [3, 5]], color: PAL.furnace, role: 'flame' },
+    // ember inner core teardrop — brighter centre
+    { kind: 'poly', points: [[7, 4], [10, 7], [9, 11], [5, 11], [4, 7]], color: PAL.ember, role: 'core' },
+  ],
+};
+
+export const SHOT_DYNAMITE: SpriteDef = {
+  id: 'shot_dynamite', w: 14, h: 14, shadow: false,
+  prims: [
+    // crimson TNT stick body — vertical rectangle
+    { kind: 'rect', x: 4, y: 3, w: 6, h: 9, color: PAL.crimson, role: 'stick' },
+    // copper band/wrapper around the stick
+    { kind: 'rect', x: 4, y: 6, w: 6, h: 2, color: PAL.copper, role: 'band' },
+    // furnace/electric spark poly at the fuse top
+    { kind: 'poly', points: [[7, 1], [9, 3], [7, 4], [5, 3]], color: PAL.furnace, role: 'spark' },
+    // electric accent flare on the spark
+    { kind: 'poly', points: [[7, 1], [8, 2], [7, 3]], color: PAL.electric, role: 'flare' },
+    // fuse cord — thin copper line stub
+    { kind: 'rect', x: 6, y: 1, w: 2, h: 3, color: PAL.copper, role: 'fuse' },
+  ],
+};
+
+export const SHOT_SPARK: SpriteDef = {
+  id: 'shot_spark', w: 14, h: 14, shadow: false,
+  prims: [
+    // electric cyan zigzag lightning bolt — ≥3 points
+    { kind: 'poly', points: [[9, 1], [5, 6], [8, 6], [4, 13], [9, 7], [6, 7]], color: PAL.electric, role: 'bolt' },
+    // steam-coloured glow halo — wide translucent-ish circle behind bolt
+    { kind: 'circle', cx: 7, cy: 7, r: 5, color: PAL.steam, role: 'glow' },
+    // redraw bolt on top of glow
+    { kind: 'poly', points: [[9, 1], [5, 6], [8, 6], [4, 13], [9, 7], [6, 7]], color: PAL.electric, role: 'boltTop' },
+  ],
+};
+
 export const PROJECTILES: SpriteDef[] = [
   SHOT_CLUB,
   SHOT_BRONZE,
@@ -205,4 +257,8 @@ export const PROJECTILES: SpriteDef[] = [
   SHOT_PELLET,
   SHOT_PISTOL,
   SHOT_GRENADE,
+  SHOT_BULLET,
+  SHOT_FIRE,
+  SHOT_DYNAMITE,
+  SHOT_SPARK,
 ];
