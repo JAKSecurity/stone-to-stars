@@ -694,4 +694,184 @@ export const DREADNOUGHT: SpriteDef = {
   ],
 };
 
-export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT];
+// A small fast worker-bot. Canvas 26×30.
+// Compact castIron/copper body, a single glowing electric eye/lens, stubby riveted legs
+// and a clamp arm. Compact robot silhouette, distinct from the taller Automaton.
+export const RIVETER: SpriteDef = {
+  id: 'riveter',
+  w: 26,
+  h: 30,
+  prims: [
+    // stubby left leg
+    { kind: 'rect', x: 4, y: 20, w: 5, h: 10, rx: 1, color: PAL.castIron, role: 'leg' },
+    // stubby right leg
+    { kind: 'rect', x: 14, y: 20, w: 5, h: 10, rx: 1, color: PAL.castIron, role: 'leg' },
+    // rivet bolt on each foot
+    { kind: 'circle', cx: 6, cy: 29, r: 1, color: PAL.rivet, role: 'bolt' },
+    { kind: 'circle', cx: 17, cy: 29, r: 1, color: PAL.rivet, role: 'bolt' },
+    // compact boxy torso
+    { kind: 'rect', x: 3, y: 8, w: 20, h: 14, rx: 2, color: PAL.castIron, role: 'torso' },
+    // copper chest-panel stripe
+    { kind: 'rect', x: 5, y: 10, w: 16, h: 4, rx: 1, color: PAL.copper, role: 'chest-panel' },
+    // rivet detail on torso corners
+    { kind: 'circle', cx: 5, cy: 10, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 21, cy: 10, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 5, cy: 20, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 21, cy: 20, r: 1, color: PAL.rivet, role: 'rivet' },
+    // left arm — short and stubby
+    { kind: 'rect', x: 0, y: 10, w: 4, h: 8, rx: 1, color: PAL.castIron, role: 'arm' },
+    // right arm — clamp arm reaching out
+    { kind: 'poly', points: [[23, 10], [26, 12], [25, 18], [22, 17]], color: PAL.castIron, role: 'arm-clamp' },
+    // clamp jaw
+    { kind: 'poly', points: [[24, 13], [26, 11], [26, 15]], color: PAL.copper, role: 'clamp-jaw' },
+    // square head sitting on top of torso
+    { kind: 'rect', x: 7, y: 1, w: 12, h: 9, rx: 2, color: PAL.castIron, role: 'head' },
+    // single large glowing electric eye/lens
+    { kind: 'circle', cx: 13, cy: 5, r: 4, color: PAL.rivet, role: 'eye-housing' },
+    { kind: 'circle', cx: 13, cy: 5, r: 3, color: PAL.electric, role: 'eye' },
+    { kind: 'circle', cx: 14, cy: 4, r: 1, color: '#ffffff', role: 'eye-glint' },
+  ],
+};
+
+// A slow armored steam tank. Canvas 44×36.
+// Wide castIron/rivet hull on treads, a copper boiler + short smokestack with steam
+// puffs, a furnace vent glow, and a stubby cannon. Wide and heavy silhouette.
+export const STEAM_TANK: SpriteDef = {
+  id: 'steam_tank',
+  w: 44,
+  h: 36,
+  prims: [
+    // tread base — wide long rect
+    { kind: 'rect', x: 2, y: 24, w: 40, h: 10, rx: 3, color: PAL.rivet, role: 'tread-base' },
+    // tread road wheels — 5 circles along the bottom
+    { kind: 'circle', cx: 6, cy: 30, r: 4, color: PAL.castIron, role: 'wheel' },
+    { kind: 'circle', cx: 16, cy: 30, r: 4, color: PAL.castIron, role: 'wheel' },
+    { kind: 'circle', cx: 26, cy: 30, r: 4, color: PAL.castIron, role: 'wheel' },
+    { kind: 'circle', cx: 36, cy: 30, r: 4, color: PAL.castIron, role: 'wheel' },
+    // wheel hub bolts
+    { kind: 'circle', cx: 6, cy: 30, r: 1, color: PAL.rivet, role: 'hub' },
+    { kind: 'circle', cx: 16, cy: 30, r: 1, color: PAL.rivet, role: 'hub' },
+    { kind: 'circle', cx: 26, cy: 30, r: 1, color: PAL.rivet, role: 'hub' },
+    { kind: 'circle', cx: 36, cy: 30, r: 1, color: PAL.rivet, role: 'hub' },
+    // main hull — broad trapezoidal iron body
+    { kind: 'poly', points: [[4, 24], [6, 8], [38, 8], [40, 24]], color: PAL.castIron, role: 'hull' },
+    // hull rivet row across top edge
+    { kind: 'circle', cx: 10, cy: 10, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 18, cy: 10, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 26, cy: 10, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 34, cy: 10, r: 1, color: PAL.rivet, role: 'rivet' },
+    // copper boiler dome — large rounded top
+    { kind: 'circle', cx: 28, cy: 12, r: 8, color: PAL.copper, role: 'boiler' },
+    // boiler band straps
+    { kind: 'line', x1: 20, y1: 12, x2: 36, y2: 12, width: 2, color: PAL.castIron, role: 'boiler-band' },
+    // furnace vent glow — small orange port on the front of the hull
+    { kind: 'circle', cx: 8, cy: 16, r: 4, color: PAL.castIron, role: 'vent-housing' },
+    { kind: 'circle', cx: 8, cy: 16, r: 3, color: PAL.furnace, role: 'vent-glow' },
+    // smokestack rising from boiler
+    { kind: 'rect', x: 30, y: 1, w: 6, h: 10, rx: 1, color: PAL.castIron, role: 'smokestack' },
+    // steam puff circles from stack top
+    { kind: 'circle', cx: 33, cy: 1, r: 3, color: PAL.steam, role: 'steam-puff' },
+    { kind: 'circle', cx: 30, cy: 0, r: 2, color: PAL.steam, role: 'steam-puff' },
+    // stubby cannon barrel pointing forward-left
+    { kind: 'rect', x: 0, y: 14, w: 12, h: 5, rx: 1, color: PAL.castIron, role: 'cannon-barrel' },
+    // cannon muzzle ring (copper)
+    { kind: 'rect', x: 0, y: 13, w: 4, h: 7, rx: 1, color: PAL.copper, role: 'cannon-muzzle' },
+  ],
+};
+
+// A fast flyer. Canvas 32×26.
+// A castIron/copper ovoid body with electric rotor-arc lines on each side and a
+// glowing electric eye. Wide-low flyer silhouette, distinct from winged Harpy/Gargoyle.
+export const DRONE: SpriteDef = {
+  id: 'drone',
+  w: 32,
+  h: 26,
+  prims: [
+    // left rotor arms — extending wide
+    { kind: 'line', x1: 16, y1: 13, x2: 2, y2: 8, width: 2, color: PAL.castIron, role: 'rotor-arm' },
+    { kind: 'line', x1: 16, y1: 13, x2: 2, y2: 18, width: 2, color: PAL.castIron, role: 'rotor-arm' },
+    // right rotor arms — extending wide
+    { kind: 'line', x1: 16, y1: 13, x2: 30, y2: 8, width: 2, color: PAL.castIron, role: 'rotor-arm' },
+    { kind: 'line', x1: 16, y1: 13, x2: 30, y2: 18, width: 2, color: PAL.castIron, role: 'rotor-arm' },
+    // left rotor arc blur — electric arcs suggesting spinning blades
+    { kind: 'poly', points: [[0, 7], [4, 5], [5, 10], [1, 12]], color: PAL.electric, role: 'rotor-arc' },
+    { kind: 'poly', points: [[0, 15], [4, 13], [5, 19], [1, 20]], color: PAL.electric, role: 'rotor-arc' },
+    // right rotor arc blur
+    { kind: 'poly', points: [[32, 7], [28, 5], [27, 10], [31, 12]], color: PAL.electric, role: 'rotor-arc' },
+    { kind: 'poly', points: [[32, 15], [28, 13], [27, 19], [31, 20]], color: PAL.electric, role: 'rotor-arc' },
+    // ovoid body — castIron main hull
+    { kind: 'poly', points: [[8, 8], [16, 4], [24, 8], [26, 13], [24, 18], [16, 22], [8, 18], [6, 13]], color: PAL.castIron, role: 'body' },
+    // copper belly strip — ventral panel
+    { kind: 'poly', points: [[10, 14], [22, 14], [20, 20], [12, 20]], color: PAL.copper, role: 'belly' },
+    // single glowing electric eye — front center of body
+    { kind: 'circle', cx: 16, cy: 11, r: 4, color: PAL.rivet, role: 'eye-housing' },
+    { kind: 'circle', cx: 16, cy: 11, r: 3, color: PAL.electric, role: 'eye' },
+    { kind: 'circle', cx: 17, cy: 10, r: 1, color: '#ffffff', role: 'eye-glint' },
+  ],
+};
+
+// A towering bipedal war-mech mini-boss. Canvas 60×60.
+// Heavy castIron/rivet plated torso + legs, a furnace/molten glowing chest core,
+// two electric head eyes, big piston arms with copper joints. Biggest enemy in the game.
+export const MECHA: SpriteDef = {
+  id: 'mecha',
+  w: 60,
+  h: 60,
+  prims: [
+    // massive pillar legs — wide and towering
+    { kind: 'rect', x: 6, y: 38, w: 18, h: 22, rx: 2, color: PAL.rivet, role: 'leg' },
+    { kind: 'rect', x: 36, y: 38, w: 18, h: 22, rx: 2, color: PAL.rivet, role: 'leg' },
+    // leg armor plates (castIron overlay)
+    { kind: 'rect', x: 8, y: 40, w: 14, h: 14, rx: 1, color: PAL.castIron, role: 'leg-plate' },
+    { kind: 'rect', x: 38, y: 40, w: 14, h: 14, rx: 1, color: PAL.castIron, role: 'leg-plate' },
+    // knee joint — copper rounded ball
+    { kind: 'circle', cx: 15, cy: 40, r: 5, color: PAL.copper, role: 'knee' },
+    { kind: 'circle', cx: 45, cy: 40, r: 5, color: PAL.copper, role: 'knee' },
+    // leg rivet detail
+    { kind: 'circle', cx: 12, cy: 50, r: 1, color: PAL.rivet, role: 'rivet' },
+    { kind: 'circle', cx: 48, cy: 50, r: 1, color: PAL.rivet, role: 'rivet' },
+    // hulking main torso — broad and tall
+    { kind: 'poly', points: [[6, 40], [10, 14], [20, 8], [40, 8], [50, 14], [54, 40], [46, 46], [14, 46]], color: PAL.castIron, role: 'torso' },
+    // chest armor plate — rivet-framed steel panel
+    { kind: 'poly', points: [[14, 16], [46, 16], [48, 38], [36, 42], [24, 42], [12, 38]], color: PAL.rivet, role: 'chest-plate' },
+    // furnace/molten glowing chest core — central power source
+    { kind: 'circle', cx: 30, cy: 28, r: 8, color: PAL.castIron, role: 'core-housing' },
+    { kind: 'circle', cx: 30, cy: 28, r: 6, color: PAL.furnace, role: 'core-outer' },
+    { kind: 'circle', cx: 30, cy: 28, r: 3, color: PAL.molten, role: 'core-inner' },
+    { kind: 'circle', cx: 30, cy: 28, r: 1, color: '#ffffff', role: 'core-glint' },
+    // torso rivet rows
+    { kind: 'circle', cx: 16, cy: 20, r: 1, color: PAL.copper, role: 'rivet' },
+    { kind: 'circle', cx: 44, cy: 20, r: 1, color: PAL.copper, role: 'rivet' },
+    { kind: 'circle', cx: 16, cy: 36, r: 1, color: PAL.copper, role: 'rivet' },
+    { kind: 'circle', cx: 44, cy: 36, r: 1, color: PAL.copper, role: 'rivet' },
+    // massive pauldrons — wide shoulder armor
+    { kind: 'poly', points: [[4, 14], [0, 28], [10, 34], [14, 18]], color: PAL.castIron, role: 'pauldron' },
+    { kind: 'poly', points: [[56, 14], [60, 28], [50, 34], [46, 18]], color: PAL.castIron, role: 'pauldron' },
+    // piston arms — thick and mechanical
+    { kind: 'rect', x: 0, y: 26, w: 12, h: 20, rx: 2, color: PAL.castIron, role: 'arm' },
+    { kind: 'rect', x: 48, y: 26, w: 12, h: 20, rx: 2, color: PAL.castIron, role: 'arm' },
+    // copper piston joints on each arm
+    { kind: 'circle', cx: 6, cy: 30, r: 3, color: PAL.copper, role: 'piston-joint' },
+    { kind: 'circle', cx: 54, cy: 30, r: 3, color: PAL.copper, role: 'piston-joint' },
+    // piston rods (lines running alongside the arms)
+    { kind: 'line', x1: 3, y1: 32, x2: 3, y2: 44, width: 2, color: PAL.copper, role: 'piston-rod' },
+    { kind: 'line', x1: 57, y1: 32, x2: 57, y2: 44, width: 2, color: PAL.copper, role: 'piston-rod' },
+    // massive iron fists
+    { kind: 'rect', x: -1, y: 44, w: 14, h: 14, rx: 3, color: PAL.rivet, role: 'fist' },
+    { kind: 'rect', x: 47, y: 44, w: 14, h: 14, rx: 3, color: PAL.rivet, role: 'fist' },
+    // neck collar — thick cylindrical
+    { kind: 'rect', x: 24, y: 8, w: 12, h: 8, rx: 2, color: PAL.castIron, role: 'neck' },
+    // helmet — broad flat-topped armored head
+    { kind: 'poly', points: [[16, 10], [44, 10], [42, 0], [18, 0]], color: PAL.castIron, role: 'helm' },
+    // helm top reinforcing band
+    { kind: 'rect', x: 18, y: 0, w: 24, h: 3, rx: 1, color: PAL.rivet, role: 'helm-band' },
+    // two electric eyes — glowing side-by-side in visor slit
+    { kind: 'rect', x: 16, y: 4, w: 28, h: 5, rx: 1, color: PAL.rivet, role: 'visor' },
+    { kind: 'circle', cx: 24, cy: 6, r: 3, color: PAL.electric, role: 'eye' },
+    { kind: 'circle', cx: 36, cy: 6, r: 3, color: PAL.electric, role: 'eye' },
+    { kind: 'circle', cx: 25, cy: 5, r: 1, color: '#ffffff', role: 'eye-glint' },
+    { kind: 'circle', cx: 37, cy: 5, r: 1, color: '#ffffff', role: 'eye-glint' },
+  ],
+};
+
+export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT, RIVETER, STEAM_TANK, DRONE, MECHA];

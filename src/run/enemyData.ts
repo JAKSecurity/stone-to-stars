@@ -58,4 +58,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     baseHp: 85, speed: 100, contactDamage: 15, drop: 'industry', xp: 9, displaySize: { w: 30, h: 38 } },
   dreadnought: { id: 'dreadnought', name: 'Dreadnought', sprite: 'dreadnought',
     baseHp: 380, speed: 40, contactDamage: 30, drop: 'industry', xp: 40, displaySize: { w: 56, h: 54 } },
+  riveter: { id: 'riveter', name: 'Riveter', sprite: 'riveter',
+    baseHp: 50, speed: 95, contactDamage: 12, drop: 'industry', xp: 6, displaySize: { w: 26, h: 30 } },
+  steam_tank: { id: 'steam_tank', name: 'Steam Tank', sprite: 'steam_tank',
+    baseHp: 200, speed: 45, contactDamage: 22, drop: 'industry', xp: 16, displaySize: { w: 44, h: 36 } },
+  drone: { id: 'drone', name: 'Drone', sprite: 'drone',
+    baseHp: 80, speed: 120, contactDamage: 14, drop: 'science', xp: 9, displaySize: { w: 32, h: 26 } },
+  mecha: { id: 'mecha', name: 'Mecha', sprite: 'mecha',
+    baseHp: 460, speed: 38, contactDamage: 34, drop: 'industry', xp: 48, displaySize: { w: 60, h: 60 } },
 };

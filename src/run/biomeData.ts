@@ -54,4 +54,12 @@ export const BIOMES: Record<string, BiomeDef> = {
     spawnTable: { musketeer: 5, pikeman: 3, grenadier: 3, dreadnought: 1 },
     tint: '#0c1410',
   },
+  // Industrial Age biome — tech-gated behind electricity. Mecha at weight 1 is a rare
+  // mini-boss encounter (proper boss-wave mechanics deferred to a later ticket).
+  foundry_wastes: {
+    id: 'foundry_wastes', name: 'Foundry Wastes', minAge: 'industrial', requiresTech: 'electricity',
+    resourceBias: { industry: 1, science: 1 },
+    spawnTable: { riveter: 6, drone: 3, steam_tank: 3, mecha: 1 },
+    tint: '#0a0806',
+  },
 };
