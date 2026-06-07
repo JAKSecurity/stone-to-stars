@@ -5,11 +5,11 @@ import { canResearch, isResearched, getAge } from '../tech/tech';
 import { canBuild, isBuildingUnlocked, tileOccupied, upgradeCost } from '../camp/camp';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
+import { spriteCanvas } from '../art/domSprite';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
 };
-const BUILD_ICON: Record<string, string> = { granary: '🌾', mine: '⛏️', forge: '🔥' };
 
 export interface CivCallbacks {
   onResearch: (techId: string) => void;
@@ -30,9 +30,16 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   // Resource bar + age.
   const bar = document.createElement('div');
   bar.className = 'resbar';
-  bar.innerHTML =
-    RESOURCES.map((r) => `<span>${ICON[r]} ${civ.banked[r]}</span>`).join('') +
-    `<span class="age">Age: <strong>${getAge(civ) === 'bronze' ? 'Bronze' : 'Stone'}</strong></span>`;
+  for (const r of RESOURCES) {
+    const span = document.createElement('span');
+    span.appendChild(spriteCanvas('gem_' + r, 18));
+    span.appendChild(document.createTextNode(' ' + civ.banked[r]));
+    bar.appendChild(span);
+  }
+  const ageSpan = document.createElement('span');
+  ageSpan.className = 'age';
+  ageSpan.innerHTML = `Age: <strong>${getAge(civ) === 'bronze' ? 'Bronze' : 'Stone'}</strong>`;
+  bar.appendChild(ageSpan);
   wrap.appendChild(bar);
 
   const cols = document.createElement('div');
@@ -76,7 +83,12 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
     const placed = civ.buildings.find((b) => b.tile === tile);
     if (placed) {
       const def = BUILDINGS[placed.id];
-      cell.innerHTML = `${BUILD_ICON[placed.id] ?? '🏠'}<span class="lvl">${def.name} L${placed.level}</span>`;
+      cell.innerHTML = '';
+      cell.appendChild(spriteCanvas(placed.id, 40));
+      const lvl = document.createElement('span');
+      lvl.className = 'lvl';
+      lvl.textContent = `${def.name} L${placed.level}`;
+      cell.appendChild(lvl);
       cell.title =
         placed.level < def.maxLevel
           ? `Upgrade — ${costText(upgradeCost(placed.id, placed.level))}`
