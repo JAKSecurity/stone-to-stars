@@ -2,9 +2,9 @@ export type Resource = 'exploration' | 'science' | 'industry' | 'culture';
 export const RESOURCES: Resource[] = ['exploration', 'science', 'industry', 'culture'];
 export type ResourceBundle = Record<Resource, number>;
 
-export type AgeId = 'stone' | 'bronze';
+export type AgeId = 'stone' | 'bronze' | 'iron';
 /** Ascending order; index = how advanced. */
-export const AGE_ORDER: AgeId[] = ['stone', 'bronze'];
+export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron'];
 
 export interface WeaponDef {
   id: string;
@@ -53,6 +53,39 @@ export interface BuildingDef {
   yield: Partial<ResourceBundle>;    // resources granted per run, per level
   runBonus: RunBonus;                // run bonus per level (weapons granted once, not per level)
   maxLevel: number;
+}
+
+export interface EnemyDef {
+  id: string;
+  sprite: string;             // art registry texture id
+  baseHp: number;             // before tier scaling
+  speed: number;              // px/s chase speed, before tier scaling
+  contactDamage: number;      // hp removed from player on contact
+  drop: Resource;             // gem dropped on kill
+  xp: number;                 // xp granted on kill
+  displaySize: { w: number; h: number };
+}
+
+export interface BiomeDef {
+  id: string;
+  name: string;
+  minAge: AgeId;                                    // unlock gate
+  resourceBias: Partial<Record<Resource, number>>; // >1 faucets that resource faster
+  spawnTable: Record<string, number>;              // enemyId -> spawn weight
+  tint: string;                                     // run background color
+}
+
+export interface ExpeditionScaling {
+  hpMult: number;
+  speedMult: number;
+  spawnRateMult: number;
+  dropMult: number;
+}
+
+export interface Expedition {
+  biomeId: string;
+  tier: number;               // difficulty; equals an AGE_ORDER index
+  scaling: ExpeditionScaling;
 }
 
 export interface PlacedBuilding {
