@@ -92,7 +92,10 @@ export class RunScene extends Phaser.Scene {
   }
 
   update(_t: number, deltaMs: number) {
-    if (this.paused) return;
+    // Guard the scene-restart race: a queued update() can fire after the previous
+    // scene was stopped but before create() rebuilds the player. (Not reachable in
+    // normal play — a run is always stopped before the next starts — but cheap insurance.)
+    if (this.paused || !this.player?.body) return;
     const dt = deltaMs;
     this.elapsed += dt;
 
