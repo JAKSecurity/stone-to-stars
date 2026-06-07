@@ -54,14 +54,26 @@ raises damage, trusted-click draft applies + tracks ownedPerks, no NaN. Evolutio
 but dormant until content lands (RC-008). Deferred: retire unused `rollDraft` (RC-007);
 evolution catalog-integrity test (RC-008); bullet `hitSet` perf + draft level label (RC-009).
 
+## RC-007 — enemy/biome/expedition systems: SHIPPED (2026-06-07)
+Second Iron-slice foundation done (subagent-driven; merged to `main`). Data-driven
+`src/run/enemyData.ts` + `biomeData.ts` + pure `expedition.ts` (tierScaling /
+availableExpeditions / pickEnemy), 14 new tests (**86 total green**). `RunScene` spawns from
+the active expedition's biome with tier-scaled hp/speed/spawn-rate/drops + per-enemy
+contact/xp; biome `resourceBias` faucets exploration/culture. New flat-grid **expedition pick
+screen** (`src/ui/expeditionScreen.ts`) + civ→pick→run flow; `'iron'` in AGE_ORDER (plumbing,
+no tech gates it yet). Playwright-verified (2 cards stone / 5 bronze; Ruins biases science;
+tier-1 HP ×1.5; no NaN). **Art-free** — new enemy types/sprites + Deep Caverns are RC-008.
+Note for RC-008: add `EnemyDef.name` (pick screen shows raw ids today).
+
 ## Next step
-**RC-007 — enemy + biome + expedition systems** (second foundation): `enemyData.ts`,
-`biomeData.ts`, `expedition.ts` (available biome×tier runs + age-scaled difficulty), a
-flat-grid expedition pick screen, the `iron` age plumbing, and 3 base biomes — BEFORE Iron
-content. **Write its plan first** (`superpowers:writing-plans`) from spec §3b/§3c/§5, then
-build via subagent-driven-development. Ticket: `docs/tickets/RC-007-enemy-biome-expedition.md`.
-Then RC-008 (Iron content; folds in RC-003) → RC-009 (juice + balance).
-RC-004 (D2 gems) stays a separate later art ticket.
+**RC-008 — Iron age content** (folds in RC-003): author Iron techs (Iron Working gates the
+age, Deep Mining, Smelting, Mechanics), buildings (Smelter/Foundry/Deep Mine), the **Deep
+Caverns** biome, Iron enemies (cave dweller, rock golem, automaton, Iron Golem) + sprites via
+`src/art`, and Iron weapons + perk-paired evolutions (wire `evolvesTo`/`evolveRequiresPerk`).
+All data + sprites — the systems are done, no engine work. **Write its plan first**
+(`superpowers:writing-plans` from spec §4), then build via subagent-driven-development.
+Ticket: `docs/tickets/RC-008-iron-content.md` (has carried-over review notes). Then RC-009
+(juice + balance). RC-004 (D2 gems) stays a separate later art ticket.
 
 ## Key docs
 - Design specs: `docs/superpowers/specs/2026-06-05-rogue-civ-design.md`,
