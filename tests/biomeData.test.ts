@@ -4,8 +4,12 @@ import { ENEMIES } from '../src/run/enemyData';
 import { AGE_ORDER, RESOURCES } from '../src/game/types';
 
 describe('biomeData', () => {
-  it('defines the three base biomes', () => {
-    expect(Object.keys(BIOMES).sort()).toEqual(['frontier', 'ruins', 'wilds']);
+  it('defines the base biomes (wilds, ruins, frontier) and caverns (RC-008)', () => {
+    const ids = Object.keys(BIOMES).sort();
+    expect(ids).toContain('wilds');
+    expect(ids).toContain('ruins');
+    expect(ids).toContain('frontier');
+    expect(ids).toContain('caverns');
   });
 
   it('every spawn-table entry references a real enemy and a positive weight', () => {

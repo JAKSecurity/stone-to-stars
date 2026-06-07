@@ -27,4 +27,12 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(def), `sprite ${id}: ${validateSpriteDef(def).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Iron Age enemy sprites are registered and valid', () => {
+    const ironIds = ['cave_dweller', 'rock_golem', 'automaton', 'iron_golem'];
+    for (const id of ironIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

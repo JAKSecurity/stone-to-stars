@@ -8,10 +8,11 @@ describe('enemyData', () => {
     expect(ENEMIES.scholar).toBeDefined();
   });
 
-  it('each entry key matches its id and uses an existing-art sprite (no new art in RC-007)', () => {
+  it('each entry key matches its id and uses a registered sprite', () => {
+    const knownSprites = ['beast', 'scholar', 'cave_dweller', 'rock_golem', 'automaton', 'iron_golem'];
     for (const [key, def] of Object.entries(ENEMIES)) {
       expect(def.id).toBe(key);
-      expect(['beast', 'scholar']).toContain(def.sprite);
+      expect(knownSprites).toContain(def.sprite);
     }
   });
 
