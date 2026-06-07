@@ -1,9 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   MAX_WEAPON_SLOTS, initialWeapons, addWeapon, levelWeapon,
-  evolutionFor, applyEvolve, weaponShot,
+  evolutionFor, applyEvolve, weaponShot, draftOptions, rollRunDraft,
 } from '../src/run/weapons';
 import { WEAPONS } from '../src/run/weaponData';
+
+function stubRng(values: number[]): () => number {
+  let i = 0;
+  return () => values[i++ % values.length];
+}
 import { WeaponDef } from '../src/game/types';
 
 // A self-contained fixture so the test does not depend on RC-008 content.
@@ -106,5 +111,48 @@ describe('weapons — weaponShot', () => {
     const shot = weaponShot(WEAPONS.bronze_spear, 1, 1.0);
     expect(shot.pierce).toBe(1);
     expect(shot.count).toBe(2);
+  });
+});
+
+describe('weapons — draft options', () => {
+  it('offers a new weapon from the pool, a club level-up, and perks', () => {
+    const opts = draftOptions({
+      equipped: [{ id: 'club', level: 1 }],
+      ownedPerks: [],
+      pool: ['club', 'bronze_spear'],
+    });
+    expect(opts).toContainEqual({ kind: 'newWeapon', weaponId: 'bronze_spear' });
+    expect(opts).toContainEqual({ kind: 'levelWeapon', weaponId: 'club' });
+    expect(opts.some((o) => o.kind === 'perk')).toBe(true);
+    // club is already equipped, so it is never offered as a NEW weapon
+    expect(opts).not.toContainEqual({ kind: 'newWeapon', weaponId: 'club' });
+  });
+
+  it('does not offer a level-up for a maxed weapon', () => {
+    const opts = draftOptions({
+      equipped: [{ id: 'club', level: 5 }], // club maxLevel is 5
+      ownedPerks: [],
+      pool: ['club'],
+    });
+    expect(opts).not.toContainEqual({ kind: 'levelWeapon', weaponId: 'club' });
+  });
+
+  it('does not offer new weapons when all slots are full', () => {
+    const full = [
+      { id: 'club', level: 1 }, { id: 'bronze_spear', level: 1 },
+      { id: 'a', level: 1 }, { id: 'b', level: 1 },
+    ];
+    const opts = draftOptions({ equipped: full, ownedPerks: [], pool: ['club', 'bronze_spear', 'c'] });
+    expect(opts.some((o) => o.kind === 'newWeapon')).toBe(false);
+  });
+
+  it('rollRunDraft returns distinct options up to the requested count', () => {
+    const picks = rollRunDraft(stubRng([0, 0, 0]), 3, {
+      equipped: [{ id: 'club', level: 1 }],
+      ownedPerks: [],
+      pool: ['club', 'bronze_spear'],
+    });
+    expect(picks).toHaveLength(3);
+    expect(new Set(picks.map((p) => JSON.stringify(p))).size).toBe(3);
   });
 });

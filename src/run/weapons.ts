@@ -105,7 +105,8 @@ export function draftOptions(ctx: DraftContext): DraftOption[] {
     }
   }
   for (const w of ctx.equipped) {
-    if (w.level < WEAPONS[w.id].maxLevel) opts.push({ kind: 'levelWeapon', weaponId: w.id });
+    const def = WEAPONS[w.id];
+    if (def && w.level < def.maxLevel) opts.push({ kind: 'levelWeapon', weaponId: w.id });
   }
   for (const p of PERKS) opts.push({ kind: 'perk', perk: p });
 
