@@ -17,7 +17,7 @@ Phaser (run scene) + HTML/CSS DOM (civ screen).
   Verified live (enemies die → XP → level-up → perk draft → gems collected). See
   `docs/KNOWN_ISSUES.md`.
 - **Art pass: designed + planned, NOT yet built.** Execution handed to a fresh session.
-- On `main`; working tree clean. **No git remote configured yet** (local only).
+- On `main`; remote `github.com/JAKSecurity/rogue-civ` (private); working tree clean.
 
 ## Architecture
 - Pure logic (unit-tested, no Phaser/DOM): `src/economy`, `src/tech`, `src/camp`, `src/run`, `src/state`.
