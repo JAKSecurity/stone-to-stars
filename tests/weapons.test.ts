@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   MAX_WEAPON_SLOTS, initialWeapons, addWeapon, levelWeapon,
-  evolutionFor, applyEvolve,
+  evolutionFor, applyEvolve, weaponShot,
 } from '../src/run/weapons';
+import { WEAPONS } from '../src/run/weaponData';
 import { WeaponDef } from '../src/game/types';
 
 // A self-contained fixture so the test does not depend on RC-008 content.
@@ -77,5 +78,33 @@ describe('weapons — evolution', () => {
     expect(applyEvolve(eq, 'spark', 'blaze')).toEqual([
       { id: 'club', level: 2 }, { id: 'blaze', level: 1 },
     ]);
+  });
+});
+
+describe('weapons — weaponShot', () => {
+  it('level 1 club returns its base numbers, scaled by damageMult', () => {
+    const shot = weaponShot(WEAPONS.club, 1, 2.0);
+    expect(shot.damage).toBe(24);      // 12 * 2.0
+    expect(shot.count).toBe(1);
+    expect(shot.cooldownMs).toBe(500);
+    expect(shot.sprite).toBe('shot_club');
+    expect(shot.pierce).toBe(0);
+  });
+
+  it('higher levels apply (level-1) steps of levelScaling', () => {
+    const shot = weaponShot(WEAPONS.club, 3, 1.0); // 2 steps: +4 dmg, -40 cd each
+    expect(shot.damage).toBe(20);      // 12 + 4*2
+    expect(shot.cooldownMs).toBe(420); // 500 - 40*2
+  });
+
+  it('cooldown never drops below the 120ms floor', () => {
+    const shot = weaponShot(WEAPONS.club, 5, 1.0); // 4 steps: 500 - 160 = 340 (above floor)
+    expect(shot.cooldownMs).toBe(340);
+  });
+
+  it('carries pierce from the def', () => {
+    const shot = weaponShot(WEAPONS.bronze_spear, 1, 1.0);
+    expect(shot.pierce).toBe(1);
+    expect(shot.count).toBe(2);
   });
 });
