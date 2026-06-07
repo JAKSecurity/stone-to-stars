@@ -28,5 +28,8 @@ export const PAL = {
   marble: '#e8e2d0', marbleDark: '#b8b09a',
   gold: '#d9b44a', goldDark: '#9c7a25',
   laurel: '#6f8f4e', toga: '#dcd2bd', oxblood: '#7a2e2e',
+  // medieval age — cold steel, castle stone, royal blue, crimson heraldry, bone
+  steelBlue: '#5b6b7a', castleStone: '#8a8073', castleStoneDark: '#5c554b',
+  royal: '#3b53a8', crimson: '#a32735', bone: '#d8cdb0',
   shadow: 'rgba(0,0,0,0.28)',
 } as const;

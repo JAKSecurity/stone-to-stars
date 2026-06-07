@@ -255,4 +255,94 @@ export const WORKSHOP: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP];
+// KEEP — fortified castle keep: thick castle-stone walls, crenellated battlements, arrow slit, royal banner
+export const KEEP: SpriteDef = {
+  id: 'keep',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // wall + roof base — no standard door; keep façade replaces it
+    // main keep tower body (castle stone, taller and heavier than the base hut wall)
+    { kind: 'rect', x: 26, y: 28, w: 44, h: 62, rx: 2, color: PAL.castleStone, role: 'tower' },
+    // darker shadow on the right face for depth
+    { kind: 'rect', x: 52, y: 30, w: 18, h: 58, rx: 1, color: PAL.castleStoneDark, role: 'towerShadow' },
+    // battlements (merlons) across the top — 5 alternating rects
+    { kind: 'rect', x: 26, y: 22, w: 8, h: 10, rx: 1, color: PAL.castleStone, role: 'merlon' },
+    { kind: 'rect', x: 38, y: 22, w: 8, h: 10, rx: 1, color: PAL.castleStone, role: 'merlon' },
+    { kind: 'rect', x: 50, y: 22, w: 8, h: 10, rx: 1, color: PAL.castleStone, role: 'merlon' },
+    { kind: 'rect', x: 62, y: 22, w: 8, h: 10, rx: 1, color: PAL.castleStone, role: 'merlon' },
+    // battlement parapet / wall-walk (horizontal band linking merlons)
+    { kind: 'rect', x: 26, y: 30, w: 44, h: 5, rx: 1, color: PAL.castleStoneDark, role: 'parapet' },
+    // arrow slit (narrow vertical opening in the tower face)
+    { kind: 'rect', x: 45, y: 42, w: 6, h: 18, rx: 2, color: '#1a1612', role: 'arrowSlit' },
+    // iron-banded gatehouse arch at the base (portcullis opening)
+    { kind: 'rect', x: 38, y: 66, w: 20, h: 24, rx: 4, color: '#1a1612', role: 'gatehouse' },
+    { kind: 'rect', x: 38, y: 66, w: 20, h: 8, rx: 2, color: PAL.castleStoneDark, role: 'portcullisBar' },
+    { kind: 'rect', x: 38, y: 76, w: 20, h: 4, rx: 1, color: PAL.castleStoneDark, role: 'portcullisBar' },
+    // royal banner (flag pole + blue pennant with crimson stripe — heraldry read)
+    { kind: 'rect', x: 68, y: 16, w: 2, h: 22, color: PAL.castleStoneDark, role: 'flagPole' },
+    { kind: 'poly', points: [[70, 16], [82, 21], [70, 26]], color: PAL.royal, role: 'banner' },
+    { kind: 'rect', x: 70, y: 20, w: 12, h: 3, color: PAL.crimson, role: 'bannerStripe' },
+  ],
+};
+
+// CATHEDRAL — gothic church: pointed spire, rose window, lancet door arch
+export const CATHEDRAL: SpriteDef = {
+  id: 'cathedral',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // wall + hut body — nave forms the lower structure
+    // nave side walls extended upward to give height (castle stone — sacred masonry)
+    { kind: 'rect', x: 22, y: 42, w: 52, h: 48, rx: 2, color: PAL.castleStone, role: 'nave' },
+    // darker side shadow on the nave
+    { kind: 'rect', x: 58, y: 44, w: 16, h: 44, rx: 1, color: PAL.castleStoneDark, role: 'naveShadow' },
+    // gothic spire: tall pointed poly soaring above the nave
+    { kind: 'poly', points: [[48, 4], [36, 36], [60, 36]], color: PAL.castleStone, role: 'spire' },
+    // spire shadow stripe
+    { kind: 'poly', points: [[48, 4], [52, 36], [60, 36]], color: PAL.castleStoneDark, role: 'spireShadow' },
+    // rose window (large decorative circle — royal blue with bone tracery ring)
+    { kind: 'circle', cx: 48, cy: 54, r: 11, color: PAL.royal, role: 'roseWindow' },
+    { kind: 'circle', cx: 48, cy: 54, r: 8, color: PAL.bone, role: 'roseTracery' },
+    { kind: 'circle', cx: 48, cy: 54, r: 5, color: PAL.royal, role: 'roseCenter' },
+    { kind: 'circle', cx: 48, cy: 54, r: 2, color: PAL.bone, role: 'roseCenterDot' },
+    // lancet (pointed-arch) doorway
+    { kind: 'poly', points: [[41, 90], [41, 72], [48, 65], [55, 72], [55, 90]], color: '#1a1612', role: 'lancetDoor' },
+    // stone buttress piers flanking the door (reads as flying buttresses)
+    { kind: 'rect', x: 22, y: 68, w: 8, h: 22, rx: 1, color: PAL.castleStoneDark, role: 'buttress' },
+    { kind: 'rect', x: 66, y: 68, w: 8, h: 22, rx: 1, color: PAL.castleStoneDark, role: 'buttress' },
+  ],
+};
+
+// ARMORY — medieval smithy/armory: weapon rack with crossed swords, heraldic shield, anvil
+export const ARMORY: SpriteDef = {
+  id: 'armory',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // wall + roof base — armoury fills the front
+    // armory façade wall (steel blue — cold metal workshop feel, distinct from forge/foundry)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 2, color: PAL.steelBlue, role: 'facadeOverlay' },
+    // weapon rack: horizontal bar across the upper wall
+    { kind: 'rect', x: 22, y: 58, w: 52, h: 4, rx: 2, color: PAL.castleStoneDark, role: 'rackBar' },
+    // crossed swords (left pair) — two overlapping narrow polys in steel
+    { kind: 'poly', points: [[30, 52], [28, 74], [32, 74]], color: PAL.steel, role: 'sword' },
+    { kind: 'poly', points: [[28, 52], [34, 74], [30, 52], [34, 52]], color: PAL.metal, role: 'swordEdge' },
+    { kind: 'poly', points: [[38, 52], [36, 74], [40, 74]], color: PAL.steel, role: 'sword' },
+    { kind: 'poly', points: [[36, 52], [42, 74], [38, 52], [42, 52]], color: PAL.metal, role: 'swordEdge' },
+    // heraldic shield (center) — royal blue with crimson chevron
+    { kind: 'poly', points: [[44, 60], [56, 60], [56, 72], [50, 78], [44, 72]], color: PAL.royal, role: 'shield' },
+    { kind: 'poly', points: [[44, 60], [56, 60], [50, 69]], color: PAL.crimson, role: 'chevron' },
+    // halberd pole (right side — diagonal polearm hanging from the rack)
+    { kind: 'rect', x: 62, y: 54, w: 4, h: 30, rx: 1, color: PAL.wood, role: 'halfPole' },
+    { kind: 'poly', points: [[64, 50], [60, 58], [68, 58]], color: PAL.steelBlue, role: 'halberdHead' },
+    // anvil (lower right — medieval steel anvil, distinct from foundry's casting setup)
+    { kind: 'rect', x: 64, y: 78, w: 18, h: 6, rx: 2, color: PAL.steelBlue, role: 'anvilTop' },
+    { kind: 'rect', x: 68, y: 84, w: 10, h: 5, rx: 2, color: PAL.castleStoneDark, role: 'anvilWaist' },
+    { kind: 'rect', x: 65, y: 88, w: 16, h: 4, rx: 2, color: PAL.castleStoneDark, role: 'anvilBase' },
+    // crimson heraldry banner strip along the top (martial livery)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 4, rx: 1, color: PAL.crimson, role: 'livery' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY];

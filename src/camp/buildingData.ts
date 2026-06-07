@@ -64,4 +64,10 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     runBonus: { damageMult: 0.12, weapons: ['javelin'] },
     maxLevel: 3,
   },
+  keep: { id: 'keep', name: 'Keep', baseCost: { industry: 60, science: 25 },
+    yield: { industry: 9 }, runBonus: { maxHp: 40, weapons: ['longsword'] }, maxLevel: 3 },
+  cathedral: { id: 'cathedral', name: 'Cathedral', baseCost: { culture: 40, science: 35 },
+    yield: { culture: 6, science: 4 }, runBonus: { maxHp: 35 }, maxLevel: 3 },
+  armory: { id: 'armory', name: 'Armory', baseCost: { industry: 55, science: 30 },
+    yield: { industry: 8 }, runBonus: { damageMult: 0.14, weapons: ['halberd'] }, maxLevel: 3 },
 };
