@@ -26,4 +26,11 @@ describe('enemyData', () => {
       expect(def.displaySize.h).toBeGreaterThan(0);
     }
   });
+
+  it('every enemy has a non-empty display name', () => {
+    for (const def of Object.values(ENEMIES)) {
+      expect(typeof def.name).toBe('string');
+      expect(def.name.length).toBeGreaterThan(0);
+    }
+  });
 });

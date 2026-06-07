@@ -1,5 +1,6 @@
 import { CivState, Expedition, Resource, RESOURCES } from '../game/types';
 import { BIOMES } from '../run/biomeData';
+import { ENEMIES } from '../run/enemyData';
 import { availableExpeditions } from '../run/expedition';
 
 const ICON: Record<Resource, string> = {
@@ -27,7 +28,7 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
     const biome = BIOMES[exp.biomeId];
     const card = document.createElement('button');
     card.className = 'exp-card';
-    const enemies = Object.keys(biome.spawnTable).join(', ');
+    const enemies = Object.keys(biome.spawnTable).map((id) => ENEMIES[id].name).join(', ');
     card.innerHTML =
       `<span class="tier">Tier ${exp.tier}</span>` +
       `<div class="name">${biome.name}</div>` +

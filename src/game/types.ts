@@ -57,6 +57,7 @@ export interface BuildingDef {
 
 export interface EnemyDef {
   id: string;
+  name: string;               // player-facing label (pick screen)
   sprite: string;             // art registry texture id
   baseHp: number;             // before tier scaling
   speed: number;              // px/s chase speed, before tier scaling
