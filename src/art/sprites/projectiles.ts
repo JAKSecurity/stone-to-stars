@@ -46,6 +46,51 @@ export const SHOT_FLAME: SpriteDef = {
   ],
 };
 
+// Classical Age projectile sprites
+
+export const SHOT_JAVELIN: SpriteDef = {
+  id: 'shot_javelin', w: 14, h: 14, shadow: false,
+  prims: [
+    // shaft — narrow diagonal poly running top-left to bottom-right
+    { kind: 'poly', points: [[2, 12], [4, 12], [12, 2], [10, 2]], color: PAL.goldDark, role: 'shaft' },
+    // tip — small marble diamond at the top-right end
+    { kind: 'poly', points: [[10, 1], [13, 4], [11, 5], [9, 3]], color: PAL.marble, role: 'tip' },
+  ],
+};
+
+export const SHOT_GLADIUS: SpriteDef = {
+  id: 'shot_gladius', w: 14, h: 14, shadow: false,
+  prims: [
+    // blade — short marble stabbing blade
+    { kind: 'poly', points: [[5, 1], [9, 1], [9, 9], [7, 13], [5, 9]], color: PAL.marble, role: 'blade' },
+    // hilt nub — goldDark crossguard
+    { kind: 'rect', x: 3, y: 9, w: 8, h: 3, rx: 1, color: PAL.goldDark, role: 'hilt' },
+  ],
+};
+
+export const SHOT_BALLISTA: SpriteDef = {
+  id: 'shot_ballista', w: 16, h: 12, shadow: false,
+  prims: [
+    // bolt body — elongated leather-colored shaft
+    { kind: 'poly', points: [[1, 4], [12, 4], [12, 8], [1, 8]], color: PAL.leather, role: 'bolt' },
+    // head — gold triangular point
+    { kind: 'poly', points: [[12, 2], [15, 6], [12, 10]], color: PAL.gold, role: 'head' },
+    // flights — goldDark fin at the tail
+    { kind: 'poly', points: [[1, 4], [4, 2], [4, 4]], color: PAL.goldDark, role: 'flight' },
+    { kind: 'poly', points: [[1, 8], [4, 10], [4, 8]], color: PAL.goldDark, role: 'flight' },
+  ],
+};
+
+export const SHOT_DISCUS: SpriteDef = {
+  id: 'shot_discus', w: 14, h: 14, shadow: false,
+  prims: [
+    // outer disc — gold
+    { kind: 'circle', cx: 7, cy: 7, r: 6, color: PAL.gold, role: 'disc' },
+    // inner ring — goldDark for depth
+    { kind: 'circle', cx: 7, cy: 7, r: 3, color: PAL.goldDark, role: 'ring' },
+  ],
+};
+
 export const PROJECTILES: SpriteDef[] = [
   SHOT_CLUB,
   SHOT_BRONZE,
@@ -53,4 +98,8 @@ export const PROJECTILES: SpriteDef[] = [
   SHOT_HAMMER,
   SHOT_SAWBLADE,
   SHOT_FLAME,
+  SHOT_JAVELIN,
+  SHOT_GLADIUS,
+  SHOT_BALLISTA,
+  SHOT_DISCUS,
 ];

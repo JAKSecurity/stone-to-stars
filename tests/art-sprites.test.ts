@@ -72,4 +72,12 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('Classical projectile + hero sprites are registered and valid', () => {
+    const classicalSpriteIds = ['shot_javelin', 'shot_gladius', 'shot_ballista', 'shot_discus', 'hero_classical'];
+    for (const id of classicalSpriteIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

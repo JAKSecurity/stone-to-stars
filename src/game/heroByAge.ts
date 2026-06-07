@@ -4,6 +4,7 @@ import { AgeId } from './types';
 // Each new age appends its hero here.
 export const HERO_SPRITE_BY_AGE: Partial<Record<AgeId, string>> = {
   iron: 'hero_iron',
+  classical: 'hero_classical',
 };
 
 export function heroSpriteFor(age: AgeId): string {

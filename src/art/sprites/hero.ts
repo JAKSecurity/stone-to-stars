@@ -71,3 +71,51 @@ export const HERO_IRON: SpriteDef = {
     { kind: 'circle', cx: 35, cy: 84, r: 4, color: PAL.steel, role: 'boss' },
   ],
 };
+
+// Classical Age variant — Greek hoplite hero. Same 120×150 canvas and pose family.
+// Bronze-gold cuirass, toga tunic, oxblood-plumed Corinthian helm, hoplon shield, spear.
+// First-pass art; reviewed at the Classical Phase C gate.
+export const HERO_CLASSICAL: SpriteDef = {
+  id: 'hero_classical',
+  w: 120,
+  h: 150,
+  prims: [
+    // legs — greaved in gold over toga cloth
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 34, rx: 4, color: PAL.toga, role: 'leg' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 34, rx: 4, color: PAL.toga, role: 'leg' },
+    { kind: 'rect', x: 49, y: 110, w: 10, h: 20, rx: 2, color: PAL.goldDark, role: 'greave' },
+    { kind: 'rect', x: 62, y: 110, w: 10, h: 20, rx: 2, color: PAL.goldDark, role: 'greave' },
+    // spear — shaft + marble tip
+    { kind: 'line', x1: 85, y1: 18, x2: 85, y2: 134, width: 4, color: PAL.wood, role: 'spear' },
+    { kind: 'poly', points: [[85, 6], [79, 22], [91, 22]], color: PAL.marble, role: 'spearTip' },
+    // toga tunic beneath the cuirass
+    { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.toga, role: 'tunic' },
+    // bronze-gold cuirass (breastplate trapezoid)
+    { kind: 'poly', points: [[44, 60], [76, 60], [72, 96], [48, 96]], color: PAL.gold, role: 'cuirass' },
+    // cuirass muscle lines
+    { kind: 'rect', x: 52, y: 68, w: 16, h: 3, rx: 1, color: PAL.goldDark, role: 'muscleDetail' },
+    { kind: 'rect', x: 52, y: 78, w: 16, h: 3, rx: 1, color: PAL.goldDark, role: 'muscleDetail' },
+    // pteryges (skirt tabs) — goldDark strips at the hem
+    { kind: 'rect', x: 46, y: 90, w: 6, h: 8, rx: 1, color: PAL.goldDark, role: 'pteryx' },
+    { kind: 'rect', x: 54, y: 90, w: 6, h: 8, rx: 1, color: PAL.goldDark, role: 'pteryx' },
+    { kind: 'rect', x: 62, y: 90, w: 6, h: 8, rx: 1, color: PAL.goldDark, role: 'pteryx' },
+    // epaulettes / pauldrons
+    { kind: 'rect', x: 36, y: 58, w: 14, h: 7, rx: 3, color: PAL.gold, role: 'pauldron' },
+    { kind: 'rect', x: 70, y: 58, w: 14, h: 7, rx: 3, color: PAL.gold, role: 'pauldron' },
+    // arms — skin
+    { kind: 'rect', x: 33, y: 64, w: 9, h: 28, rx: 4, color: PAL.skin, role: 'arm' },
+    { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.skin, role: 'arm' },
+    // head (skin)
+    { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    // Corinthian helm — goldDark bowl covering hair + cheekpieces
+    { kind: 'poly', points: [[44, 38], [45, 26], [50, 19], [60, 17], [70, 19], [75, 26], [76, 38]], color: PAL.goldDark, role: 'helm' },
+    // nasal guard strip
+    { kind: 'rect', x: 57, y: 27, w: 6, h: 16, rx: 1, color: PAL.gold, role: 'nasal' },
+    // oxblood crest — tall plume poly above the helm
+    { kind: 'poly', points: [[55, 17], [60, 2], [65, 17], [62, 19], [58, 19]], color: PAL.oxblood, role: 'crest' },
+    // hoplon shield — gold rim, oxblood face, gold boss
+    { kind: 'circle', cx: 35, cy: 84, r: 13, color: PAL.gold, role: 'shield' },
+    { kind: 'circle', cx: 35, cy: 84, r: 10, color: PAL.oxblood, role: 'shieldFace' },
+    { kind: 'circle', cx: 35, cy: 84, r: 4, color: PAL.gold, role: 'boss' },
+  ],
+};
