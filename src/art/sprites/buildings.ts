@@ -80,4 +80,80 @@ export const FORGE: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE];
+// SMELTER — hut with a squat stone furnace and molten/ember glow at the mouth
+export const SMELTER: SpriteDef = {
+  id: 'smelter',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — replaced by the furnace mouth below
+    // furnace body: squat brick block sitting in the doorway
+    { kind: 'rect', x: 36, y: 60, w: 24, h: 30, rx: 3, color: PAL.caveStone, role: 'furnace' },
+    // furnace mouth: glowing opening (molten glow, then ember core)
+    { kind: 'rect', x: 42, y: 72, w: 12, h: 14, rx: 4, color: PAL.molten, role: 'furnaceMouth' },
+    { kind: 'rect', x: 45, y: 76, w: 6, h: 8, rx: 3, color: PAL.ember, role: 'furnaceCore' },
+    // short squat chimney on top of the furnace, poking through the roof
+    { kind: 'rect', x: 44, y: 42, w: 8, h: 20, rx: 2, color: PAL.caveStoneDark, role: 'chimney' },
+    { kind: 'rect', x: 42, y: 40, w: 12, h: 5, rx: 2, color: PAL.caveStoneDark, role: 'chimneyCap' },
+    // heat shimmer: small flame wisps out of the chimney top
+    { kind: 'poly', points: [[48, 28], [43, 40], [53, 40]], color: PAL.molten, role: 'flame' },
+    { kind: 'poly', points: [[48, 33], [45, 40], [51, 40]], color: PAL.ember, role: 'flameCore' },
+    // metal ingot leaning against the furnace side — reads as output product
+    { kind: 'rect', x: 22, y: 76, w: 10, h: 6, rx: 2, color: PAL.iron, role: 'ingot' },
+    { kind: 'rect', x: 20, y: 80, w: 14, h: 5, rx: 2, color: PAL.ironDark, role: 'ingot' },
+  ],
+};
+
+// FOUNDRY — hut with a metal anvil and casting-mold motif
+export const FOUNDRY: SpriteDef = {
+  id: 'foundry',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(),
+    // anvil body (steel — heavier than the forge's rock)
+    { kind: 'rect', x: 58, y: 74, w: 22, h: 8, rx: 2, color: PAL.steel, role: 'anvilTop' },
+    { kind: 'rect', x: 63, y: 82, w: 12, h: 6, rx: 2, color: PAL.metal, role: 'anvilWaist' },
+    { kind: 'rect', x: 60, y: 86, w: 18, h: 4, rx: 2, color: PAL.metal, role: 'anvilBase' },
+    // casting mold to the LEFT — a flat rectangular tray with a poured shape inside
+    { kind: 'rect', x: 16, y: 80, w: 18, h: 10, rx: 2, color: PAL.caveStoneDark, role: 'mold' },
+    { kind: 'rect', x: 19, y: 83, w: 12, h: 5, rx: 1, color: PAL.brass, role: 'casting' },
+    // hammer lying on the anvil face
+    { kind: 'rect', x: 60, y: 71, w: 16, h: 4, rx: 1, color: PAL.wood, role: 'handle' },
+    { kind: 'rect', x: 74, y: 69, w: 6, h: 7, rx: 1, color: PAL.ironDark, role: 'hammerHead' },
+    // small rune-mark on the wall — visual differentiator from forge
+    { kind: 'circle', cx: 34, cy: 62, r: 4, color: PAL.rune, role: 'rune' },
+    { kind: 'poly', points: [[30, 62], [34, 55], [38, 62]], color: PAL.trim, role: 'runeTri' },
+  ],
+};
+
+// DEEP_MINE — like mine but a wider/darker shaft and iron ore in the pile and cart
+export const DEEP_MINE: SpriteDef = {
+  id: 'deep_mine',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // wall + roof only — deeper shaft replaces the door
+    // wider, darker shaft (iron-dark, deeper feel than the standard mine)
+    { kind: 'rect', x: 34, y: 60, w: 28, h: 31, rx: 8, color: '#100e0c', role: 'shaft' },
+    // timber frame: posts and lintel (same role names as MINE for consistency)
+    { kind: 'rect', x: 30, y: 58, w: 5, h: 33, color: PAL.wood, role: 'post' },
+    { kind: 'rect', x: 61, y: 58, w: 5, h: 33, color: PAL.wood, role: 'post' },
+    { kind: 'rect', x: 28, y: 55, w: 40, h: 6, rx: 1, color: PAL.wood, role: 'lintel' },
+    // second support beam inside the shaft — signals greater depth
+    { kind: 'rect', x: 34, y: 70, w: 28, h: 4, rx: 1, color: PAL.wood, role: 'supportBeam' },
+    // iron ore pile to the LEFT (iron color vs rock color in MINE)
+    { kind: 'circle', cx: 17, cy: 87, r: 4, color: PAL.iron, role: 'ore' },
+    { kind: 'circle', cx: 24, cy: 88, r: 5, color: PAL.ironDark, role: 'ore' },
+    { kind: 'circle', cx: 20, cy: 91, r: 5, color: PAL.iron, role: 'ore' },
+    // minecart with iron ore (cart body, iron ore inside, rim, wheels)
+    { kind: 'poly', points: [[68, 79], [88, 79], [85, 90], [71, 90]], color: PAL.door, role: 'cart' },
+    { kind: 'circle', cx: 74, cy: 78, r: 4, color: PAL.iron, role: 'cartOre' },
+    { kind: 'circle', cx: 82, cy: 77, r: 4, color: PAL.ironDark, role: 'cartOre' },
+    { kind: 'rect', x: 67, y: 79, w: 22, h: 4, rx: 1, color: '#4a3526', role: 'cartRim' },
+    { kind: 'circle', cx: 73, cy: 91, r: 3, color: '#2b2b2b', role: 'wheel' },
+    { kind: 'circle', cx: 83, cy: 91, r: 3, color: '#2b2b2b', role: 'wheel' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE];

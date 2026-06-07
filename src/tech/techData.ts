@@ -26,4 +26,24 @@ export const TECHS: Record<string, TechNode> = {
     cost: { industry: 25, science: 20 }, requires: ['mining'],
     unlocksBuilding: 'forge', gatesAge: 'bronze',
   },
+  iron_working: {
+    id: 'iron_working', name: 'Iron Working', age: 'iron',
+    cost: { industry: 40, science: 30 }, requires: ['bronze_working'],
+    unlocksBuilding: 'smelter', gatesAge: 'iron',
+  },
+  deep_mining: {
+    id: 'deep_mining', name: 'Deep Mining', age: 'iron',
+    cost: { industry: 35 }, requires: ['iron_working'],
+    unlocksBuilding: 'deep_mine',
+  },
+  smelting: {
+    id: 'smelting', name: 'Smelting', age: 'iron',
+    cost: { industry: 30, science: 30 }, requires: ['iron_working'],
+    unlocksBuilding: 'foundry', runBonus: { weapons: ['flame_jet'] },
+  },
+  mechanics: {
+    id: 'mechanics', name: 'Mechanics', age: 'iron',
+    cost: { science: 45 }, requires: ['smelting'],
+    runBonus: { weapons: ['sawblade'] },
+  },
 };

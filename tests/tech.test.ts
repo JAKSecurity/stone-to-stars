@@ -4,12 +4,17 @@ import { isResearched, canResearch, research, getAge, techUnlocksBuilding } from
 import { newCivState } from '../src/state/civState';
 
 describe('tech', () => {
-  it('defines the six slice techs with a mining → bronze_working prereq', () => {
+  it('defines the slice techs with a mining → bronze_working prereq and iron age techs', () => {
     expect(Object.keys(TECHS).sort()).toEqual(
-      ['bronze_working', 'hunting', 'mining', 'mysticism', 'pottery', 'writing'].sort(),
+      [
+        'bronze_working', 'deep_mining', 'hunting', 'iron_working',
+        'mechanics', 'mining', 'mysticism', 'pottery', 'smelting', 'writing',
+      ].sort(),
     );
     expect(TECHS.bronze_working.requires).toEqual(['mining']);
     expect(TECHS.bronze_working.gatesAge).toBe('bronze');
+    expect(TECHS.iron_working.requires).toEqual(['bronze_working']);
+    expect(TECHS.iron_working.gatesAge).toBe('iron');
   });
 
   it('a fresh civ has no tech and is in the Stone Age', () => {

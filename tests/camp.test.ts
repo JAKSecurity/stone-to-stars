@@ -7,8 +7,10 @@ import { research } from '../src/tech/tech';
 const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
 
 describe('camp', () => {
-  it('defines granary, mine, forge', () => {
-    expect(Object.keys(BUILDINGS).sort()).toEqual(['forge', 'granary', 'mine']);
+  it('defines granary, mine, forge, smelter, foundry, deep_mine', () => {
+    expect(Object.keys(BUILDINGS).sort()).toEqual(
+      ['deep_mine', 'forge', 'foundry', 'granary', 'mine', 'smelter'],
+    );
   });
 
   it('a building is locked until its tech is researched', () => {
