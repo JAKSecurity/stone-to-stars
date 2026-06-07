@@ -31,5 +31,8 @@ export const PAL = {
   // medieval age — cold steel, castle stone, royal blue, crimson heraldry, bone
   steelBlue: '#5b6b7a', castleStone: '#8a8073', castleStoneDark: '#5c554b',
   royal: '#3b53a8', crimson: '#a32735', bone: '#d8cdb0',
+  // renaissance age — blued steel, walnut, powder smoke, gunfire
+  blued: '#3f4a5a', walnut: '#6b4a2f', powder: '#9a9890', smoke: '#c8c6bf',
+  gunfire: '#ff9d3c', velvet: '#5a2d4a',
   shadow: 'rgba(0,0,0,0.28)',
 } as const;

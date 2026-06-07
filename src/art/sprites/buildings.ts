@@ -345,4 +345,101 @@ export const ARMORY: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY];
+// GUNSMITH — a gunsmith's shop: hutBase + blued/walnut musket on wall, powder barrel, muzzle puff
+export const GUNSMITH: SpriteDef = {
+  id: 'gunsmith',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — the shop front replaces it
+    // shop-front board across the lower wall (walnut plank)
+    { kind: 'rect', x: 22, y: 68, w: 52, h: 4, rx: 2, color: PAL.walnut, role: 'shopBoard' },
+    // musket mounted on the wall (barrel: long blued rect; stock: shorter walnut rect)
+    { kind: 'rect', x: 26, y: 56, w: 36, h: 5, rx: 1, color: PAL.blued, role: 'barrel' },
+    { kind: 'rect', x: 30, y: 59, w: 22, h: 7, rx: 2, color: PAL.walnut, role: 'stock' },
+    // lock mechanism (small blued square at midpoint of barrel/stock join)
+    { kind: 'rect', x: 46, y: 57, w: 7, h: 6, rx: 1, color: PAL.blued, role: 'lock' },
+    // muzzle flash at the barrel tip — read as displayed/test-fired
+    { kind: 'poly', points: [[62, 54], [68, 58], [62, 62]], color: PAL.gunfire, role: 'muzzleFlash' },
+    { kind: 'circle', cx: 64, cy: 58, r: 3, color: PAL.smoke, role: 'smokeCloud' },
+    // powder barrel (walnut cask body, blued iron hoops)
+    { kind: 'rect', x: 14, y: 72, w: 14, h: 18, rx: 4, color: PAL.walnut, role: 'barrel' },
+    { kind: 'rect', x: 12, y: 74, w: 18, h: 3, rx: 1, color: PAL.blued, role: 'hoop' },
+    { kind: 'rect', x: 12, y: 83, w: 18, h: 3, rx: 1, color: PAL.blued, role: 'hoop' },
+    // barrel lid
+    { kind: 'rect', x: 14, y: 70, w: 14, h: 4, rx: 3, color: PAL.walnut, role: 'lid' },
+    // mount bracket holding the gun to the wall
+    { kind: 'rect', x: 31, y: 55, w: 4, h: 11, rx: 1, color: PAL.blued, role: 'mount' },
+    { kind: 'rect', x: 51, y: 55, w: 4, h: 11, rx: 1, color: PAL.blued, role: 'mount' },
+  ],
+};
+
+// UNIVERSITY — a scholarly hall: hutBase + domed cupola, arched windows, velvet pennant
+export const UNIVERSITY: SpriteDef = {
+  id: 'university',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — academic façade replaces it
+    // tall hall body (smoke-colored stone — distinct from marble academy)
+    { kind: 'rect', x: 20, y: 44, w: 56, h: 46, rx: 2, color: PAL.smoke, role: 'hallBody' },
+    // side shadow on the hall
+    { kind: 'rect', x: 58, y: 46, w: 18, h: 42, rx: 1, color: PAL.powder, role: 'hallShadow' },
+    // dome cupola atop the hall (circle = dome form, distinct from spire/pediment)
+    { kind: 'circle', cx: 48, cy: 34, r: 16, color: PAL.powder, role: 'dome' },
+    { kind: 'circle', cx: 48, cy: 34, r: 12, color: PAL.smoke, role: 'domeInner' },
+    // drum under the dome (short cylinder connecting dome to hall)
+    { kind: 'rect', x: 34, y: 42, w: 28, h: 6, rx: 2, color: PAL.powder, role: 'drum' },
+    // dome lantern (small circle at the very top of the dome)
+    { kind: 'circle', cx: 48, cy: 20, r: 4, color: PAL.smoke, role: 'lantern' },
+    { kind: 'circle', cx: 48, cy: 20, r: 2, color: PAL.velvet, role: 'lanternCap' },
+    // tall arched windows (two flanking the central arch doorway)
+    { kind: 'poly', points: [[28, 64], [28, 76], [34, 82], [40, 76], [40, 64]], color: '#1a1612', role: 'arch' },
+    { kind: 'poly', points: [[56, 64], [56, 76], [62, 82], [68, 76], [68, 64]], color: '#1a1612', role: 'arch' },
+    // lancet entry archway at the center
+    { kind: 'poly', points: [[42, 90], [42, 74], [48, 68], [54, 74], [54, 90]], color: '#1a1612', role: 'door' },
+    // velvet pennant on a short flagpole above the dome
+    { kind: 'rect', x: 47, y: 10, w: 2, h: 12, color: PAL.powder, role: 'flagPole' },
+    { kind: 'poly', points: [[49, 10], [62, 14], [49, 18]], color: PAL.velvet, role: 'pennant' },
+  ],
+};
+
+// BANK — a counting-house: hutBase + columned smoke façade with pediment, gold coin stacks, velvet bags
+export const BANK: SpriteDef = {
+  id: 'bank',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — columned bank façade replaces it
+    // solid bank facade body (smoke — heavier than market's open stall, cooler than classical marble)
+    { kind: 'rect', x: 18, y: 48, w: 60, h: 42, rx: 2, color: PAL.smoke, role: 'facade' },
+    // pediment (triangular gable) above — solid not open like the academy, reads as bank not temple
+    { kind: 'poly', points: [[16, 48], [80, 48], [48, 30]], color: PAL.powder, role: 'pediment' },
+    // entablature bar across column tops
+    { kind: 'rect', x: 16, y: 46, w: 64, h: 5, rx: 1, color: PAL.powder, role: 'entablature' },
+    // four smoke/powder columns (bank has 4 vs academy's 3 — more imposing financial institution)
+    { kind: 'rect', x: 22, y: 52, w: 6, h: 34, rx: 2, color: PAL.smoke, role: 'column' },
+    { kind: 'rect', x: 36, y: 52, w: 6, h: 34, rx: 2, color: PAL.smoke, role: 'column' },
+    { kind: 'rect', x: 54, y: 52, w: 6, h: 34, rx: 2, color: PAL.smoke, role: 'column' },
+    { kind: 'rect', x: 68, y: 52, w: 6, h: 34, rx: 2, color: PAL.smoke, role: 'column' },
+    // column capitals
+    { kind: 'rect', x: 19, y: 49, w: 12, h: 4, rx: 1, color: PAL.powder, role: 'capital' },
+    { kind: 'rect', x: 33, y: 49, w: 12, h: 4, rx: 1, color: PAL.powder, role: 'capital' },
+    { kind: 'rect', x: 51, y: 49, w: 12, h: 4, rx: 1, color: PAL.powder, role: 'capital' },
+    { kind: 'rect', x: 65, y: 49, w: 12, h: 4, rx: 1, color: PAL.powder, role: 'capital' },
+    // heavy iron bank door (blued — secure, not open like a market)
+    { kind: 'rect', x: 41, y: 68, w: 14, h: 22, rx: 2, color: PAL.blued, role: 'bankDoor' },
+    { kind: 'circle', cx: 52, cy: 79, r: 2, color: PAL.gold, role: 'doorKnob' },
+    // gold coin stacks by the door (wealth read — distinct from market's loose pile)
+    { kind: 'rect', x: 12, y: 80, w: 8, h: 4, rx: 2, color: PAL.gold, role: 'coinStack' },
+    { kind: 'rect', x: 11, y: 76, w: 10, h: 5, rx: 2, color: PAL.gold, role: 'coinStack' },
+    { kind: 'rect', x: 12, y: 72, w: 8, h: 5, rx: 2, color: PAL.gold, role: 'coinStack' },
+    { kind: 'circle', cx: 16, cy: 74, r: 3, color: PAL.goldDark, role: 'coinFace' },
+    // velvet money bag by the right column
+    { kind: 'circle', cx: 78, cy: 80, r: 8, color: PAL.velvet, role: 'moneybag' },
+    { kind: 'rect', x: 74, y: 72, w: 8, h: 6, rx: 3, color: PAL.velvet, role: 'bagNeck' },
+    { kind: 'rect', x: 75, y: 70, w: 6, h: 4, rx: 2, color: PAL.walnut, role: 'bagTie' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK];

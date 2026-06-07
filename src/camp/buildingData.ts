@@ -70,4 +70,10 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     yield: { culture: 6, science: 4 }, runBonus: { maxHp: 35 }, maxLevel: 3 },
   armory: { id: 'armory', name: 'Armory', baseCost: { industry: 55, science: 30 },
     yield: { industry: 8 }, runBonus: { damageMult: 0.14, weapons: ['halberd'] }, maxLevel: 3 },
+  gunsmith: { id:'gunsmith', name:'Gunsmith', baseCost:{industry:70,science:35},
+    yield:{industry:11}, runBonus:{ damageMult:0.16, weapons:['blunderbuss','grenade'] }, maxLevel:3 },
+  university: { id:'university', name:'University', baseCost:{science:60,culture:30},
+    yield:{science:9}, runBonus:{ draftChoices:1 }, maxLevel:3 },
+  bank: { id:'bank', name:'Bank', baseCost:{industry:45,exploration:40},
+    yield:{exploration:7,culture:4}, runBonus:{ maxHp:45 }, maxLevel:3 },
 };
