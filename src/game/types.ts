@@ -2,9 +2,9 @@ export type Resource = 'exploration' | 'science' | 'industry' | 'culture';
 export const RESOURCES: Resource[] = ['exploration', 'science', 'industry', 'culture'];
 export type ResourceBundle = Record<Resource, number>;
 
-export type AgeId = 'stone' | 'bronze' | 'iron';
+export type AgeId = 'stone' | 'bronze' | 'iron' | 'classical';
 /** Ascending order; index = how advanced. */
-export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron'];
+export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron', 'classical'];
 
 export interface WeaponDef {
   id: string;

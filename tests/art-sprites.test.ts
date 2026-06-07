@@ -44,6 +44,14 @@ describe('SPRITES registry', () => {
     }
   });
 
+  it('Classical building sprites are registered and valid', () => {
+    const classicalBuildingIds = ['academy', 'market', 'workshop'];
+    for (const id of classicalBuildingIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
+
   it('Iron Age projectile sprites are registered and valid', () => {
     const ironProjectileIds = ['shot_iron_pick', 'shot_hammer', 'shot_sawblade', 'shot_flame'];
     for (const id of ironProjectileIds) {

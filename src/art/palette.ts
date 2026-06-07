@@ -24,5 +24,9 @@ export const PAL = {
   caveStone: '#6b6560', caveStoneDark: '#3f3a36',
   brass: '#b9933f', brassDark: '#6f5520', rune: '#5ad1c7',
   molten: '#ff6a2b', ember: '#ffd152',
+  // classical age — marble, bronze-gold, laurel, toga
+  marble: '#e8e2d0', marbleDark: '#b8b09a',
+  gold: '#d9b44a', goldDark: '#9c7a25',
+  laurel: '#6f8f4e', toga: '#dcd2bd', oxblood: '#7a2e2e',
   shadow: 'rgba(0,0,0,0.28)',
 } as const;

@@ -43,4 +43,25 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     runBonus: { damageMult: 0.08 },
     maxLevel: 3,
   },
+  academy: {
+    id: 'academy', name: 'Academy',
+    baseCost: { science: 40, industry: 20 },
+    yield: { science: 6 },
+    runBonus: { draftChoices: 1, weapons: ['gladius'] },
+    maxLevel: 3,
+  },
+  market: {
+    id: 'market', name: 'Market',
+    baseCost: { industry: 35, exploration: 15 },
+    yield: { exploration: 5, culture: 3 },
+    runBonus: { maxHp: 30 },
+    maxLevel: 3,
+  },
+  workshop: {
+    id: 'workshop', name: 'Workshop',
+    baseCost: { industry: 45, science: 20 },
+    yield: { industry: 7 },
+    runBonus: { damageMult: 0.12, weapons: ['javelin'] },
+    maxLevel: 3,
+  },
 };

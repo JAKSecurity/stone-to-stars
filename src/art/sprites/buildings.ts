@@ -156,4 +156,103 @@ export const DEEP_MINE: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE];
+// ACADEMY — classical temple/portico: marble columns across the front, triangular pediment above
+export const ACADEMY: SpriteDef = {
+  id: 'academy',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — replaced by the portico columns
+    // pediment (triangular gable) in marble, above the roof apex — classical portico read
+    { kind: 'poly', points: [[20, 50], [76, 50], [48, 30]], color: PAL.marble, role: 'pediment' },
+    { kind: 'poly', points: [[22, 50], [74, 50], [48, 33]], color: PAL.marbleDark, role: 'pedimentInner' },
+    // entablature (horizontal beam running across the column tops)
+    { kind: 'rect', x: 18, y: 48, w: 60, h: 6, rx: 1, color: PAL.marbleDark, role: 'entablature' },
+    // three marble columns evenly spaced across the façade
+    { kind: 'rect', x: 24, y: 54, w: 8, h: 36, rx: 2, color: PAL.marble, role: 'column' },
+    { kind: 'rect', x: 44, y: 54, w: 8, h: 36, rx: 2, color: PAL.marble, role: 'column' },
+    { kind: 'rect', x: 64, y: 54, w: 8, h: 36, rx: 2, color: PAL.marble, role: 'column' },
+    // column capitals (flared tops — Doric cap)
+    { kind: 'rect', x: 21, y: 51, w: 14, h: 4, rx: 1, color: PAL.marbleDark, role: 'capital' },
+    { kind: 'rect', x: 41, y: 51, w: 14, h: 4, rx: 1, color: PAL.marbleDark, role: 'capital' },
+    { kind: 'rect', x: 61, y: 51, w: 14, h: 4, rx: 1, color: PAL.marbleDark, role: 'capital' },
+    // stylobate (stepped base platform)
+    { kind: 'rect', x: 14, y: 88, w: 68, h: 6, rx: 2, color: PAL.marble, role: 'stylobate' },
+    { kind: 'rect', x: 16, y: 84, w: 64, h: 6, rx: 1, color: PAL.marbleDark, role: 'stylobateStep' },
+    // scroll (papyrus roll) leaning against the left column — scholarly identifier
+    { kind: 'rect', x: 10, y: 68, w: 6, h: 18, rx: 3, color: PAL.toga, role: 'scroll' },
+    { kind: 'rect', x: 8, y: 67, w: 10, h: 4, rx: 2, color: PAL.marbleDark, role: 'scrollEnd' },
+    { kind: 'rect', x: 8, y: 82, w: 10, h: 4, rx: 2, color: PAL.marbleDark, role: 'scrollEnd' },
+    // laurel wreath circle above the central column — cultural/scholarly marker
+    { kind: 'circle', cx: 48, cy: 42, r: 5, color: PAL.laurel, role: 'wreath' },
+    { kind: 'circle', cx: 48, cy: 42, r: 3, color: PAL.marbleDark, role: 'wreathInner' },
+  ],
+};
+
+// MARKET — hut with oxblood/toga striped awning, amphora, and gold coin piles
+export const MARKET: SpriteDef = {
+  id: 'market',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — stall fills the front
+    // awning frame: two posts supporting the canopy
+    { kind: 'rect', x: 20, y: 52, w: 4, h: 38, color: PAL.wood, role: 'awningPost' },
+    { kind: 'rect', x: 72, y: 52, w: 4, h: 38, color: PAL.wood, role: 'awningPost' },
+    // striped awning canopy (alternating oxblood and toga stripes)
+    { kind: 'rect', x: 18, y: 52, w: 60, h: 10, rx: 2, color: PAL.oxblood, role: 'awning' },
+    { kind: 'rect', x: 18, y: 56, w: 60, h: 3, color: PAL.toga, role: 'awningStripe' },
+    { kind: 'rect', x: 18, y: 60, w: 60, h: 3, color: PAL.oxblood, role: 'awningStripe' },
+    // market stall counter (wide plank)
+    { kind: 'rect', x: 20, y: 68, w: 56, h: 6, rx: 2, color: PAL.wood, role: 'counter' },
+    { kind: 'rect', x: 20, y: 73, w: 56, h: 3, rx: 1, color: PAL.door, role: 'counterEdge' },
+    // amphora (storage jar): belly, neck, mouth
+    { kind: 'poly', points: [[34, 76], [30, 88], [42, 88], [38, 76]], color: PAL.marbleDark, role: 'amphora' },
+    { kind: 'rect', x: 33, y: 72, w: 8, h: 6, rx: 2, color: PAL.marble, role: 'amphoraNeck' },
+    { kind: 'rect', x: 32, y: 70, w: 10, h: 4, rx: 3, color: PAL.marbleDark, role: 'amphoraMouth' },
+    // amphora handles (two small arcs rendered as short rects)
+    { kind: 'rect', x: 27, y: 76, w: 5, h: 6, rx: 3, color: PAL.marbleDark, role: 'handle' },
+    { kind: 'rect', x: 42, y: 76, w: 5, h: 6, rx: 3, color: PAL.marbleDark, role: 'handle' },
+    // coin pile on the counter (3 overlapping gold circles = trade goods)
+    { kind: 'circle', cx: 62, cy: 65, r: 5, color: PAL.gold, role: 'coin' },
+    { kind: 'circle', cx: 70, cy: 64, r: 5, color: PAL.goldDark, role: 'coin' },
+    { kind: 'circle', cx: 66, cy: 62, r: 4, color: PAL.gold, role: 'coin' },
+    // gold coin markings
+    { kind: 'circle', cx: 62, cy: 65, r: 2, color: PAL.goldDark, role: 'coinMark' },
+    { kind: 'circle', cx: 70, cy: 64, r: 2, color: PAL.gold, role: 'coinMark' },
+  ],
+};
+
+// WORKSHOP — hut with an artisan bench, chisel, and hammer for a crafting read
+export const WORKSHOP: SpriteDef = {
+  id: 'workshop',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — bench fills the front
+    // workbench top
+    { kind: 'rect', x: 18, y: 70, w: 60, h: 8, rx: 2, color: PAL.marbleDark, role: 'bench' },
+    // bench legs
+    { kind: 'rect', x: 20, y: 78, w: 5, h: 12, color: PAL.wood, role: 'leg' },
+    { kind: 'rect', x: 71, y: 78, w: 5, h: 12, color: PAL.wood, role: 'leg' },
+    // bench shelf below the top
+    { kind: 'rect', x: 22, y: 82, w: 52, h: 4, rx: 1, color: PAL.wood, role: 'shelf' },
+    // chisel on the bench (tall thin blade + square butt)
+    { kind: 'rect', x: 28, y: 58, w: 4, h: 14, rx: 1, color: PAL.brass, role: 'chiselBlade' },
+    { kind: 'rect', x: 26, y: 54, w: 8, h: 6, rx: 2, color: PAL.gold, role: 'chiselButt' },
+    // hammer on the bench: handle + head
+    { kind: 'rect', x: 48, y: 56, w: 4, h: 16, rx: 1, color: PAL.wood, role: 'hammerHandle' },
+    { kind: 'rect', x: 44, y: 52, w: 12, h: 7, rx: 2, color: PAL.gold, role: 'hammerHead' },
+    { kind: 'rect', x: 44, y: 58, w: 12, h: 3, rx: 1, color: PAL.goldDark, role: 'hammerFace' },
+    // stone block being worked — reads as the artisan's project
+    { kind: 'rect', x: 62, y: 56, w: 18, h: 14, rx: 3, color: PAL.marble, role: 'stoneBlock' },
+    { kind: 'rect', x: 64, y: 58, w: 10, h: 6, rx: 2, color: PAL.marbleDark, role: 'chiselMark' },
+    // wood shavings / marble chips beside the block
+    { kind: 'rect', x: 62, y: 68, w: 18, h: 4, rx: 2, color: PAL.toga, role: 'chips' },
+    // tool rack on the wall — two pegs
+    { kind: 'rect', x: 28, y: 60, w: 2, h: 8, rx: 1, color: PAL.brassDark, role: 'peg' },
+    { kind: 'rect', x: 36, y: 60, w: 2, h: 8, rx: 1, color: PAL.brassDark, role: 'peg' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP];

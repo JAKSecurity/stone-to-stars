@@ -46,4 +46,24 @@ export const TECHS: Record<string, TechNode> = {
     cost: { science: 45 }, requires: ['smelting'],
     runBonus: { weapons: ['sawblade'] },
   },
+  mathematics: {
+    id: 'mathematics', name: 'Mathematics', age: 'classical',
+    cost: { science: 50, industry: 20 }, requires: ['iron_working'],
+    unlocksBuilding: 'academy', gatesAge: 'classical',
+  },
+  currency: {
+    id: 'currency', name: 'Currency', age: 'classical',
+    cost: { industry: 30, exploration: 20 }, requires: ['mathematics'],
+    unlocksBuilding: 'market',
+  },
+  engineering: {
+    id: 'engineering', name: 'Engineering', age: 'classical',
+    cost: { industry: 40, science: 25 }, requires: ['mathematics'],
+    unlocksBuilding: 'workshop', runBonus: { weapons: ['ballista'] },
+  },
+  philosophy: {
+    id: 'philosophy', name: 'Philosophy', age: 'classical',
+    cost: { science: 35, culture: 20 }, requires: ['currency'],
+    runBonus: { weapons: ['discus'] },
+  },
 };
