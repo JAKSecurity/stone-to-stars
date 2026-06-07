@@ -161,13 +161,22 @@ and sprites. Each is a self-contained vertical slice: build-clean, unit-tested, 
 
 ## Status log
 - [x] Foundation analysis complete (engine general; constraints catalogued above).
-- [ ] RC-010 foundation (GRID_SIZE, hero map, orbit/lob backlog, tests)
-- [ ] RC-011 Classical
-- [ ] RC-012 Medieval
-- [ ] RC-013 Renaissance
-- [ ] RC-014 Industrial (stretch)
-- [ ] Consolidated live progression smoke (stone→highest age)
-- [ ] Morning report for Jeff (per-age summary, art-review checklist, merge instructions)
+- [x] RC-010 foundation — GRID_SIZE 9→20, 5-col grid, hero-by-age map (`heroByAge.ts`), tests. `51de270`
+- [x] RC-011 Classical — `3620f2a` (A) `f18b55b` (B) `417ee53` (C). Reviewed APPROVED. Live-smoked end-to-end.
+- [x] RC-012 Medieval — `e410a0c` (A) `9e53dfb` (B) `de3f55a` (C). Reviewed APPROVED.
+- [x] RC-013 Renaissance — `6070d8c` (A) `f4d52ae` (B) `915d0e0` (C). Reviewed APPROVED.
+- [x] RC-014 Industrial — `5a82ae6` (A) `0e152aa` (B) `842ddf4` (C). Reviewed APPROVED.
+- [x] Consolidated live progression smoke (stone→industrial) — all 8 biomes reachable; Foundry Wastes
+      run renders hero_industrial + drones + mecha mini-boss; **0 console errors**. (Earlier: Sunken
+      Colosseum run rendered hero_classical + harpies + centaurs, 0 errors.)
+- [x] Morning report for Jeff — `docs/NIGHTLY-REPORT-2026-06-07.md`.
+- [ ] (Pending Jeff) Art ratification of ALL new sprites (RC-008 iron + RC-011..014). NOT merged to main.
+- [ ] (Pending Jeff/merge) Create formal tickets RC-010..016; RC-016 = implement orbit/lob projectile motion.
+- [ ] (Later) RC-009 holistic balance pass.
+
+**Final state:** branch `nightly-age-expansion`, 109 Vitest tests green, `npm run build` clean, boots with
+0 console errors. 4 new playable ages on top of RC-008 Iron. Decision to stop at 4 (vs a 5th Modern age)
+was a quality-over-quantity call — the pipeline is turnkey for more. Nothing merged to main (art gate).
 
 > RC-008 (Iron) status: code complete, 93 tests green, boots clean (smoke-tested). **Art
 > ratification still pending Jeff.** Not merged. Its closeout (trackers) folds into the morning
