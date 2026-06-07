@@ -34,4 +34,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     baseHp: 200, speed: 30, contactDamage: 20, drop: 'industry', xp: 25,
     displaySize: { w: 48, h: 52 },
   },
+  harpy: { id: 'harpy', name: 'Harpy', sprite: 'harpy',
+    baseHp: 40, speed: 115, contactDamage: 9, drop: 'culture', xp: 5, displaySize: { w: 34, h: 30 } },
+  hoplite: { id: 'hoplite', name: 'Hoplite', sprite: 'hoplite',
+    baseHp: 110, speed: 55, contactDamage: 14, drop: 'industry', xp: 9, displaySize: { w: 30, h: 40 } },
+  centaur: { id: 'centaur', name: 'Centaur', sprite: 'centaur',
+    baseHp: 75, speed: 95, contactDamage: 12, drop: 'industry', xp: 7, displaySize: { w: 42, h: 40 } },
+  cyclops: { id: 'cyclops', name: 'Cyclops', sprite: 'cyclops',
+    baseHp: 260, speed: 35, contactDamage: 22, drop: 'industry', xp: 28, displaySize: { w: 50, h: 56 } },
 };

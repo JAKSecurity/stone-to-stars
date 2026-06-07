@@ -64,4 +64,12 @@ describe('SPRITES registry', () => {
     expect(SPRITES['hero_iron'], 'sprite hero_iron should be registered').toBeDefined();
     expect(validateSpriteDef(SPRITES['hero_iron']), `sprite hero_iron: ${validateSpriteDef(SPRITES['hero_iron']).join('; ')}`).toEqual([]);
   });
+
+  it('Classical enemy sprites are registered and valid', () => {
+    const classicalIds = ['harpy', 'hoplite', 'centaur', 'cyclops'];
+    for (const id of classicalIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });

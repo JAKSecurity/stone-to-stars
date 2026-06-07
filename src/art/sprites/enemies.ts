@@ -181,4 +181,151 @@ export const IRON_GOLEM: SpriteDef = {
   ],
 };
 
-export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM];
+// A winged bird-woman, fast and predatory. Canvas 34x30.
+// Broad spread wings (oxblood/marbleDark feathers) with a small skin/toga torso and head;
+// talons below. Wide-wing silhouette reads clearly as a flyer.
+export const HARPY: SpriteDef = {
+  id: 'harpy',
+  w: 34,
+  h: 30,
+  prims: [
+    // left wing — broad sweeping poly, swept back
+    { kind: 'poly', points: [[17, 12], [0, 4], [2, 16], [14, 18]], color: PAL.oxblood, role: 'wing' },
+    // left wing inner feathers (lighter marbleDark layer)
+    { kind: 'poly', points: [[17, 13], [3, 8], [5, 17], [14, 18]], color: PAL.marbleDark, role: 'wing-inner' },
+    // right wing — mirror, swept back
+    { kind: 'poly', points: [[17, 12], [34, 4], [32, 16], [20, 18]], color: PAL.oxblood, role: 'wing' },
+    // right wing inner feathers
+    { kind: 'poly', points: [[17, 13], [31, 8], [29, 17], [20, 18]], color: PAL.marbleDark, role: 'wing-inner' },
+    // compact torso (toga-colored)
+    { kind: 'poly', points: [[13, 14], [21, 14], [22, 22], [12, 22]], color: PAL.toga, role: 'torso' },
+    // left talon / foot
+    { kind: 'poly', points: [[13, 22], [10, 28], [13, 29], [15, 23]], color: PAL.marbleDark, role: 'talon' },
+    { kind: 'poly', points: [[11, 27], [9, 30], [12, 30]], color: PAL.marbleDark, role: 'claw' },
+    // right talon / foot
+    { kind: 'poly', points: [[21, 22], [24, 28], [21, 29], [19, 23]], color: PAL.marbleDark, role: 'talon' },
+    { kind: 'poly', points: [[23, 27], [25, 30], [22, 30]], color: PAL.marbleDark, role: 'claw' },
+    // head — small circle, sits on top of torso
+    { kind: 'circle', cx: 17, cy: 9, r: 5, color: PAL.skin, role: 'head' },
+    // hair (dark, windswept back)
+    { kind: 'poly', points: [[13, 6], [17, 3], [22, 6], [20, 4], [17, 3]], color: PAL.hair, role: 'hair' },
+    // eyes — narrowed predatory
+    { kind: 'circle', cx: 15, cy: 9, r: 1, color: '#1a0a0a', role: 'eye' },
+    { kind: 'circle', cx: 19, cy: 9, r: 1, color: '#1a0a0a', role: 'eye' },
+  ],
+};
+
+// An armored Greek soldier. Canvas 30x40.
+// Round hoplon shield (gold rim, oxblood face), crested helm (goldDark base, oxblood crest),
+// bronze cuirass, short spear. Upright heavy-armored silhouette.
+export const HOPLITE: SpriteDef = {
+  id: 'hoplite',
+  w: 30,
+  h: 40,
+  prims: [
+    // legs — greaves (goldDark)
+    { kind: 'rect', x: 8, y: 28, w: 6, h: 12, rx: 1, color: PAL.goldDark, role: 'leg' },
+    { kind: 'rect', x: 16, y: 28, w: 6, h: 12, rx: 1, color: PAL.goldDark, role: 'leg' },
+    // hoplon shield — large round, oxblood face with gold rim, held on left side
+    { kind: 'circle', cx: 8, cy: 22, r: 9, color: PAL.gold, role: 'shield-rim' },
+    { kind: 'circle', cx: 8, cy: 22, r: 7, color: PAL.oxblood, role: 'shield-face' },
+    // bronze cuirass (torso)
+    { kind: 'poly', points: [[10, 14], [20, 14], [22, 28], [8, 28]], color: PAL.gold, role: 'cuirass' },
+    // cuirass belly plate shadow
+    { kind: 'poly', points: [[10, 22], [20, 22], [22, 28], [8, 28]], color: PAL.goldDark, role: 'cuirass-lower' },
+    // spear — line from right hand upward
+    { kind: 'line', x1: 24, y1: 36, x2: 26, y2: 2, width: 2, color: PAL.leather, role: 'spear-shaft' },
+    { kind: 'poly', points: [[24, 4], [26, 2], [28, 5], [26, 8]], color: PAL.gold, role: 'spear-tip' },
+    // right arm holding spear
+    { kind: 'rect', x: 21, y: 18, w: 5, h: 12, rx: 1, color: PAL.gold, role: 'arm' },
+    // helmet base — goldDark
+    { kind: 'poly', points: [[9, 14], [21, 14], [22, 8], [8, 8]], color: PAL.goldDark, role: 'helm' },
+    // helm cheek guards
+    { kind: 'rect', x: 8, y: 8, w: 3, h: 8, rx: 1, color: PAL.goldDark, role: 'cheek-guard' },
+    { kind: 'rect', x: 19, y: 8, w: 3, h: 8, rx: 1, color: PAL.goldDark, role: 'cheek-guard' },
+    // crest — tall oxblood plume rising from top of helm
+    { kind: 'poly', points: [[13, 8], [15, 0], [17, 8]], color: PAL.oxblood, role: 'crest' },
+    { kind: 'poly', points: [[11, 8], [15, 1], [19, 8]], color: PAL.oxblood, role: 'crest-wide' },
+    // face/eyes barely visible in helm slit
+    { kind: 'rect', x: 10, y: 10, w: 10, h: 2, rx: 1, color: '#1a0a0a', role: 'visor' },
+  ],
+};
+
+// A half-horse half-human quadruped. Canvas 42x40.
+// Broad horse barrel torso (leather/hair) with four legs; human upper body (skin/toga)
+// rising from the front shoulder, right arm raised. Wide quadruped silhouette.
+export const CENTAUR: SpriteDef = {
+  id: 'centaur',
+  w: 42,
+  h: 40,
+  prims: [
+    // rear horse legs (behind body)
+    { kind: 'poly', points: [[6, 24], [4, 38], [8, 39], [10, 25]], color: PAL.hair, role: 'leg-rear' },
+    { kind: 'poly', points: [[14, 26], [12, 39], [16, 39], [18, 27]], color: PAL.hair, role: 'leg-rear' },
+    // horse barrel torso — wide and heavy
+    { kind: 'poly', points: [[4, 22], [8, 14], [22, 12], [36, 14], [40, 22], [36, 32], [8, 32]], color: PAL.leather, role: 'horse-body' },
+    // horse flank highlight
+    { kind: 'poly', points: [[10, 16], [22, 13], [34, 16], [32, 26], [12, 26]], color: PAL.hair, role: 'flank' },
+    // front horse legs
+    { kind: 'poly', points: [[24, 26], [22, 39], [26, 39], [28, 27]], color: PAL.hair, role: 'leg-front' },
+    { kind: 'poly', points: [[32, 24], [30, 38], [34, 38], [36, 25]], color: PAL.hair, role: 'leg-front' },
+    // tail flicking behind left
+    { kind: 'poly', points: [[5, 22], [0, 18], [2, 28], [7, 27]], color: PAL.hair, role: 'tail' },
+    // human torso rising from the front — toga-covered
+    { kind: 'poly', points: [[26, 22], [34, 22], [32, 10], [28, 10]], color: PAL.toga, role: 'human-torso' },
+    // human left arm raised (holding or gesturing)
+    { kind: 'poly', points: [[34, 14], [40, 8], [38, 6], [32, 12]], color: PAL.skin, role: 'arm' },
+    { kind: 'circle', cx: 39, cy: 7, r: 2, color: PAL.skin, role: 'hand' },
+    // human right arm down
+    { kind: 'poly', points: [[26, 14], [22, 20], [24, 22], [28, 16]], color: PAL.skin, role: 'arm' },
+    // human head
+    { kind: 'circle', cx: 30, cy: 7, r: 6, color: PAL.skin, role: 'head' },
+    // hair
+    { kind: 'poly', points: [[25, 5], [30, 1], [35, 5], [32, 3]], color: PAL.hair, role: 'hair' },
+    // eyes
+    { kind: 'circle', cx: 28, cy: 7, r: 1, color: '#1a0a0a', role: 'eye' },
+    { kind: 'circle', cx: 32, cy: 7, r: 1, color: '#1a0a0a', role: 'eye' },
+  ],
+};
+
+// A brutish one-eyed giant mini-boss. Canvas 50x56.
+// Huge hunched humanoid, ONE large central eye (white sclera + dark pupil),
+// heavy arms, marbleDark loincloth — the biggest, most imposing classical enemy.
+export const CYCLOPS: SpriteDef = {
+  id: 'cyclops',
+  w: 50,
+  h: 56,
+  prims: [
+    // massive pillar legs
+    { kind: 'rect', x: 8, y: 38, w: 14, h: 18, rx: 3, color: PAL.skin, role: 'leg' },
+    { kind: 'rect', x: 28, y: 38, w: 14, h: 18, rx: 3, color: PAL.skin, role: 'leg' },
+    // loincloth / covering
+    { kind: 'poly', points: [[8, 38], [42, 38], [40, 46], [10, 46]], color: PAL.marbleDark, role: 'loincloth' },
+    // hulking torso — wide and barrel-chested
+    { kind: 'poly', points: [[4, 40], [8, 18], [18, 10], [32, 10], [42, 18], [46, 40], [40, 44], [10, 44]], color: PAL.skin, role: 'torso' },
+    // chest shadow / muscle definition
+    { kind: 'poly', points: [[14, 22], [36, 22], [38, 36], [12, 36]], color: PAL.marbleDark, role: 'chest-shadow' },
+    // left heavy arm — dragging low with a club
+    { kind: 'poly', points: [[4, 20], [0, 38], [8, 42], [10, 24]], color: PAL.skin, role: 'arm' },
+    // club in left hand
+    { kind: 'rect', x: 0, y: 36, w: 10, h: 20, rx: 3, color: PAL.leather, role: 'club' },
+    { kind: 'rect', x: -1, y: 50, w: 12, h: 6, rx: 3, color: PAL.hair, role: 'club-head' },
+    // right arm — raised slightly
+    { kind: 'poly', points: [[40, 20], [46, 34], [50, 30], [44, 18]], color: PAL.skin, role: 'arm' },
+    { kind: 'circle', cx: 48, cy: 31, r: 4, color: PAL.skin, role: 'fist' },
+    // broad head — large and brutish
+    { kind: 'poly', points: [[12, 12], [18, 4], [32, 4], [38, 12], [36, 22], [14, 22]], color: PAL.skin, role: 'head' },
+    // brow ridge — heavy and prominent
+    { kind: 'poly', points: [[12, 14], [38, 14], [36, 18], [14, 18]], color: PAL.marbleDark, role: 'brow' },
+    // THE eye — single large central eye (white sclera)
+    { kind: 'circle', cx: 25, cy: 12, r: 6, color: '#ffffff', role: 'eye-sclera' },
+    // pupil — dark, glaring
+    { kind: 'circle', cx: 25, cy: 12, r: 3, color: '#1a0a0a', role: 'eye-pupil' },
+    // eye glint
+    { kind: 'circle', cx: 27, cy: 10, r: 1, color: '#ffffff', role: 'eye-glint' },
+    // mouth — grim downward slash
+    { kind: 'poly', points: [[18, 20], [32, 20], [30, 22], [20, 22]], color: PAL.marbleDark, role: 'mouth' },
+  ],
+};
+
+export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS];

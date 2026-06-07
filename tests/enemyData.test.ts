@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ENEMIES } from '../src/run/enemyData';
 import { RESOURCES } from '../src/game/types';
+import { SPRITES } from '../src/art/registry';
 
 describe('enemyData', () => {
   it('defines beast and scholar', () => {
@@ -9,10 +10,9 @@ describe('enemyData', () => {
   });
 
   it('each entry key matches its id and uses a registered sprite', () => {
-    const knownSprites = ['beast', 'scholar', 'cave_dweller', 'rock_golem', 'automaton', 'iron_golem'];
     for (const [key, def] of Object.entries(ENEMIES)) {
       expect(def.id).toBe(key);
-      expect(knownSprites).toContain(def.sprite);
+      expect(SPRITES[def.sprite], def.sprite).toBeDefined();
     }
   });
 

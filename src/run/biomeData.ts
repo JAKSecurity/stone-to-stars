@@ -30,4 +30,12 @@ export const BIOMES: Record<string, BiomeDef> = {
     spawnTable: { cave_dweller: 6, automaton: 3, rock_golem: 2, iron_golem: 1 },
     tint: '#0c0a12',
   },
+  // Classical Age biome — cyclops at weight 1 is a rare mini-boss encounter.
+  // Proper mini-boss wave timing (announce, scaling, boss-room logic) is deferred to a later ticket.
+  colosseum: {
+    id: 'colosseum', name: 'Sunken Colosseum', minAge: 'classical',
+    resourceBias: { industry: 1, culture: 1 },
+    spawnTable: { harpy: 6, hoplite: 3, centaur: 3, cyclops: 1 },
+    tint: '#171019',
+  },
 };
