@@ -3,15 +3,20 @@ import { PAL } from '../palette';
 
 // Shared hut base — identical across all three so they read as one settlement.
 // Wall body sits with its base at y=90 (just above the bottom) and is centered.
-// Painted back-to-front: wall, roof, then door on top.
-const hutBase = (): Prim[] => [
-  // wall body (lower half of the hut)
-  { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 3, color: PAL.wall, role: 'wall' },
-  // triangular roof with eaves overhanging the wall
-  { kind: 'poly', points: [[18, 52], [78, 52], [48, 24]], color: PAL.roof, role: 'roof' },
-  // centered door
-  { kind: 'rect', x: 42, y: 66, w: 12, h: 24, rx: 2, color: PAL.door, role: 'door' },
-];
+// Painted back-to-front: wall, roof, then (optionally) door on top. The mine passes
+// door=false and supplies its own shaft entrance instead.
+const hutBase = (door = true): Prim[] => {
+  const base: Prim[] = [
+    // wall body (lower half of the hut)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 3, color: PAL.wall, role: 'wall' },
+    // triangular roof with eaves overhanging the wall
+    { kind: 'poly', points: [[18, 52], [78, 52], [48, 24]], color: PAL.roof, role: 'roof' },
+  ];
+  if (door) {
+    base.push({ kind: 'rect', x: 42, y: 66, w: 12, h: 24, rx: 2, color: PAL.door, role: 'door' });
+  }
+  return base;
+};
 
 export const GRANARY: SpriteDef = {
   id: 'granary',
@@ -36,19 +41,24 @@ export const MINE: SpriteDef = {
   w: 96,
   h: 96,
   prims: [
-    ...hutBase(),
-    // crossed pick + hammer mounted across the hut face — wood handles, metal heads.
-    { kind: 'line', x1: 38, y1: 80, x2: 58, y2: 56, width: 3, color: PAL.wood, role: 'pickHandle' },
-    { kind: 'line', x1: 58, y1: 80, x2: 38, y2: 56, width: 3, color: PAL.wood, role: 'hammerHandle' },
-    // pick head: a double-pointed bar across the top of its (right-leaning) handle
-    { kind: 'poly', points: [[51, 58], [58, 53], [65, 57], [58, 60]], color: PAL.metal, role: 'pickHead' },
-    // hammer head: a solid block at the top of its (left-leaning) handle
-    { kind: 'rect', x: 31, y: 52, w: 15, h: 8, rx: 1, color: PAL.metal, role: 'hammerHead' },
-    // mound of mined rock/ore in front of the hut
-    { kind: 'poly', points: [[58, 90], [88, 90], [82, 76], [70, 70], [62, 78]], color: PAL.rock, role: 'mound' },
-    // a couple of chunky ore boulders sitting on the mound
-    { kind: 'circle', cx: 70, cy: 80, r: 6, color: PAL.rock, role: 'ore' },
-    { kind: 'circle', cx: 80, cy: 84, r: 5, color: PAL.rock, role: 'ore' },
+    ...hutBase(false), // wall + roof only — the door is replaced by a mine shaft below
+    // timber-framed mine shaft entrance (lintel + two posts + dark opening)
+    { kind: 'rect', x: 35, y: 57, w: 26, h: 5, rx: 1, color: PAL.wood, role: 'lintel' },
+    { kind: 'rect', x: 37, y: 60, w: 4, h: 31, color: PAL.wood, role: 'post' },
+    { kind: 'rect', x: 55, y: 60, w: 4, h: 31, color: PAL.wood, role: 'post' },
+    { kind: 'rect', x: 40, y: 62, w: 16, h: 29, rx: 7, color: '#171311', role: 'shaft' },
+    // ore piled to the LEFT of the shaft mouth (clear of the entrance)
+    { kind: 'circle', cx: 27, cy: 88, r: 4, color: PAL.rock, role: 'ore' },
+    { kind: 'circle', cx: 34, cy: 89, r: 4, color: PAL.rock, role: 'ore' },
+    { kind: 'circle', cx: 30, cy: 91, r: 5, color: PAL.rock, role: 'ore' },
+    // a loaded minecart beside the hut: body, ore heaped inside, then a front rim
+    // drawn over the ore so it reads as sitting *in* the cart (not on top), then wheels.
+    { kind: 'poly', points: [[66, 80], [86, 80], [83, 91], [69, 91]], color: PAL.door, role: 'cart' },
+    { kind: 'circle', cx: 72, cy: 79, r: 4, color: PAL.rock, role: 'cartOre' },
+    { kind: 'circle', cx: 80, cy: 78, r: 4, color: PAL.rock, role: 'cartOre' },
+    { kind: 'rect', x: 65, y: 80, w: 22, h: 4, rx: 1, color: '#4a3526', role: 'cartRim' },
+    { kind: 'circle', cx: 71, cy: 92, r: 3, color: '#2b2b2b', role: 'wheel' },
+    { kind: 'circle', cx: 81, cy: 92, r: 3, color: '#2b2b2b', role: 'wheel' },
   ],
 };
 

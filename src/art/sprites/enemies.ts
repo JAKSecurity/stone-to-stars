@@ -1,39 +1,36 @@
 import { SpriteDef } from '../types';
 import { PAL } from '../palette';
 
-// A low, four-legged hostile beast facing right. Canvas 40x36.
-// Head + muzzle + fang on the right; spiky back ridge; tail trailing left.
+// A low, hunched, angular predator stalking right. Canvas 40x36.
+// Dark body mass (beastDark) with a brighter jagged spine (beast); lowered wedge
+// head with bared teeth and a single glowing eye. Built from polys for a sharp,
+// un-cute silhouette.
 export const BEAST: SpriteDef = {
   id: 'beast',
   w: 40,
   h: 36,
   prims: [
-    // tail trailing off the back-left (behind the body)
-    { kind: 'poly', points: [[8, 17], [1, 13], [6, 24]], color: PAL.beast, role: 'tail' },
-    // legs (behind the body)
-    { kind: 'rect', x: 9, y: 25, w: 5, h: 8, rx: 2, color: PAL.beastDark, role: 'leg' },
-    { kind: 'rect', x: 15, y: 26, w: 5, h: 7, rx: 2, color: PAL.beastDark, role: 'leg' },
-    { kind: 'rect', x: 24, y: 25, w: 5, h: 8, rx: 2, color: PAL.beastDark, role: 'leg' },
-    { kind: 'rect', x: 30, y: 26, w: 5, h: 7, rx: 2, color: PAL.beastDark, role: 'leg' },
-    // low torso
-    { kind: 'rect', x: 6, y: 14, w: 27, h: 13, rx: 7, color: PAL.beast, role: 'body' },
-    // spiky back ridge along the spine
-    { kind: 'poly', points: [[9, 15], [12, 8], [15, 15]], color: PAL.beastDark, role: 'ridge' },
-    { kind: 'poly', points: [[15, 15], [18, 7], [21, 15]], color: PAL.beastDark, role: 'ridge' },
-    { kind: 'poly', points: [[21, 15], [24, 9], [27, 15]], color: PAL.beastDark, role: 'ridge' },
-    // head
-    { kind: 'circle', cx: 30, cy: 17, r: 8, color: PAL.beast, role: 'head' },
-    // pointed ear
-    { kind: 'poly', points: [[26, 12], [28, 3], [33, 11]], color: PAL.beastDark, role: 'ear' },
-    // muzzle jutting forward
-    { kind: 'poly', points: [[36, 14], [40, 18], [38, 23], [33, 22]], color: PAL.beast, role: 'muzzle' },
-    // nose
-    { kind: 'circle', cx: 38, cy: 18, r: 2, color: PAL.beastDark, role: 'nose' },
-    // bared fang
-    { kind: 'poly', points: [[34, 22], [37, 22], [36, 26]], color: '#ffffff', role: 'fang' },
-    // angry eye
-    { kind: 'circle', cx: 31, cy: 15, r: 2, color: '#ffffff', role: 'eyeWhite' },
-    { kind: 'circle', cx: 32, cy: 15, r: 1, color: '#222222', role: 'pupil' },
+    // thin tail flicking off the back-left (behind the body)
+    { kind: 'poly', points: [[8, 22], [0, 16], [3, 25]], color: PAL.beastDark, role: 'tail' },
+    // angular legs ending in claws (behind the body)
+    { kind: 'poly', points: [[10, 25], [7, 34], [11, 34], [14, 25]], color: PAL.beastDark, role: 'leg' },
+    { kind: 'poly', points: [[17, 26], [15, 34], [19, 34], [21, 26]], color: PAL.beastDark, role: 'leg' },
+    { kind: 'poly', points: [[26, 26], [24, 34], [28, 34], [30, 26]], color: PAL.beastDark, role: 'leg' },
+    { kind: 'poly', points: [[32, 25], [31, 34], [35, 34], [36, 25]], color: PAL.beastDark, role: 'leg' },
+    // hunched angular torso — high at the shoulders, sloping to the tail
+    { kind: 'poly', points: [[5, 24], [10, 15], [21, 13], [30, 11], [38, 18], [36, 27], [10, 27]], color: PAL.beastDark, role: 'body' },
+    // jagged spine ridge (brighter, sharp)
+    { kind: 'poly', points: [[10, 16], [12, 7], [16, 16]], color: PAL.beast, role: 'spine' },
+    { kind: 'poly', points: [[16, 15], [20, 5], [24, 15]], color: PAL.beast, role: 'spine' },
+    { kind: 'poly', points: [[24, 14], [28, 6], [32, 13]], color: PAL.beast, role: 'spine' },
+    // lowered wedge head / snout jutting forward-right
+    { kind: 'poly', points: [[30, 13], [40, 20], [37, 26], [29, 24]], color: PAL.beastDark, role: 'head' },
+    // bared teeth along the jawline (white triangles)
+    { kind: 'poly', points: [[32, 23], [33, 26], [34, 23]], color: '#ffffff', role: 'tooth' },
+    { kind: 'poly', points: [[35, 23], [36, 26], [37, 23]], color: '#ffffff', role: 'tooth' },
+    // heavy brow + a narrow glowing slit (predatory, not a round 'cute' eye)
+    { kind: 'poly', points: [[30, 15], [37, 16], [36, 18], [31, 17]], color: '#3a0f0d', role: 'brow' },
+    { kind: 'poly', points: [[32, 17], [36, 18], [32, 19]], color: '#f0a020', role: 'eye' },
   ],
 };
 
