@@ -21,3 +21,4 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-001 | Fix combat auto-attack no-damage (NaN enemy HP) | Delivered | P1 | C1 |  |
 | RC-002 | Execute art-pass plan (calibrate hero, ratify, fan out) | Delivered | P1 | C2 | docs/superpowers/plans/2026-06-06-art-pass.md |
 | RC-003 | Hero evolves visually by age (Bronze/Iron gear) | Open | P2 | C3 | docs/tickets/RC-003-hero-evolves-by-age.md |
+| RC-004 | Multi-tier gems (Diablo II–inspired faceting + quality progression) | Open | P3 | C3 | docs/tickets/RC-004-multi-tier-gems.md |
