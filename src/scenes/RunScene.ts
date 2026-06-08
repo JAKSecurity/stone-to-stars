@@ -404,6 +404,7 @@ export class RunScene extends Phaser.Scene {
       collected: { ...this.collected },
       survivedMs: this.elapsed,
       died,
+      tier: this.expedition.tier,
     });
   }
 }

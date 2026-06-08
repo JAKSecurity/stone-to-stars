@@ -19,7 +19,7 @@ describe('civState', () => {
     const civ = newCivState();
     const after = applyRunResult(civ, {
       collected: { exploration: 5, science: 2, industry: 7, culture: 1 },
-      survivedMs: 300000, died: false,
+      survivedMs: 300000, died: false, tier: 0,
     });
     expect(after.banked).toEqual({ exploration: 5, science: 2, industry: 7, culture: 1 });
     expect(after.runs).toBe(1);
@@ -32,8 +32,20 @@ describe('civState', () => {
     const before = civ.banked.culture;
     const after = applyRunResult(civ, {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
-      survivedMs: 1, died: false,
+      survivedMs: 1, died: false, tier: 0,
     });
-    expect(after.banked.culture).toBe(before + 3);
+    expect(after.banked.culture).toBe(before + 3); // granary culture yield 3 × incomeMult(0)=1
+  });
+
+  it('building yields scale by the run tier (RC-017)', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    civ = build(civ, 'granary', 0); // granary yields culture 3
+    const before = civ.banked.culture;
+    const after = applyRunResult(civ, {
+      collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
+      survivedMs: 1, died: false, tier: 4,
+    });
+    expect(after.banked.culture).toBe(before + Math.round(3 * (1.75 ** 4))); // × incomeMult(4)
   });
 });

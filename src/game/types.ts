@@ -119,6 +119,7 @@ export interface RunResult {
   collected: ResourceBundle; // resources gathered during the run
   survivedMs: number;
   died: boolean;
+  tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
 }
 
 export interface PerkEffect {
