@@ -48,6 +48,7 @@ export interface TechNode {
 
 export interface BuildingDef {
   id: string;
+  age: AgeId;
   name: string;
   baseCost: Partial<ResourceBundle>; // cost of level 1; level n costs baseCost * n
   yield: Partial<ResourceBundle>;    // resources granted per run, per level
