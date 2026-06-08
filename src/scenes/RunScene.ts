@@ -213,6 +213,7 @@ export class RunScene extends Phaser.Scene {
 
   private hitEnemy(bullet: any, enemy: any) {
     if (!bullet.active || !enemy.active) return;
+
     // A piercing bullet stays alive; make sure it never hits the SAME enemy twice.
     let hitSet = bullet.getData('hitSet') as Set<any> | undefined;
     if (!hitSet) { hitSet = new Set(); bullet.setData('hitSet', hitSet); }
@@ -227,11 +228,20 @@ export class RunScene extends Phaser.Scene {
       bullet.destroy();
     }
 
+    this.applyDamageToEnemy(enemy, damage);
+  }
+
+  /**
+   * Apply `damage` to one enemy with the full juice path: hit-flash, floating number, and on
+   * death the drops / xp / particles / big-death shake. Shared by bullet hits, orbit contact,
+   * and lob detonation so the death feel is identical for every damage source.
+   */
+  private applyDamageToEnemy(enemy: any, damage: number) {
+    if (!enemy.active) return;
+
     // --- Juice: hit-flash ---
-    if (enemy.active) {
-      enemy.setTintFill(0xffffff);
-      this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
-    }
+    enemy.setTintFill(0xffffff);
+    this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
 
     // --- Juice: floating damage number ---
     const dmgText = this.add.text(enemy.x, enemy.y - 8, String(Math.round(damage)), {
