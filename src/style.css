@@ -20,6 +20,22 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .startrun { display: block; width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
 .cost { font-size: 0.8rem; opacity: 0.75; }
 
+.palette { margin-top: 14px; }
+.palette h3 { margin: 0 0 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+.palette .empty-note { font-size: 0.8rem; opacity: 0.7; }
+.bgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.bcard { display: flex; gap: 8px; align-items: flex-start; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 7px 8px; }
+.bcard.afford { border-color: #3fb950; cursor: grab; }
+.bcard.afford:hover { background: #11161d; }
+.bcard.locked { opacity: 0.45; }
+.bcard canvas { flex: none; }
+.bcard .bnm { font-weight: 600; font-size: 0.8rem; }
+.bcard .bcost { font-size: 0.7rem; opacity: 0.8; margin-top: 1px; }
+.bcard .beff { font-size: 0.7rem; color: #3fb950; margin-top: 2px; }
+.bcard.locked .beff { color: #6e7681; }
+.bcard .bneed { font-size: 0.65rem; color: #d29922; margin-top: 2px; }
+.cell.drop-hover { border-color: #58a6ff; box-shadow: inset 0 0 0 2px #58a6ff; }
+
 #expedition { display: none; }
 #expedition.active { display: block; }
 .exp-wrap { max-width: 920px; margin: 0 auto; padding: 16px; }

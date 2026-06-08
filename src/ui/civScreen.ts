@@ -2,7 +2,7 @@ import { CivState, Resource, RESOURCES } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge } from '../tech/tech';
-import { canBuild, isBuildingUnlocked, tileOccupied, upgradeCost } from '../camp/camp';
+import { buildableBuildings, buildingEffectText, upgradeCost } from '../camp/camp';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
@@ -20,6 +20,10 @@ export interface CivCallbacks {
 
 function costText(cost: Partial<Record<Resource, number>>): string {
   return RESOURCES.filter((r) => cost[r]).map((r) => `${ICON[r]}${cost[r]}`).join(' ') || 'free';
+}
+
+function shortfallText(banked: Record<Resource, number>, cost: Partial<Record<Resource, number>>): string {
+  return RESOURCES.filter((r) => (cost[r] ?? 0) > banked[r]).map((r) => `${ICON[r]}${cost[r]}`).join(' ');
 }
 
 export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbacks): void {
@@ -101,20 +105,43 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
       };
     } else {
       cell.innerHTML = '<span class="lvl">empty</span>';
-      cell.onclick = () => {
-        const choice = Object.values(BUILDINGS).find(
-          (def) =>
-            isBuildingUnlocked(civ, def.id) &&
-            !civ.buildings.some((b) => b.id === def.id) &&
-            !tileOccupied(civ, tile) &&
-            canBuild(civ, def.id, tile),
-        );
-        if (choice) cb.onBuild(choice.id, tile);
-      };
     }
     grid.appendChild(cell);
   }
   campPanel.appendChild(grid);
+
+  // Available-buildings palette: every unlocked, not-yet-built building, always visible.
+  const palette = document.createElement('div');
+  palette.className = 'palette';
+  palette.innerHTML = '<h3>Available Buildings</h3>';
+  const options = buildableBuildings(civ);
+  if (options.length === 0) {
+    const note = document.createElement('div');
+    note.className = 'empty-note';
+    note.textContent = 'All available buildings constructed — research more tech.';
+    palette.appendChild(note);
+  } else {
+    const bgrid = document.createElement('div');
+    bgrid.className = 'bgrid';
+    for (const def of options) {
+      const affordable = canAfford(civ.banked, def.baseCost);
+      const card = document.createElement('div');
+      card.className = 'bcard' + (affordable ? ' afford' : ' locked');
+      card.appendChild(spriteCanvas(def.id, 32));
+      const text = document.createElement('div');
+      const eff = buildingEffectText(def);
+      text.innerHTML =
+        `<div class="bnm">${def.name}</div>` +
+        `<div class="bcost">${costText(def.baseCost)}</div>` +
+        (eff ? `<div class="beff">${eff}</div>` : '') +
+        (affordable ? '' : `<div class="bneed">need ${shortfallText(civ.banked, def.baseCost)}</div>`);
+      card.appendChild(text);
+      bgrid.appendChild(card);
+    }
+    palette.appendChild(bgrid);
+  }
+  campPanel.appendChild(palette);
+
   cols.appendChild(campPanel);
 
   wrap.appendChild(cols);
