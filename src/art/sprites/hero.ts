@@ -110,12 +110,20 @@ export const HERO_MEDIEVAL: SpriteDef = {
     { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.steel, role: 'arm' },
     { kind: 'rect', x: 33, y: 74, w: 9, h: 16, rx: 2, color: PAL.steelBlue, role: 'vambrace' },
     { kind: 'rect', x: 78, y: 72, w: 9, h: 18, rx: 2, color: PAL.steelBlue, role: 'vambrace' },
-    // great helm — full enclosing bowl with flat top
-    { kind: 'poly', points: [[44, 40], [44, 26], [48, 19], [60, 17], [72, 19], [76, 26], [76, 40]], color: PAL.steel, role: 'helm' },
-    // visor slit — dark horizontal bar across face (no skin visible)
-    { kind: 'rect', x: 46, y: 33, w: 28, h: 5, color: PAL.castleStoneDark, role: 'visor' },
-    // helm ridges for detail
-    { kind: 'rect', x: 44, y: 26, w: 32, h: 3, rx: 1, color: PAL.steelBlue, role: 'helmRidge' },
+    // head — skin face, now visible under an OPEN sallet helm (was a faceless great helm)
+    { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    // eyes
+    { kind: 'circle', cx: 54, cy: 41, r: 2, color: PAL.castleStoneDark, role: 'eye' },
+    { kind: 'circle', cx: 66, cy: 41, r: 2, color: PAL.castleStoneDark, role: 'eye' },
+    // steel sallet bowl over the crown + brow (leaves the face open)
+    { kind: 'poly', points: [[44, 36], [44, 24], [48, 18], [60, 16], [72, 18], [76, 24], [76, 36]], color: PAL.steel, role: 'helm' },
+    // raised-visor brow ridge
+    { kind: 'rect', x: 44, y: 30, w: 32, h: 4, rx: 1, color: PAL.steelBlue, role: 'visorBrow' },
+    // cheek guards framing the face
+    { kind: 'rect', x: 45, y: 36, w: 5, h: 13, rx: 2, color: PAL.steel, role: 'cheek' },
+    { kind: 'rect', x: 70, y: 36, w: 5, h: 13, rx: 2, color: PAL.steel, role: 'cheek' },
+    // nasal guard down the center
+    { kind: 'rect', x: 58, y: 33, w: 4, h: 11, rx: 1, color: PAL.steelBlue, role: 'nasal' },
     // kite shield — pointed-bottom heater shape at same shield position as HERO
     { kind: 'poly', points: [[22, 72], [48, 72], [48, 90], [35, 100], [22, 90]], color: PAL.royal, role: 'shield' },
     // heraldry cross — crimson cross on the kite shield
@@ -290,17 +298,7 @@ export const HERO_MODERN: SpriteDef = {
     // legs — olive fatigue trousers
     { kind: 'rect', x: 49, y: 96, w: 10, h: 30, rx: 4, color: PAL.olive, role: 'leg' },
     { kind: 'rect', x: 62, y: 96, w: 10, h: 30, rx: 4, color: PAL.olive, role: 'leg' },
-    // assault rifle body — held across the body diagonally (left-to-right)
-    // main receiver block — gunmetal rect across the torso
-    { kind: 'rect', x: 30, y: 76, w: 60, h: 7, rx: 2, color: PAL.gunmetal, role: 'rifleBody' },
-    // barrel — thin gunmetal line extending right beyond the receiver
-    { kind: 'line', x1: 30, y1: 79, x2: 92, y2: 79, width: 3, color: PAL.asphalt, role: 'barrel' },
-    // stock — khaki angled buttstock on the left
-    { kind: 'poly', points: [[30, 76], [18, 80], [18, 88], [30, 88]], color: PAL.khaki, role: 'stock' },
-    // magazine — short khaki rect hanging below the receiver
-    { kind: 'rect', x: 52, y: 83, w: 8, h: 10, rx: 1, color: PAL.khaki, role: 'magazine' },
-    // muzzle brake — small gunmetal cap at the barrel tip
-    { kind: 'rect', x: 88, y: 76, w: 4, h: 6, rx: 1, color: PAL.gunmetal, role: 'muzzle' },
+    // (assault rifle moved below — drawn AFTER the torso/arms so it reads IN FRONT of the body)
     // fatigues torso — olive trapezoid
     { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.olive, role: 'torso' },
     // tactical vest — khaki/gunmetal overlay on the torso
@@ -321,8 +319,24 @@ export const HERO_MODERN: SpriteDef = {
     { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.olive, role: 'arm' },
     { kind: 'rect', x: 33, y: 76, w: 9, h: 14, rx: 2, color: PAL.gunmetal, role: 'vambrace' },
     { kind: 'rect', x: 78, y: 74, w: 9, h: 16, rx: 2, color: PAL.gunmetal, role: 'vambrace' },
+    // assault rifle — held across the body, drawn IN FRONT of the torso & arms
+    { kind: 'poly', points: [[34, 78], [22, 82], [22, 90], [34, 88]], color: PAL.khaki, role: 'stock' },
+    { kind: 'line', x1: 64, y1: 81, x2: 96, y2: 81, width: 3, color: PAL.gunmetal, role: 'barrel' },
+    { kind: 'rect', x: 60, y: 79, w: 16, h: 5, rx: 1, color: PAL.asphalt, role: 'handguard' },
+    // slotted muzzle brake at the barrel tip
+    { kind: 'rect', x: 92, y: 78, w: 7, h: 6, rx: 1, color: PAL.gunmetal, role: 'muzzle' },
+    { kind: 'rect', x: 94, y: 80, w: 5, h: 2, color: PAL.asphalt, role: 'muzzleSlot' },
+    // receiver block across the chest
+    { kind: 'rect', x: 34, y: 78, w: 34, h: 8, rx: 2, color: PAL.gunmetal, role: 'rifleBody' },
+    { kind: 'rect', x: 44, y: 80, w: 14, h: 3, rx: 1, color: PAL.asphalt, role: 'receiverDetail' },
+    // curved magazine + pistol grip below the receiver
+    { kind: 'rect', x: 48, y: 86, w: 9, h: 12, rx: 2, color: PAL.khaki, role: 'magazine' },
+    { kind: 'poly', points: [[36, 86], [44, 86], [42, 96], [34, 95]], color: PAL.gunmetal, role: 'grip' },
     // head — skin
     { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    // eyes — in the skin strip between helmet brim and neck gaiter
+    { kind: 'circle', cx: 54, cy: 45, r: 2, color: PAL.asphalt, role: 'eye' },
+    { kind: 'circle', cx: 66, cy: 45, r: 2, color: PAL.asphalt, role: 'eye' },
     // balaclava/neck gaiter — gunmetal covering chin and lower face
     { kind: 'rect', x: 48, y: 49, w: 24, h: 8, rx: 3, color: PAL.gunmetal, role: 'gaiter' },
     // combat helmet — gunmetal domed bowl covering the upper head
