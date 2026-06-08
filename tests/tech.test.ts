@@ -4,13 +4,14 @@ import { isResearched, canResearch, research, getAge, techUnlocksBuilding } from
 import { newCivState } from '../src/state/civState';
 
 describe('tech', () => {
-  it('defines the slice techs with a mining → bronze_working prereq, iron age techs, classical age techs, medieval age techs, renaissance age techs, and industrial age techs', () => {
+  it('defines the slice techs with a mining → bronze_working prereq, iron age techs, classical age techs, medieval age techs, renaissance age techs, industrial age techs, and modern age techs', () => {
     expect(Object.keys(TECHS).sort()).toEqual(
       [
-        'assembly_line', 'astronomy', 'banking', 'bronze_working', 'chivalry', 'currency', 'deep_mining',
-        'electricity', 'engineering', 'feudalism', 'guilds', 'gunpowder', 'hunting', 'iron_working',
-        'masonry', 'mathematics', 'mechanics', 'mining', 'mysticism', 'philosophy',
-        'pottery', 'printing_press', 'railroad', 'smelting', 'steam_power', 'writing',
+        'assembly_line', 'astronomy', 'ballistics', 'banking', 'bronze_working', 'chivalry', 'combustion',
+        'currency', 'deep_mining', 'electricity', 'engineering', 'feudalism', 'flight', 'guilds',
+        'gunpowder', 'hunting', 'iron_working', 'masonry', 'mathematics', 'mechanics', 'mining',
+        'mysticism', 'philosophy', 'pottery', 'printing_press', 'radio', 'railroad', 'smelting',
+        'steam_power', 'writing',
       ].sort(),
     );
     expect(TECHS.bronze_working.requires).toEqual(['mining']);
@@ -22,6 +23,7 @@ describe('tech', () => {
     expect(TECHS.feudalism.gatesAge).toBe('medieval');
     expect(TECHS.gunpowder.gatesAge).toBe('renaissance');
     expect(TECHS.steam_power.gatesAge).toBe('industrial');
+    expect(TECHS.combustion.gatesAge).toBe('modern');
   });
 
   it('a fresh civ has no tech and is in the Stone Age', () => {

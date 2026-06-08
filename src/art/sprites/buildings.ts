@@ -549,4 +549,103 @@ export const ARSENAL: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK, FACTORY, POWERPLANT, ARSENAL];
+// MOTOR_POOL — a vehicle depot: hutBase(false) + wide gunmetal garage door + olive jeep silhouette + hazard-striped trim
+export const MOTOR_POOL: SpriteDef = {
+  id: 'motor_pool',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // wall + roof — no standard door; garage facade replaces it
+    // gunmetal wall cladding over the base (mechanized industrial feel, olive trim)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 2, color: PAL.gunmetal, role: 'garageFacade' },
+    // olive trim band at the top of the facade (military livery)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 5, rx: 1, color: PAL.olive, role: 'liveryBand' },
+    // wide garage door — two panels, hazard-yellow frame, dark opening
+    { kind: 'rect', x: 28, y: 60, w: 40, h: 30, rx: 2, color: PAL.asphalt, role: 'garageDoorOpening' },
+    { kind: 'rect', x: 28, y: 60, w: 40, h: 4, rx: 1, color: PAL.hazard, role: 'doorHeader' },
+    { kind: 'rect', x: 28, y: 60, w: 4, h: 30, color: PAL.hazard, role: 'doorJamb' },
+    { kind: 'rect', x: 64, y: 60, w: 4, h: 30, color: PAL.hazard, role: 'doorJamb' },
+    // jeep silhouette inside garage: olive body rect, gunmetal windshield, dark wheels
+    { kind: 'rect', x: 34, y: 72, w: 28, h: 12, rx: 3, color: PAL.olive, role: 'jeepBody' },
+    { kind: 'rect', x: 38, y: 68, w: 18, h: 6, rx: 2, color: PAL.gunmetal, role: 'jeepCabin' },
+    { kind: 'circle', cx: 39, cy: 85, r: 4, color: PAL.asphalt, role: 'wheel' },
+    { kind: 'circle', cx: 57, cy: 85, r: 4, color: PAL.asphalt, role: 'wheel' },
+    { kind: 'circle', cx: 39, cy: 85, r: 2, color: PAL.gunmetal, role: 'hubcap' },
+    { kind: 'circle', cx: 57, cy: 85, r: 2, color: PAL.gunmetal, role: 'hubcap' },
+    // fuel drum to the left side — olive barrel with gunmetal bands
+    { kind: 'rect', x: 14, y: 70, w: 10, h: 18, rx: 3, color: PAL.olive, role: 'fuelDrum' },
+    { kind: 'rect', x: 12, y: 73, w: 14, h: 3, rx: 1, color: PAL.gunmetal, role: 'drumBand' },
+    { kind: 'rect', x: 12, y: 81, w: 14, h: 3, rx: 1, color: PAL.gunmetal, role: 'drumBand' },
+    // hazard stripe on the drum lid
+    { kind: 'rect', x: 14, y: 68, w: 10, h: 4, rx: 2, color: PAL.hazard, role: 'drumLid' },
+  ],
+};
+
+// BARRACKS — a military barracks: hutBase() + olive/khaki walls, flag pole with flag, sandbag bunker by door
+export const BARRACKS: SpriteDef = {
+  id: 'barracks',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(), // standard door — barracks has an entrance
+    // olive wall cladding (military exterior over the standard hut wall)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 2, color: PAL.olive, role: 'barracksFacade' },
+    // khaki horizontal siding stripes (wall planks / clapboard siding)
+    { kind: 'rect', x: 24, y: 56, w: 48, h: 3, rx: 1, color: PAL.khaki, role: 'siding' },
+    { kind: 'rect', x: 24, y: 64, w: 48, h: 3, rx: 1, color: PAL.khaki, role: 'siding' },
+    { kind: 'rect', x: 24, y: 72, w: 48, h: 3, rx: 1, color: PAL.khaki, role: 'siding' },
+    // door overlay (gunmetal military door over the standard one)
+    { kind: 'rect', x: 42, y: 66, w: 12, h: 24, rx: 2, color: PAL.gunmetal, role: 'militaryDoor' },
+    { kind: 'rect', x: 50, y: 74, w: 2, h: 8, rx: 1, color: PAL.khaki, role: 'doorHandle' },
+    // flag pole (right side of building, tall thin pole)
+    { kind: 'rect', x: 70, y: 26, w: 2, h: 38, color: PAL.gunmetal, role: 'flagPole' },
+    // flag: radio green with khaki stripe — military colors
+    { kind: 'poly', points: [[72, 26], [86, 31], [72, 36]], color: PAL.radio, role: 'flag' },
+    { kind: 'rect', x: 72, y: 30, w: 14, h: 3, color: PAL.khaki, role: 'flagStripe' },
+    // sandbag bunker flanking the door (left side — khaki rounded rects stacked)
+    { kind: 'rect', x: 25, y: 78, w: 14, h: 7, rx: 4, color: PAL.khaki, role: 'sandbag' },
+    { kind: 'rect', x: 27, y: 72, w: 12, h: 7, rx: 4, color: PAL.khaki, role: 'sandbag' },
+    { kind: 'rect', x: 26, y: 75, w: 14, h: 4, rx: 3, color: PAL.olive, role: 'sandbagDark' },
+    // window slit (narrow horizontal slit above the door — bunk room window)
+    { kind: 'rect', x: 30, y: 58, w: 8, h: 4, rx: 1, color: PAL.asphalt, role: 'windowSlit' },
+    { kind: 'rect', x: 58, y: 58, w: 8, h: 4, rx: 1, color: PAL.asphalt, role: 'windowSlit' },
+  ],
+};
+
+// AIRFIELD — an airbase: hutBase(false) + gunmetal control tower with radio windows + olive plane + hazard runway strip
+export const AIRFIELD: SpriteDef = {
+  id: 'airfield',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // no standard door — airfield facade replaces it
+    // asphalt apron / tarmac strip across the base (distinct ground-level element)
+    { kind: 'rect', x: 14, y: 82, w: 68, h: 8, rx: 2, color: PAL.asphalt, role: 'tarmac' },
+    // hazard runway centerline stripe
+    { kind: 'rect', x: 30, y: 84, w: 36, h: 3, rx: 1, color: PAL.hazard, role: 'runwayStripe' },
+    // control tower body: gunmetal tall rect rising above the hut roof
+    { kind: 'rect', x: 38, y: 22, w: 20, h: 60, rx: 2, color: PAL.gunmetal, role: 'towerBody' },
+    // tower top cabin (slightly wider, radio-green windows)
+    { kind: 'rect', x: 34, y: 36, w: 28, h: 18, rx: 2, color: PAL.asphalt, role: 'towerCabin' },
+    // radio-green windows on the cabin (four small rects — observation glass)
+    { kind: 'rect', x: 36, y: 39, w: 6, h: 10, rx: 1, color: PAL.radio, role: 'window' },
+    { kind: 'rect', x: 44, y: 39, w: 6, h: 10, rx: 1, color: PAL.radio, role: 'window' },
+    { kind: 'rect', x: 52, y: 39, w: 6, h: 10, rx: 1, color: PAL.radio, role: 'window' },
+    // antenna on top of the tower (thin gunmetal stick + radio-green tip)
+    { kind: 'rect', x: 47, y: 12, w: 2, h: 12, color: PAL.gunmetal, role: 'antenna' },
+    { kind: 'circle', cx: 48, cy: 11, r: 2, color: PAL.radio, role: 'antennaTip' },
+    // small olive plane on the tarmac (fuselage + wings + tail)
+    { kind: 'rect', x: 16, y: 72, w: 22, h: 5, rx: 2, color: PAL.olive, role: 'fuselage' },
+    { kind: 'poly', points: [[16, 72], [10, 68], [16, 70]], color: PAL.olive, role: 'wing' },
+    { kind: 'poly', points: [[34, 72], [42, 68], [34, 70]], color: PAL.olive, role: 'wing' },
+    { kind: 'poly', points: [[36, 72], [38, 66], [34, 72]], color: PAL.gunmetal, role: 'tail' },
+    // propeller disc at the nose (hazard yellow — spinning read)
+    { kind: 'circle', cx: 16, cy: 74, r: 3, color: PAL.hazard, role: 'propeller' },
+    { kind: 'circle', cx: 16, cy: 74, r: 1, color: PAL.gunmetal, role: 'propHub' },
+    // rivet / panel line on the fuselage
+    { kind: 'rect', x: 68, y: 60, w: 12, h: 18, rx: 2, color: PAL.olive, role: 'hangar' },
+    { kind: 'rect', x: 68, y: 60, w: 12, h: 4, rx: 1, color: PAL.gunmetal, role: 'hangarRoof' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK, FACTORY, POWERPLANT, ARSENAL, MOTOR_POOL, BARRACKS, AIRFIELD];

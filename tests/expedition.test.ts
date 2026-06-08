@@ -7,8 +7,8 @@ import { research } from '../src/tech/tech';
 const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
 
 describe('age order', () => {
-  it('runs stone → bronze → iron → classical → medieval → renaissance → industrial', () => {
-    expect(AGE_ORDER).toEqual(['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial']);
+  it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern', () => {
+    expect(AGE_ORDER).toEqual(['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern']);
   });
 });
 

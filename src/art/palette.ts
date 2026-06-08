@@ -37,5 +37,8 @@ export const PAL = {
   // industrial age — riveted iron, copper pipes, coal, steam, electric, furnace
   castIron: '#4a4f57', rivet: '#2e3238', copper: '#b87333', coal: '#1c1c20',
   steam: '#dfe4e6', electric: '#49d6e8', furnace: '#ff7a18',
+  // modern age — olive drab, gunmetal, khaki, asphalt, hazard, radio green
+  olive: '#6b6f3a', gunmetal: '#3a3f44', khaki: '#b3a06a', asphalt: '#2a2d31',
+  hazard: '#e8b923', radio: '#5fd35f',
   shadow: 'rgba(0,0,0,0.28)',
 } as const;

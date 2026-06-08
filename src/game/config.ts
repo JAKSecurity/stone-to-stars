@@ -1,8 +1,8 @@
 // Run duration. Keep short while developing; 5–10 min is the design target.
 export const RUN_DURATION_MS = 5 * 60 * 1000;
 
-// Base camp grid (5x4 = room for buildings across all ages).
-export const GRID_SIZE = 20;
+// Base camp grid (5x5 = room for buildings across all ages including Modern).
+export const GRID_SIZE = 25;
 
 // Base run power before any civ bonuses.
 export const BASE_MAX_HP = 100;
