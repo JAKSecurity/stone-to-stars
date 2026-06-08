@@ -272,6 +272,72 @@ export const HERO_INDUSTRIAL: SpriteDef = {
   ],
 };
 
+// Modern Age variant — infantry soldier hero. Same 120×150 canvas and pose family.
+// Olive/khaki fatigues + gunmetal combat helmet, khaki/gunmetal tactical vest over the torso,
+// gunmetal boots, and an assault rifle held across the body (replacing the spear).
+// Distinct from all prior heroes. First-pass art; reviewed at the Modern Phase C gate.
+export const HERO_MODERN: SpriteDef = {
+  id: 'hero_modern',
+  w: 120,
+  h: 150,
+  prims: [
+    // boots — gunmetal heavy combat boots
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 34, rx: 3, color: PAL.gunmetal, role: 'boot' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 34, rx: 3, color: PAL.gunmetal, role: 'boot' },
+    // boot trim — asphalt sole strip at the bottom of each boot
+    { kind: 'rect', x: 49, y: 124, w: 10, h: 6, rx: 2, color: PAL.asphalt, role: 'sole' },
+    { kind: 'rect', x: 62, y: 124, w: 10, h: 6, rx: 2, color: PAL.asphalt, role: 'sole' },
+    // legs — olive fatigue trousers
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 30, rx: 4, color: PAL.olive, role: 'leg' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 30, rx: 4, color: PAL.olive, role: 'leg' },
+    // assault rifle body — held across the body diagonally (left-to-right)
+    // main receiver block — gunmetal rect across the torso
+    { kind: 'rect', x: 30, y: 76, w: 60, h: 7, rx: 2, color: PAL.gunmetal, role: 'rifleBody' },
+    // barrel — thin gunmetal line extending right beyond the receiver
+    { kind: 'line', x1: 30, y1: 79, x2: 92, y2: 79, width: 3, color: PAL.asphalt, role: 'barrel' },
+    // stock — khaki angled buttstock on the left
+    { kind: 'poly', points: [[30, 76], [18, 80], [18, 88], [30, 88]], color: PAL.khaki, role: 'stock' },
+    // magazine — short khaki rect hanging below the receiver
+    { kind: 'rect', x: 52, y: 83, w: 8, h: 10, rx: 1, color: PAL.khaki, role: 'magazine' },
+    // muzzle brake — small gunmetal cap at the barrel tip
+    { kind: 'rect', x: 88, y: 76, w: 4, h: 6, rx: 1, color: PAL.gunmetal, role: 'muzzle' },
+    // fatigues torso — olive trapezoid
+    { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.olive, role: 'torso' },
+    // tactical vest — khaki/gunmetal overlay on the torso
+    { kind: 'poly', points: [[46, 62], [74, 62], [70, 96], [50, 96]], color: PAL.khaki, role: 'vest' },
+    // vest MOLLE webbing strips — gunmetal horizontal bands
+    { kind: 'rect', x: 48, y: 70, w: 24, h: 3, rx: 1, color: PAL.gunmetal, role: 'webbing' },
+    { kind: 'rect', x: 48, y: 79, w: 24, h: 3, rx: 1, color: PAL.gunmetal, role: 'webbing' },
+    { kind: 'rect', x: 48, y: 88, w: 24, h: 3, rx: 1, color: PAL.gunmetal, role: 'webbing' },
+    // hazard hi-vis patch on left chest of vest
+    { kind: 'rect', x: 50, y: 64, w: 8, h: 5, rx: 1, color: PAL.hazard, role: 'patch' },
+    // shoulder epaulettes — olive pads
+    { kind: 'rect', x: 35, y: 58, w: 14, h: 7, rx: 3, color: PAL.olive, role: 'pauldron' },
+    { kind: 'rect', x: 71, y: 58, w: 14, h: 7, rx: 3, color: PAL.olive, role: 'pauldron' },
+    // collar — gunmetal gorget strip
+    { kind: 'rect', x: 44, y: 57, w: 32, h: 5, rx: 2, color: PAL.gunmetal, role: 'collar' },
+    // arms — olive sleeves with gunmetal vambraces
+    { kind: 'rect', x: 33, y: 64, w: 9, h: 28, rx: 4, color: PAL.olive, role: 'arm' },
+    { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.olive, role: 'arm' },
+    { kind: 'rect', x: 33, y: 76, w: 9, h: 14, rx: 2, color: PAL.gunmetal, role: 'vambrace' },
+    { kind: 'rect', x: 78, y: 74, w: 9, h: 16, rx: 2, color: PAL.gunmetal, role: 'vambrace' },
+    // head — skin
+    { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    // balaclava/neck gaiter — gunmetal covering chin and lower face
+    { kind: 'rect', x: 48, y: 49, w: 24, h: 8, rx: 3, color: PAL.gunmetal, role: 'gaiter' },
+    // combat helmet — gunmetal domed bowl covering the upper head
+    { kind: 'poly', points: [[44, 40], [44, 28], [48, 20], [60, 17], [72, 20], [76, 28], [76, 40]], color: PAL.gunmetal, role: 'helm' },
+    // helmet pad band — khaki suspension pad band at the helm rim
+    { kind: 'rect', x: 44, y: 37, w: 32, h: 4, rx: 2, color: PAL.khaki, role: 'helmetPad' },
+    // helmet cover texture — olive netting/cover overlay (slightly inset)
+    { kind: 'poly', points: [[46, 38], [46, 29], [50, 22], [60, 19], [70, 22], [74, 29], [74, 38]], color: PAL.olive, role: 'helmetCover' },
+    // radio earpiece — small asphalt circle on the side of the helmet
+    { kind: 'circle', cx: 45, cy: 35, r: 3, color: PAL.asphalt, role: 'earpiece' },
+    // radio light — tiny hazard dot on earpiece
+    { kind: 'circle', cx: 45, cy: 35, r: 1, color: PAL.hazard, role: 'radioLight' },
+  ],
+};
+
 // Classical Age variant — Greek hoplite hero. Same 120×150 canvas and pose family.
 // Bronze-gold cuirass, toga tunic, oxblood-plumed Corinthian helm, hoplon shield, spear.
 // First-pass art; reviewed at the Classical Phase C gate.

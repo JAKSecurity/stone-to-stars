@@ -356,6 +356,78 @@ export const WEAPONS: Record<string, WeaponDef> = {
     levelScaling: { damage: 14, cooldownMs: -40 },
   },
 
+  // --- Modern Age base weapons ---
+  assault_rifle: {
+    id: 'assault_rifle', name: 'Assault Rifle', tier: 'modern',
+    projectileSprite: 'shot_round',
+    cooldownMs: 200, damage: 22, count: 1, spread: 0, speed: 760,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 6, cooldownMs: -15 },
+    evolvesTo: 'battle_rifle', evolveRequiresPerk: 'rapid',
+  },
+  rpg: {
+    id: 'rpg', name: 'RPG', tier: 'modern',
+    projectileSprite: 'shot_rocket',
+    cooldownMs: 1100, damage: 72, count: 2, spread: 0.35, speed: 360,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 22 },
+    evolvesTo: 'missile_barrage', evolveRequiresPerk: 'vigor',
+  },
+  mortar: {
+    id: 'mortar', name: 'Mortar', tier: 'modern',
+    projectileSprite: 'shot_shell',
+    cooldownMs: 950, damage: 54, count: 3, spread: 0.6, speed: 300,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 16 },
+    evolvesTo: 'artillery', evolveRequiresPerk: 'sharpen',
+  },
+  sniper: {
+    id: 'sniper', name: 'Sniper Rifle', tier: 'modern',
+    projectileSprite: 'shot_tracer',
+    cooldownMs: 1000, damage: 90, count: 1, spread: 0, speed: 900,
+    behavior: 'pierce', pierce: 3,
+    maxLevel: 5,
+    levelScaling: { damage: 26, cooldownMs: -60 },
+    evolvesTo: 'anti_materiel', evolveRequiresPerk: 'magnet',
+  },
+
+  // --- Modern Age evolved forms ---
+  battle_rifle: {
+    id: 'battle_rifle', name: 'Battle Rifle', tier: 'modern',
+    projectileSprite: 'shot_round',
+    cooldownMs: 150, damage: 28, count: 2, spread: 0.1, speed: 820,
+    behavior: 'straight',
+    maxLevel: 5,
+    levelScaling: { damage: 8, cooldownMs: -10 },
+  },
+  missile_barrage: {
+    id: 'missile_barrage', name: 'Missile Barrage', tier: 'modern',
+    projectileSprite: 'shot_rocket',
+    cooldownMs: 900, damage: 84, count: 4, spread: 0.5, speed: 380,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 26 },
+  },
+  artillery: {
+    id: 'artillery', name: 'Artillery', tier: 'modern',
+    projectileSprite: 'shot_shell',
+    cooldownMs: 780, damage: 70, count: 4, spread: 0.7, speed: 320,
+    behavior: 'cone',
+    maxLevel: 5,
+    levelScaling: { damage: 20 },
+  },
+  anti_materiel: {
+    id: 'anti_materiel', name: 'Anti-Materiel Rifle', tier: 'modern',
+    projectileSprite: 'shot_tracer',
+    cooldownMs: 820, damage: 120, count: 1, spread: 0, speed: 1000,
+    behavior: 'pierce', pierce: 5,
+    maxLevel: 5,
+    levelScaling: { damage: 32, cooldownMs: -60 },
+  },
+
   // --- Classical Age evolved forms ---
   pilum_storm: {
     id: 'pilum_storm', name: 'Pilum Storm', tier: 'classical',

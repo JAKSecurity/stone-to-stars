@@ -238,6 +238,56 @@ export const SHOT_SPARK: SpriteDef = {
   ],
 };
 
+// Modern Age projectile sprites
+
+export const SHOT_ROUND: SpriteDef = {
+  id: 'shot_round', w: 10, h: 10, shadow: false,
+  prims: [
+    // gunmetal slug body — elongated horizontal poly
+    { kind: 'poly', points: [[1, 4], [7, 3], [9, 5], [7, 7], [1, 6]], color: PAL.gunmetal, role: 'body' },
+    // hazard glint highlight on the tip
+    { kind: 'poly', points: [[7, 3], [9, 5], [8, 4]], color: PAL.hazard, role: 'glint' },
+  ],
+};
+
+export const SHOT_ROCKET: SpriteDef = {
+  id: 'shot_rocket', w: 16, h: 14, shadow: false,
+  prims: [
+    // olive/gunmetal rocket body — elongated ogive poly pointing right
+    { kind: 'poly', points: [[1, 5], [10, 3], [14, 7], [10, 11], [1, 9]], color: PAL.olive, role: 'body' },
+    // gunmetal nose cone overlay
+    { kind: 'poly', points: [[10, 3], [14, 7], [10, 11]], color: PAL.gunmetal, role: 'nose' },
+    // ember flame tail — short burst at the rear
+    { kind: 'poly', points: [[1, 5], [3, 4], [4, 7], [3, 10], [1, 9]], color: PAL.ember, role: 'flameTail' },
+    // furnace hot core of flame
+    { kind: 'poly', points: [[1, 6], [3, 5], [3, 9], [1, 8]], color: PAL.furnace, role: 'flameCore' },
+  ],
+};
+
+export const SHOT_SHELL: SpriteDef = {
+  id: 'shot_shell', w: 14, h: 14, shadow: false,
+  prims: [
+    // olive teardrop/ogive body — mortar shell shape
+    { kind: 'poly', points: [[2, 12], [5, 4], [7, 2], [9, 4], [12, 12]], color: PAL.olive, role: 'body' },
+    // gunmetal nose tip — dark cap at the top
+    { kind: 'poly', points: [[5, 4], [7, 2], [9, 4], [8, 6], [6, 6]], color: PAL.gunmetal, role: 'nose' },
+    // khaki band at the base of the shell casing
+    { kind: 'rect', x: 3, y: 11, w: 8, h: 2, rx: 1, color: PAL.khaki, role: 'band' },
+  ],
+};
+
+export const SHOT_TRACER: SpriteDef = {
+  id: 'shot_tracer', w: 14, h: 10, shadow: false,
+  prims: [
+    // hazard/radio streak — elongated horizontal tracer poly
+    { kind: 'poly', points: [[1, 4], [10, 3], [13, 5], [10, 7], [1, 6]], color: PAL.hazard, role: 'streak' },
+    // radio bright tip at the right end
+    { kind: 'poly', points: [[10, 3], [13, 5], [10, 7]], color: PAL.radio, role: 'tip' },
+    // hazard bright center line for glow effect
+    { kind: 'poly', points: [[2, 4], [10, 4], [10, 6], [2, 6]], color: PAL.radio, role: 'core' },
+  ],
+};
+
 export const PROJECTILES: SpriteDef[] = [
   SHOT_CLUB,
   SHOT_BRONZE,
@@ -261,4 +311,8 @@ export const PROJECTILES: SpriteDef[] = [
   SHOT_FIRE,
   SHOT_DYNAMITE,
   SHOT_SPARK,
+  SHOT_ROUND,
+  SHOT_ROCKET,
+  SHOT_SHELL,
+  SHOT_TRACER,
 ];
