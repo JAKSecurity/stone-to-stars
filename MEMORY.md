@@ -14,8 +14,10 @@ Phaser (run scene) + HTML/CSS DOM (civ screen).
   (each = a gating tech + 3 techs, 3 buildings, a biome, 4 enemies incl. a mini-boss, 4 weapons
   + perk-paired evolutions, an age hero, sprites). Built via subagent-driven-development,
   per-age adversarially reviewed, full ladder Playwright-smoke-verified. Jeff ratified the
-  sprite art (2026-06-07). **109 Vitest tests green; `npm run build` clean.** Now 7 ages:
-  Stone→Bronze→Iron→Classical→Medieval→Renaissance→Industrial. Detail:
+  sprite art (2026-06-07). **RC-016** then added the **Modern** age (mechanized warfare) + hero
+  face/eye fixes (every hero now has a visible face; ratified by Jeff). **112 Vitest tests green;
+  `npm run build` clean.** Now 8 ages:
+  Stone→Bronze→Iron→Classical→Medieval→Renaissance→Industrial→Modern. Detail:
   `docs/NIGHTLY-REPORT-2026-06-07.md` + `docs/superpowers/plans/2026-06-07-nightly-age-expansion.md`.
 - **P0+P1 vertical slice: shipped.** Full loop works end-to-end and is Playwright-verified:
   timed survivor run → bank 4 resources (exploration/science/industry/culture) → research a
@@ -76,7 +78,7 @@ tier-1 HP ×1.5; no NaN). **Art-free** — new enemy types/sprites + Deep Cavern
 Note for RC-008: add `EnemyDef.name` (pick screen shows raw ids today).
 
 ## Next step
-**RC-009 — Juice + balance pass** (the deferred P2, now that 7 ages of content exist): combat
+**RC-009 — Juice + balance pass** (the deferred P2, now that 8 ages of content exist): combat
 juice (hit-flash, damage numbers, shake, death particles, pickup glow), gem ergonomics, the
 multi-level-up draft queue fix, an explicit building picker (the building set is now ~18), and a
 holistic balance pass across all ages (enemy HP/damage vs `tierScaling`, weapon numbers) via

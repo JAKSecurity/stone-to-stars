@@ -33,3 +33,4 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-013 | Renaissance age content (early gunpowder) | Delivered | P2 | C3 | docs/superpowers/plans/2026-06-07-nightly-age-expansion.md |
 | RC-014 | Industrial age content (steam & steel) | Delivered | P2 | C3 | docs/superpowers/plans/2026-06-07-nightly-age-expansion.md |
 | RC-015 | Implement orbit/lob projectile behaviors | Open | P3 | C3 | docs/tickets/RC-015-orbit-lob-behaviors.md |
+| RC-016 | Modern age content (mechanized warfare) + hero face/eye fixes | Delivered | P2 | C3 | docs/tickets/RC-016-modern-age.md |
