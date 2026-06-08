@@ -59,8 +59,10 @@ Each card shows, inline:
   consistency),
 - **name**,
 - **cost** (`costText(def.baseCost)`),
-- an **effects line** from `buildingEffectText(def)` summarizing passive `yield` + `runBonus`
-  (e.g. `+10% dmg · Bronze Spear`, `+25 HP`, `+1 draft`).
+- an **effects line** from `buildingEffectText(def)` summarizing the **run bonus** — `maxHp` /
+  `damageMult` / `draftChoices` / granted weapon names (e.g. `+10% dmg · Bronze Spear`, `+25 HP`,
+  `+1 draft`). Passive `yield` is **not** shown on the card (matches the ratified mockup; the run
+  bonus is the decision-relevant part).
 
 Card states:
 
@@ -101,8 +103,9 @@ Card states:
   `civ.buildings`. (The palette only offers unbuilt ones; this makes the logic layer agree and
   closes the KNOWN_ISSUES #4 latent dup bug.)
 - `buildingEffectText(def: BuildingDef): string` — pure formatter for the inline card line,
-  summarizing `yield` + `runBonus` (mapping `runBonus.weapons` ids to display names via `WEAPONS`).
-  Lives here (not in the UI module) so it is DOM-free and unit-testable.
+  summarizing the `runBonus` only (`maxHp`→`+N HP`, `damageMult`→`+P% dmg`, `draftChoices`→
+  `+N draft`, `weapons`→display names via `WEAPONS`, joined by ` · `). Icon-free and DOM-free so it
+  is unit-testable; lives here, not in the UI module.
 
 ## UI layer (`src/ui/civScreen.ts`)
 
