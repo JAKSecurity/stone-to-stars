@@ -78,7 +78,13 @@ tier-1 HP ×1.5; no NaN). **Art-free** — new enemy types/sprites + Deep Cavern
 Note for RC-008: add `EnemyDef.name` (pick screen shows raw ids today).
 
 ## Next step
-**RC-009 — Juice + balance pass** (the deferred P2, now that 8 ages of content exist): combat
+**RC-009 — Juice + balance pass (IN PROGRESS).** Slice 1 — combat juice (hit-flash, floating
+damage numbers, screen shake, death particles, gem pulse) + the multi-level-up draft-queue fix
+(KNOWN_ISSUES #3) — **SHIPPED + merged 2026-06-07** (116 tests green; intensities are first-pass,
+tune by feel). **Remaining slices (next session):** explicit building picker (KNOWN_ISSUES #4 — camp
+is ~21 buildings now, needs a flat-grid picker via `jeff-ui-design`), holistic balance across all 8
+ages (needs Jeff's playtest feel), gem/Magnet retune (KNOWN_ISSUES #2). Full breakdown in
+`docs/tickets/RC-009-juice-balance.md` (## Progress). Original scope: combat
 juice (hit-flash, damage numbers, shake, death particles, pickup glow), gem ergonomics, the
 multi-level-up draft queue fix, an explicit building picker (the building set is now ~18), and a
 holistic balance pass across all ages (enemy HP/damage vs `tierScaling`, weapon numbers) via

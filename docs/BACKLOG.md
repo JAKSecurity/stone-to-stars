@@ -26,7 +26,7 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-006 | Data-driven weapon system | Delivered | P1 | C3 | docs/tickets/RC-006-data-driven-weapons.md |
 | RC-007 | Enemy + biome + expedition systems | Delivered | P2 | C3 | docs/tickets/RC-007-enemy-biome-expedition.md |
 | RC-008 | Iron age content (techs/buildings/biome/enemies/weapons) | Delivered | P2 | C3 | docs/tickets/RC-008-iron-content.md |
-| RC-009 | Juice + balance pass | Open | P2 | C3 | docs/tickets/RC-009-juice-balance.md |
+| RC-009 | Juice + balance pass | In Progress | P2 | C3 | docs/tickets/RC-009-juice-balance.md |
 | RC-010 | Multi-age engine foundation (camp grid + hero-by-age map) | Delivered | P2 | C3 | docs/superpowers/plans/2026-06-07-nightly-age-expansion.md |
 | RC-011 | Classical age content (Greco-Roman) | Delivered | P2 | C3 | docs/superpowers/plans/2026-06-07-nightly-age-expansion.md |
 | RC-012 | Medieval age content (dark-fantasy chivalry) | Delivered | P2 | C3 | docs/superpowers/plans/2026-06-07-nightly-age-expansion.md |
