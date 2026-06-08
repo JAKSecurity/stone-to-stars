@@ -5,8 +5,10 @@ import { AgeId, AGE_ORDER } from './types';
 // docs/superpowers/specs/2026-06-08-exponential-economy-design.md).
 export const G = 1.75;
 
-// Absolute cost scale (the one calibration knob; G sets the across-age shape). Tuned in Task A8.
-export const COST_BASE = 1;
+// Absolute cost scale (the one calibration knob; G sets the across-age shape). First-pass value
+// from a measured ~352/run tier-0 income (lower bound, no leveling) targeting ~1.5-2 runs/age;
+// refine by playtest feel. Constant-velocity holds for any value.
+export const COST_BASE = 12;
 
 /** Income multiplier for a run at `runTier` (an AGE_ORDER index). */
 export function incomeMult(runTier: number): number { return G ** runTier; }

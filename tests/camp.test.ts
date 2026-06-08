@@ -7,7 +7,7 @@ import {
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 
-const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
+const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
 describe('camp', () => {
   it('defines granary, mine, forge, smelter, foundry, deep_mine, classical buildings (academy, market, workshop), medieval buildings (armory, cathedral, keep), renaissance buildings (bank, gunsmith, university), industrial buildings (arsenal, factory, powerplant), and modern buildings (airfield, barracks, motor_pool)', () => {

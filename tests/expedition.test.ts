@@ -4,7 +4,7 @@ import { tierScaling, availableExpeditions, pickEnemy } from '../src/run/expedit
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 
-const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
+const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
 describe('age order', () => {
   it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern', () => {

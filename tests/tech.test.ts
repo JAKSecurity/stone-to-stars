@@ -52,7 +52,7 @@ describe('tech', () => {
   });
 
   it('researching the gate tech advances the age', () => {
-    let civ = { ...newCivState(), banked: { exploration: 0, science: 99, industry: 99, culture: 99 } };
+    let civ = { ...newCivState(), banked: { exploration: 0, science: 99999, industry: 99999, culture: 99999 } };
     civ = research(civ, 'mining');
     expect(getAge(civ)).toBe('stone');
     civ = research(civ, 'bronze_working');
