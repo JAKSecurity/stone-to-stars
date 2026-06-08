@@ -3,6 +3,7 @@ import { canAfford, spend } from '../economy/resources';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from './buildingData';
 import { GRID_SIZE } from '../game/config';
+import { WEAPONS } from '../run/weaponData';
 
 export function isBuildingUnlocked(civ: CivState, buildingId: string): boolean {
   return civ.researched.some((t) => TECHS[t]?.unlocksBuilding === buildingId);
@@ -71,6 +72,17 @@ export function firstEmptyTile(civ: CivState): number | null {
     if (!tileOccupied(civ, tile)) return tile;
   }
   return null;
+}
+
+/** Inline card summary of a building's run bonus (maxHp / damageMult / draftChoices / weapons). */
+export function buildingEffectText(def: BuildingDef): string {
+  const rb = def.runBonus;
+  const parts: string[] = [];
+  if (rb.maxHp) parts.push(`+${rb.maxHp} HP`);
+  if (rb.damageMult) parts.push(`+${Math.round(rb.damageMult * 100)}% dmg`);
+  if (rb.draftChoices) parts.push(`+${rb.draftChoices} draft`);
+  if (rb.weapons) for (const id of rb.weapons) parts.push(WEAPONS[id]?.name ?? id);
+  return parts.join(' · ');
 }
 
 /**

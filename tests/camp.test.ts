@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { BUILDINGS } from '../src/camp/buildingData';
 import {
   isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding,
-  buildableBuildings, firstEmptyTile, moveBuilding,
+  buildableBuildings, firstEmptyTile, moveBuilding, buildingEffectText,
 } from '../src/camp/camp';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
@@ -120,5 +120,13 @@ describe('camp', () => {
     civ = build(civ, 'granary', 0);
     expect(moveBuilding(civ, 0, 0)).toBe(civ); // same reference, unchanged
     expect(() => moveBuilding(civ, 9, 10)).toThrow();
+  });
+
+  it('buildingEffectText summarizes the run bonus (hp / dmg / draft / weapon names)', () => {
+    expect(buildingEffectText(BUILDINGS.granary)).toBe('+25 HP');
+    expect(buildingEffectText(BUILDINGS.mine)).toBe('+5% dmg');
+    expect(buildingEffectText(BUILDINGS.forge)).toBe('+10% dmg · Bronze Spear');
+    expect(buildingEffectText(BUILDINGS.academy)).toBe('+1 draft · Gladius');
+    expect(buildingEffectText(BUILDINGS.gunsmith)).toBe('+16% dmg · Blunderbuss · Grenade');
   });
 });
