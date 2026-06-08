@@ -72,3 +72,22 @@ export function firstEmptyTile(civ: CivState): number | null {
   }
   return null;
 }
+
+/**
+ * Relocate the building on `from` to `to`. Empty target = move; occupied target = swap the two.
+ * No resource cost. Throws if `from` has no building. No-op (same ref) when from === to.
+ */
+export function moveBuilding(civ: CivState, from: number, to: number): CivState {
+  if (from === to) return civ;
+  const moving = civ.buildings.find((b) => b.tile === from);
+  if (!moving) throw new Error(`No building on tile ${from}`);
+  const occupant = civ.buildings.find((b) => b.tile === to);
+  return {
+    ...civ,
+    buildings: civ.buildings.map((b) => {
+      if (b === moving) return { ...b, tile: to };
+      if (occupant && b === occupant) return { ...b, tile: from };
+      return b;
+    }),
+  };
+}

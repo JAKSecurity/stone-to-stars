@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { BUILDINGS } from '../src/camp/buildingData';
 import {
   isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding,
-  buildableBuildings, firstEmptyTile,
+  buildableBuildings, firstEmptyTile, moveBuilding,
 } from '../src/camp/camp';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
@@ -91,5 +91,34 @@ describe('camp', () => {
     // fill every tile -> null
     const full = { ...civ, buildings: Array.from({ length: 25 }, (_, t) => ({ id: 'x', level: 1, tile: t })) };
     expect(firstEmptyTile(full)).toBe(null);
+  });
+
+  it('moveBuilding relocates a building to an empty tile, free of cost', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    civ = build(civ, 'granary', 0);
+    const bankBefore = { ...civ.banked };
+    civ = moveBuilding(civ, 0, 7);
+    expect(civ.buildings).toEqual([{ id: 'granary', level: 1, tile: 7 }]);
+    expect(civ.banked).toEqual(bankBefore); // no cost
+  });
+
+  it('moveBuilding swaps two buildings when the target tile is occupied', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    civ = research(civ, 'mining');
+    civ = build(civ, 'granary', 0);
+    civ = build(civ, 'mine', 1);
+    civ = moveBuilding(civ, 0, 1); // granary <-> mine
+    expect(civ.buildings.find((b) => b.tile === 1)!.id).toBe('granary');
+    expect(civ.buildings.find((b) => b.tile === 0)!.id).toBe('mine');
+  });
+
+  it('moveBuilding is a no-op when from === to and throws when source is empty', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    civ = build(civ, 'granary', 0);
+    expect(moveBuilding(civ, 0, 0)).toBe(civ); // same reference, unchanged
+    expect(() => moveBuilding(civ, 9, 10)).toThrow();
   });
 });
