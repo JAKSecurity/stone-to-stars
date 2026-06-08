@@ -2,7 +2,7 @@ import { CivState, Resource, RESOURCES } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge } from '../tech/tech';
-import { buildableBuildings, buildingEffectText, upgradeCost } from '../camp/camp';
+import { buildableBuildings, firstEmptyTile, buildingEffectText, upgradeCost } from '../camp/camp';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
@@ -136,6 +136,12 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
         (eff ? `<div class="beff">${eff}</div>` : '') +
         (affordable ? '' : `<div class="bneed">need ${shortfallText(civ.banked, def.baseCost)}</div>`);
       card.appendChild(text);
+      if (affordable) {
+        card.onclick = () => {
+          const tile = firstEmptyTile(civ);
+          if (tile !== null) cb.onBuild(def.id, tile);
+        };
+      }
       bgrid.appendChild(card);
     }
     palette.appendChild(bgrid);
