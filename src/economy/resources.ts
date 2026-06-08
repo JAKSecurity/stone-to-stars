@@ -23,3 +23,12 @@ export function spend(banked: ResourceBundle, cost: Partial<ResourceBundle>): Re
   }
   return out;
 }
+
+/** Multiply each present component of a (partial) bundle by `factor`, rounding to an integer. */
+export function scaleBundle(bundle: Partial<ResourceBundle>, factor: number): Partial<ResourceBundle> {
+  const out: Partial<ResourceBundle> = {};
+  for (const r of Object.keys(bundle) as Resource[]) {
+    out[r] = Math.round((bundle[r] ?? 0) * factor);
+  }
+  return out;
+}
