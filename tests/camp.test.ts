@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { BUILDINGS } from '../src/camp/buildingData';
-import { isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding } from '../src/camp/camp';
+import {
+  isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding,
+  buildableBuildings, firstEmptyTile,
+} from '../src/camp/camp';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 
@@ -58,5 +61,27 @@ describe('camp', () => {
     civ = upgradeBuilding(civ, 4);
     civ = upgradeBuilding(civ, 4);
     expect(() => upgradeBuilding(civ, 4)).toThrow();
+  });
+
+  it('buildableBuildings lists unlocked, not-yet-built defs in declaration order', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    expect(buildableBuildings(civ)).toEqual([]); // nothing unlocked yet
+    civ = research(civ, 'mining');  // unlocks mine
+    civ = research(civ, 'pottery'); // unlocks granary
+    // granary is declared before mine in BUILDINGS, so order is [granary, mine]
+    expect(buildableBuildings(civ).map((d) => d.id)).toEqual(['granary', 'mine']);
+    civ = build(civ, 'granary', 0);
+    expect(buildableBuildings(civ).map((d) => d.id)).toEqual(['mine']); // built one excluded
+  });
+
+  it('firstEmptyTile returns the lowest free tile, or null when full', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    expect(firstEmptyTile(civ)).toBe(0);
+    civ = research(civ, 'pottery');
+    civ = build(civ, 'granary', 0);
+    expect(firstEmptyTile(civ)).toBe(1);
+    // fill every tile -> null
+    const full = { ...civ, buildings: Array.from({ length: 25 }, (_, t) => ({ id: 'x', level: 1, tile: t })) };
+    expect(firstEmptyTile(full)).toBe(null);
   });
 });

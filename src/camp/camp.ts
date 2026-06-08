@@ -1,7 +1,8 @@
-import { CivState, Resource, ResourceBundle } from '../game/types';
+import { CivState, Resource, ResourceBundle, BuildingDef } from '../game/types';
 import { canAfford, spend } from '../economy/resources';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from './buildingData';
+import { GRID_SIZE } from '../game/config';
 
 export function isBuildingUnlocked(civ: CivState, buildingId: string): boolean {
   return civ.researched.some((t) => TECHS[t]?.unlocksBuilding === buildingId);
@@ -54,4 +55,19 @@ export function upgradeBuilding(civ: CivState, tile: number): CivState {
       b.tile === tile ? { ...b, level: b.level + 1 } : b,
     ),
   };
+}
+
+/** Defs whose unlocking tech is researched and which are not already placed, in declaration order. */
+export function buildableBuildings(civ: CivState): BuildingDef[] {
+  return Object.values(BUILDINGS).filter(
+    (def) => isBuildingUnlocked(civ, def.id) && !civ.buildings.some((b) => b.id === def.id),
+  );
+}
+
+/** Lowest tile index 0..GRID_SIZE-1 with no building, or null if the grid is full. */
+export function firstEmptyTile(civ: CivState): number | null {
+  for (let tile = 0; tile < GRID_SIZE; tile++) {
+    if (!tileOccupied(civ, tile)) return tile;
+  }
+  return null;
 }
