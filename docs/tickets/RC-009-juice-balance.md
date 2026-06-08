@@ -15,7 +15,7 @@ playtesting.
 - [ ] Combat juice pass (per design spec §3): hit-flash, damage numbers, shake, death particles, pickup glow
 - [ ] Gem ergonomics retune; Magnet rebalanced (KNOWN_ISSUES #2)
 - [ ] `gainXp` queues `levelsGained` drafts (KNOWN_ISSUES #3)
-- [ ] Explicit building picker — flat grid, all options visible (KNOWN_ISSUES #4)
+- [x] Explicit building picker — flat grid, all options visible (KNOWN_ISSUES #4)
 - [ ] Holistic balance pass with playtesting; tests green; Playwright-verified
 - [ ] Write the RC-009 implementation plan before building
 
@@ -38,15 +38,20 @@ playtesting.
   empty). 4 new `runStats` level-counting tests (116 total). Intensities are first-pass and meant
   to be **tuned by feel** (see notes left in the commit: flash 60ms, player shake 0.008, big-death
   shake 0.012, damage-number 450ms/22px, gem pulse 15%).
+- **Slice 2 — explicit building picker: SHIPPED 2026-06-08** (branch rc-009-building-picker).
+  Replaced the implicit auto-build with an always-visible "Available Buildings" palette (no modal,
+  per `jeff-ui-design`): click a card to build on the first free tile, drag a card onto a chosen
+  tile, and drag placed buildings to rearrange (move to empty / swap on occupied — both free).
+  New pure `camp.ts` helpers (`buildableBuildings`, `firstEmptyTile`, `moveBuilding`,
+  `buildingEffectText`) + `canBuild` hardened for one-of-each. Cards show sprite/name/cost + a
+  run-bonus line; affordable = green/draggable, unlocked-but-unaffordable = dimmed with a deficit
+  "need X" note. Closes KNOWN_ISSUES #4. 15 camp tests (124 total) + build green; Playwright
+  live-verified all six interactions (click-place, drag-place, move, swap, locked-inert, upgrade).
 - **Remaining slices (next session):**
-  1. **Explicit building picker** (KNOWN_ISSUES #4) — the camp is now ~21 buildings across 8 ages;
-     the empty-cell click currently auto-builds the *first* unlocked-unbuilt building in catalog
-     order (can't choose). Replace with a flat-grid picker showing all buildable options
-     (use the `jeff-ui-design` skill — max simultaneous visibility, flat grid).
-  2. **Holistic balance pass** across all 8 ages — enemy HP/damage/speed vs `tierScaling`, weapon
+  1. **Holistic balance pass** across all 8 ages — enemy HP/damage/speed vs `tierScaling`, weapon
      numbers, spawn ramp. Needs **Jeff's playtest feel**; first-pass content numbers are placeholders.
-  3. **Gem ergonomics / Magnet retune** (KNOWN_ISSUES #2).
-  4. (Optional) tune the slice-1 juice intensities once Jeff has played them.
+  2. **Gem ergonomics / Magnet retune** (KNOWN_ISSUES #2).
+  3. (Optional) tune the slice-1 juice intensities once Jeff has played them.
 
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §6

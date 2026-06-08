@@ -82,9 +82,10 @@ with current numbers (a kill grants +3 XP; first threshold is 8) but should queu
 
 ---
 
-## 4. [Minor] Base-camp build picker is implicit
+## 4. [RESOLVED 2026-06-08] Base-camp build picker is implicit
 
-Clicking an empty camp tile auto-builds the *first* unlocked/affordable/not-yet-built
-building (`src/ui/civScreen.ts`), and a "one of each building" rule is enforced only in the
-UI (the logic layer would allow duplicates). Fine for the 3-building slice; add an explicit
-building picker when the building set grows.
+Replaced the implicit "auto-build the first available building" empty-tile click with an
+always-visible build palette: click a card to build on the first free tile, drag a card onto a
+chosen tile, and drag placed buildings to rearrange (move to empty / swap on occupied). The
+"one of each" rule is now enforced in `camp.ts canBuild`, not just the UI. Shipped on branch
+`rc-009-building-picker` (RC-009 slice 2); tests + build green, Playwright live-verified.
