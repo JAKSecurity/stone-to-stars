@@ -12,6 +12,7 @@ import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { pickEnemy } from '../run/expedition';
 import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
+import { gemValueForTier } from '../game/economy';
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -130,7 +131,7 @@ export class RunScene extends Phaser.Scene {
 
     this.explorationCooldown -= dt;
     if (this.explorationCooldown <= 0) {
-      this.collected.exploration += 1;
+      this.collected.exploration += gemValueForTier(this.expedition.tier);
       this.explorationCooldown = 4000 / (this.biome.resourceBias.exploration ?? 1);
     }
 
@@ -247,11 +248,8 @@ export class RunScene extends Phaser.Scene {
     const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
       const ex = enemy.x, ey = enemy.y;
-      const drops = Math.max(1, Math.round(this.expedition.scaling.dropMult));
-      for (let d = 0; d < drops; d++) {
-        const jitter = drops > 1 ? Phaser.Math.Between(-10, 10) : 0;
-        this.dropGem(ex + jitter, ey + jitter, enemy.getData('drop'));
-      }
+      // RC-017: one gem per kill, carrying a tier-scaled value (value, not swarm).
+      this.dropGem(ex, ey, enemy.getData('drop'));
       const xpGain = enemy.getData('xp');
       const isBig = (enemy.displayWidth ?? 0) >= 40;
       enemy.destroy();
@@ -300,6 +298,7 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);
+    gem.setData('value', gemValueForTier(this.expedition.tier));
     // --- Juice: pulsing scale yoyo so gems read as collectible ---
     this.tweens.add({
       targets: gem,
@@ -313,7 +312,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   private collectGem(gem: any) {
-    this.collected[gem.getData('resource') as Resource] += 1;
+    this.collected[gem.getData('resource') as Resource] += gem.getData('value') ?? 1;
     gem.destroy();
   }
 
