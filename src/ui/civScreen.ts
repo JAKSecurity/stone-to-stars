@@ -1,8 +1,8 @@
 import { CivState, Resource, RESOURCES } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
-import { canResearch, isResearched, getAge } from '../tech/tech';
-import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost } from '../camp/camp';
+import { canResearch, isResearched, getAge, techCost } from '../tech/tech';
+import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost, buildingCost } from '../camp/camp';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
@@ -61,7 +61,7 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
     const done = isResearched(civ, tech.id);
     row.className = 'tech' + (done ? ' done' : '');
     const label = document.createElement('div');
-    label.innerHTML = `<div>${tech.name}</div><div class="cost">${costText(tech.cost)}</div>`;
+    label.innerHTML = `<div>${tech.name}</div><div class="cost">${costText(techCost(tech.id))}</div>`;
     row.appendChild(label);
     if (done) {
       const tag = document.createElement('span');
@@ -150,7 +150,7 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
     const bgrid = document.createElement('div');
     bgrid.className = 'bgrid';
     for (const def of options) {
-      const affordable = canAfford(civ.banked, def.baseCost);
+      const affordable = canAfford(civ.banked, buildingCost(def.id, 1));
       const card = document.createElement('div');
       card.className = 'bcard' + (affordable ? ' afford' : ' locked');
       card.appendChild(spriteCanvas(def.id, 32));
@@ -158,9 +158,9 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
       const eff = buildingEffectText(def);
       text.innerHTML =
         `<div class="bnm">${def.name}</div>` +
-        `<div class="bcost">${costText(def.baseCost)}</div>` +
+        `<div class="bcost">${costText(buildingCost(def.id, 1))}</div>` +
         (eff ? `<div class="beff">${eff}</div>` : '') +
-        (affordable ? '' : `<div class="bneed">need ${shortfallText(civ.banked, def.baseCost)}</div>`);
+        (affordable ? '' : `<div class="bneed">need ${shortfallText(civ.banked, buildingCost(def.id, 1))}</div>`);
       card.appendChild(text);
       if (affordable) {
         card.onclick = () => {

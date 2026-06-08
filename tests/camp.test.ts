@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { BUILDINGS } from '../src/camp/buildingData';
 import {
   isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding,
-  buildableBuildings, firstEmptyTile, moveBuilding, buildingEffectText,
+  buildableBuildings, firstEmptyTile, moveBuilding, buildingEffectText, buildingCost,
 } from '../src/camp/camp';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
@@ -34,7 +34,7 @@ describe('camp', () => {
     const beforeIndustry = civ.banked.industry;
     civ = build(civ, 'granary', 4);
     expect(civ.buildings).toEqual([{ id: 'granary', level: 1, tile: 4 }]);
-    expect(civ.banked.industry).toBe(beforeIndustry - 10);
+    expect(civ.banked.industry).toBe(beforeIndustry - (buildingCost('granary', 1).industry ?? 0));
     expect(tileOccupied(civ, 4)).toBe(true);
   });
 
@@ -49,7 +49,7 @@ describe('camp', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
     civ = build(civ, 'granary', 4);
-    expect(upgradeCost('granary', 1)).toEqual({ industry: 20 });
+    expect(upgradeCost('granary', 1)).toEqual(buildingCost('granary', 2)); // level-2 cost
     civ = upgradeBuilding(civ, 4);
     expect(civ.buildings.find((b) => b.tile === 4)!.level).toBe(2);
   });
