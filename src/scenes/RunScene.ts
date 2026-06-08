@@ -241,7 +241,6 @@ export class RunScene extends Phaser.Scene {
       orb.setData('index', i);
       orb.setData('count', shot.count);
       orb.setData('weaponKey', weaponId);
-      orb.setData('hitTimes', new Map());
     }
   }
 
@@ -323,11 +322,14 @@ export class RunScene extends Phaser.Scene {
     if (!bullet.active || !enemy.active) return;
 
     // Orbit projectiles persist and re-hit on a cadence instead of being consumed on contact.
+    // The cadence is stored ON THE ENEMY, keyed by (weapon, orbiter index), so it survives the
+    // per-cooldown ring refresh (which replaces the orbiter objects) and is freed when the enemy
+    // dies — otherwise a refresh would reset the cadence and let an orbiter re-hit early.
     if (bullet.getData('behavior') === 'orbit') {
-      const hitTimes = bullet.getData('hitTimes') as Map<any, number>;
-      const next = hitTimes.get(enemy) ?? -Infinity;
+      const key = `orbHit:${bullet.getData('weaponKey')}:${bullet.getData('index')}`;
+      const next = enemy.getData(key) ?? -Infinity;
       if (this.elapsed < next) return;
-      hitTimes.set(enemy, this.elapsed + ORBIT_HIT_INTERVAL_MS);
+      enemy.setData(key, this.elapsed + ORBIT_HIT_INTERVAL_MS);
       this.applyDamageToEnemy(enemy, bullet.getData('damage'));
       return;
     }
