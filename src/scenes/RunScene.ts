@@ -42,6 +42,7 @@ export class RunScene extends Phaser.Scene {
   private relicCooldown = 0;
   private paused = false;
   private finished = false;
+  private pendingDrafts = 0;
   private hud!: Phaser.GameObjects.Text;
   private heroSprite = 'hero';
 
@@ -60,7 +61,7 @@ export class RunScene extends Phaser.Scene {
     this.ownedPerks = [];
     this.weaponCooldowns = {};
     this.explorationCooldown = 0; this.relicCooldown = 0;
-    this.paused = false; this.finished = false;
+    this.paused = false; this.finished = false; this.pendingDrafts = 0;
   }
 
   create() {
@@ -226,15 +227,58 @@ export class RunScene extends Phaser.Scene {
       bullet.destroy();
     }
 
+    // --- Juice: hit-flash ---
+    if (enemy.active) {
+      enemy.setTintFill(0xffffff);
+      this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
+    }
+
+    // --- Juice: floating damage number ---
+    const dmgText = this.add.text(enemy.x, enemy.y - 8, String(Math.round(damage)), {
+      fontSize: '13px', color: '#ffee44', stroke: '#000', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(30);
+    this.tweens.add({
+      targets: dmgText, y: dmgText.y - 22, alpha: 0,
+      duration: 450, ease: 'Power1',
+      onComplete: () => dmgText.destroy(),
+    });
+
     const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
+      const ex = enemy.x, ey = enemy.y;
       const drops = Math.max(1, Math.round(this.expedition.scaling.dropMult));
       for (let d = 0; d < drops; d++) {
         const jitter = drops > 1 ? Phaser.Math.Between(-10, 10) : 0;
-        this.dropGem(enemy.x + jitter, enemy.y + jitter, enemy.getData('drop'));
+        this.dropGem(ex + jitter, ey + jitter, enemy.getData('drop'));
       }
+      const xpGain = enemy.getData('xp');
+      const isBig = (enemy.displayWidth ?? 0) >= 40;
       enemy.destroy();
-      this.gainXp(enemy.getData('xp'));
+
+      // --- Juice: death particles ---
+      const particleCount = 6;
+      for (let p = 0; p < particleCount; p++) {
+        const angle = (p / particleCount) * Math.PI * 2;
+        const radius = Phaser.Math.Between(14, 28);
+        const px = ex + Math.cos(angle) * 6;
+        const py = ey + Math.sin(angle) * 6;
+        const particle = this.add.circle(px, py, Phaser.Math.Between(3, 5), 0xffaa33)
+          .setAlpha(0.9).setDepth(25);
+        this.tweens.add({
+          targets: particle,
+          x: ex + Math.cos(angle) * radius,
+          y: ey + Math.sin(angle) * radius,
+          alpha: 0,
+          duration: 350,
+          ease: 'Power2',
+          onComplete: () => particle.destroy(),
+        });
+      }
+
+      // --- Juice: screen shake on big enemy death ---
+      if (isBig) this.cameras.main.shake(140, 0.012);
+
+      this.gainXp(xpGain);
     } else {
       enemy.setData('hp', hp);
     }
@@ -243,6 +287,8 @@ export class RunScene extends Phaser.Scene {
   private hitPlayer(enemy: any) {
     this.stats.hp -= enemy.getData('contactDamage');
     enemy.destroy();
+    // --- Juice: screen shake on player taking contact damage ---
+    this.cameras.main.shake(120, 0.008);
     if (this.stats.hp <= 0) this.finish(true);
   }
 
@@ -252,6 +298,16 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);
+    // --- Juice: pulsing scale yoyo so gems read as collectible ---
+    this.tweens.add({
+      targets: gem,
+      scaleX: gem.scaleX * 1.15,
+      scaleY: gem.scaleY * 1.15,
+      duration: 380,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
   }
 
   private collectGem(gem: any) {
@@ -260,13 +316,21 @@ export class RunScene extends Phaser.Scene {
   }
 
   private gainXp(amount: number) {
-    const before = this.stats.level;
     const r = addXp(this.stats, amount);
     this.stats = r.stats;
-    if (r.stats.level > before) this.openDraft();
+    if (r.levelsGained > 0) {
+      this.pendingDrafts += r.levelsGained;
+      // Only trigger openDraft if we're not already inside a draft (paused).
+      // If already paused, the queue will be drained by the card pointerdown handler.
+      if (!this.paused) this.openDraft();
+    }
   }
 
   private openDraft() {
+    // Consume one pending draft from the queue.
+    if (this.pendingDrafts <= 0) return;
+    this.pendingDrafts -= 1;
+
     this.paused = true;
     this.physics.pause();
     const picks = rollRunDraft(() => Math.random(), this.mods.draftChoices, {
@@ -278,7 +342,9 @@ export class RunScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setDepth(20);
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
     panel.add(bg);
-    const title = this.add.text(width / 2, height / 2 - 120, 'Level up — choose one',
+    // Show queue depth so the player knows more are coming.
+    const queueSuffix = this.pendingDrafts > 0 ? ` (+${this.pendingDrafts} more)` : '';
+    const title = this.add.text(width / 2, height / 2 - 120, `Level up — choose one${queueSuffix}`,
       { fontSize: '20px', color: '#fff' }).setOrigin(0.5);
     panel.add(title);
     picks.forEach((opt, i) => {
@@ -290,8 +356,14 @@ export class RunScene extends Phaser.Scene {
       card.on('pointerdown', () => {
         this.applyDraftOption(opt);
         panel.destroy();
-        this.paused = false;
-        this.physics.resume();
+        if (this.pendingDrafts > 0) {
+          // More levels queued — open the next draft immediately (stay paused).
+          this.openDraft();
+        } else {
+          // Queue empty — resume the run.
+          this.paused = false;
+          this.physics.resume();
+        }
       });
       panel.add(card); panel.add(label);
     });
