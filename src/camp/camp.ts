@@ -16,6 +16,7 @@ export function canBuild(civ: CivState, buildingId: string, tile: number): boole
   const def = BUILDINGS[buildingId];
   if (!def) return false;
   if (!isBuildingUnlocked(civ, buildingId)) return false;
+  if (civ.buildings.some((b) => b.id === buildingId)) return false; // one of each
   if (tileOccupied(civ, tile)) return false;
   return canAfford(civ.banked, def.baseCost);
 }

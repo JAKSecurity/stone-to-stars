@@ -63,6 +63,14 @@ describe('camp', () => {
     expect(() => upgradeBuilding(civ, 4)).toThrow();
   });
 
+  it('canBuild rejects a building whose id is already placed (one of each)', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    civ = build(civ, 'granary', 0);
+    // granary is unlocked, tile 5 is free, and we can afford it — but it already exists.
+    expect(canBuild(civ, 'granary', 5)).toBe(false);
+  });
+
   it('buildableBuildings lists unlocked, not-yet-built defs in declaration order', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     expect(buildableBuildings(civ)).toEqual([]); // nothing unlocked yet
