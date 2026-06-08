@@ -66,7 +66,7 @@ necessarily minimal at 10–16px. The buildings and the new heroes/enemies read 
 ## Known issues & notes (all non-blocking)
 - **`orbit`/`lob` weapon behaviors are declared in the type but unimplemented** in the run (the firing
   code only does `straight`/`pierce`/`cone` via count/spread/pierce). I deliberately used only the
-  supported behaviors. **Proposed RC-016: implement orbit/lob projectile motion** for more weapon
+  supported behaviors. **Proposed RC-015: implement orbit/lob projectile motion** for more weapon
   variety.
 - **Balance is first-pass** (anchored ~+25–30%/age over the prior tier; `tierScaling` already ramps
   difficulty). Holistic tuning is the existing **RC-009**.
@@ -74,7 +74,7 @@ necessarily minimal at 10–16px. The buildings and the new heroes/enemies read 
   reuses `PAL.ember`; `printing_press` tech and `university` building both grant +draftChoices (mirrors
   the existing pottery/workshop pattern). None affect correctness.
 - **No formal tickets created yet** (avoided the cross-repo BACKLOG pre-commit hook during unattended
-  work). Proposed tickets to open at merge: RC-010 (foundation), RC-011..014 (the ages), RC-016
+  work). Proposed tickets to open at merge: RC-010 (foundation), RC-011..014 (the ages), RC-015
   (orbit/lob). Full traceability is in the per-age commit messages + the plan doc.
 
 ## Not done (by design)

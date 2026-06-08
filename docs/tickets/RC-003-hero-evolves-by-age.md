@@ -1,5 +1,5 @@
 # RC-003: Hero evolves visually by age (Bronze/Iron gear)
-**Status**: Open  **Priority**: P2  **Type**: Enhancement
+**Status**: Delivered  **Priority**: P2  **Type**: Enhancement
 **Created**: 2026-06-06
 **Capability**: C3 (Content & ages)
 

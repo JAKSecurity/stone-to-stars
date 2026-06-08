@@ -1,5 +1,5 @@
 # RC-008: Iron age content (techs / buildings / biome / enemies / weapons)
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-07
 **Capability**: C3 (Content & ages)
 

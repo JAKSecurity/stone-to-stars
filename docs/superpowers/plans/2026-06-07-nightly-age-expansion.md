@@ -24,7 +24,7 @@ and sprites. Each is a self-contained vertical slice: build-clean, unit-tested, 
    = `count`/`spread` fan + `speed` + `pierce` (data). So **only `straight`, `pierce`, `cone`
    actually do anything** (`cone` == multi-projectile fan). **Do NOT use `orbit`/`lob`** — no
    engine support (they'd fly straight). Variety comes from count/spread/speed/cooldown/damage/
-   pierce/levelScaling. (Backlog: implement orbit/lob motion — see RC-016.)
+   pierce/levelScaling. (Backlog: implement orbit/lob motion — see RC-015.)
 3. **Camp grid caps buildings.** `GRID_SIZE` (config.ts) cells; each building builds once;
    empty-cell click auto-builds the first unlocked-unbuilt building in catalog order. With ~18
    buildings total we must raise `GRID_SIZE` (→ 20) and widen the CSS grid (→ 5 cols).
@@ -78,7 +78,7 @@ and sprites. Each is a self-contained vertical slice: build-clean, unit-tested, 
   define `HERO_SPRITE_BY_AGE: Partial<Record<AgeId,string>> = { iron:'hero_iron' }` (each age
   appends its entry). Keep it in one obvious place (e.g. top of main.ts or a small `src/art`
   helper).
-- BACKLOG: RC-016 — implement `orbit`/`lob` projectile motion (type allows them; engine ignores).
+- BACKLOG: RC-015 — implement `orbit`/`lob` projectile motion (type allows them; engine ignores).
 - Tests: hero-map values are registered sprites; AGE_ORDER stays unique & ascending.
 
 ### RC-011 — CLASSICAL age (tier 3) — Greco-Roman myth  [CALIBRATION TEMPLATE]
@@ -171,7 +171,7 @@ and sprites. Each is a self-contained vertical slice: build-clean, unit-tested, 
       Colosseum run rendered hero_classical + harpies + centaurs, 0 errors.)
 - [x] Morning report for Jeff — `docs/NIGHTLY-REPORT-2026-06-07.md`.
 - [ ] (Pending Jeff) Art ratification of ALL new sprites (RC-008 iron + RC-011..014). NOT merged to main.
-- [ ] (Pending Jeff/merge) Create formal tickets RC-010..016; RC-016 = implement orbit/lob projectile motion.
+- [ ] (Pending Jeff/merge) Create formal tickets RC-010..016; RC-015 = implement orbit/lob projectile motion.
 - [ ] (Later) RC-009 holistic balance pass.
 
 **Final state:** branch `nightly-age-expansion`, 109 Vitest tests green, `npm run build` clean, boots with

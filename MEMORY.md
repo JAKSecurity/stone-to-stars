@@ -7,10 +7,16 @@ PvE, free, no monetization; builds to static files for GitHub Pages. Stack: Type
 Phaser (run scene) + HTML/CSS DOM (civ screen).
 
 ## Current state (2026-06-07)
-- **Iron slice foundations shipped (2026-06-07):** RC-006 (data-driven multi-weapon system)
-  + RC-007 (data-driven enemies/biomes + expedition pick screen + age scaling) built via
-  subagent-driven-development and merged to `main`. **86 Vitest tests green; `npm run build`
-  clean.** RC-008 (Iron content) is planned and is the next build — details in the sections below.
+- **Iron + four more ages shipped (2026-06-07):** on top of RC-006/007 foundations,
+  **RC-008** (Iron content, folds in **RC-003** hero-by-age) plus a nightly autonomous
+  expansion — **RC-010** (N-age engine readiness: bigger camp grid + `heroByAge.ts` map) and
+  **RC-011–014** four new playable ages: **Classical → Medieval → Renaissance → Industrial**
+  (each = a gating tech + 3 techs, 3 buildings, a biome, 4 enemies incl. a mini-boss, 4 weapons
+  + perk-paired evolutions, an age hero, sprites). Built via subagent-driven-development,
+  per-age adversarially reviewed, full ladder Playwright-smoke-verified. Jeff ratified the
+  sprite art (2026-06-07). **109 Vitest tests green; `npm run build` clean.** Now 7 ages:
+  Stone→Bronze→Iron→Classical→Medieval→Renaissance→Industrial. Detail:
+  `docs/NIGHTLY-REPORT-2026-06-07.md` + `docs/superpowers/plans/2026-06-07-nightly-age-expansion.md`.
 - **P0+P1 vertical slice: shipped.** Full loop works end-to-end and is Playwright-verified:
   timed survivor run → bank 4 resources (exploration/science/industry/culture) → research a
   tech tree → build base-camp buildings → cross Stone→Bronze → persists to localStorage.
@@ -70,14 +76,15 @@ tier-1 HP ×1.5; no NaN). **Art-free** — new enemy types/sprites + Deep Cavern
 Note for RC-008: add `EnemyDef.name` (pick screen shows raw ids today).
 
 ## Next step
-**RC-008 — Iron age content** (folds in RC-003): author Iron techs (Iron Working gates the
-age, Deep Mining, Smelting, Mechanics), buildings (Smelter/Foundry/Deep Mine), the **Deep
-Caverns** biome, Iron enemies (cave dweller, rock golem, automaton, Iron Golem) + sprites via
-`src/art`, and Iron weapons + perk-paired evolutions (wire `evolvesTo`/`evolveRequiresPerk`).
-All data + sprites — the systems are done, no engine work. **Write its plan first**
-(`superpowers:writing-plans` from spec §4), then build via subagent-driven-development.
-Ticket: `docs/tickets/RC-008-iron-content.md` (has carried-over review notes). Then RC-009
-(juice + balance). RC-004 (D2 gems) stays a separate later art ticket.
+**RC-009 — Juice + balance pass** (the deferred P2, now that 7 ages of content exist): combat
+juice (hit-flash, damage numbers, shake, death particles, pickup glow), gem ergonomics, the
+multi-level-up draft queue fix, an explicit building picker (the building set is now ~18), and a
+holistic balance pass across all ages (enemy HP/damage vs `tierScaling`, weapon numbers) via
+playtesting. Write its plan first, then build via subagent-driven-development. Also open:
+**RC-015** (implement `orbit`/`lob` projectile behaviors — declared in the type but unimplemented
+in the run; found during the nightly expansion) and **RC-004** (D2 multi-tier gems — later art).
+A 5th+ age (Modern, Atomic, Space → C4 "The Last Stand" finale) is turnkey via the
+nightly-age-expansion pattern (would need `GRID_SIZE` 20→24 for more buildings).
 
 ## Key docs
 - Design specs: `docs/superpowers/specs/2026-06-05-rogue-civ-design.md`,
