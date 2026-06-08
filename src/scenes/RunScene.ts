@@ -11,6 +11,7 @@ import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { pickEnemy } from '../run/expedition';
+import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -293,7 +294,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private dropGem(x: number, y: number, resource: Resource) {
-    const gem = this.add.image(x, y, 'gem_' + resource) as any;
+    const tier = gemTierForExpeditionTier(this.expedition.tier);
+    const gem = this.add.image(x, y, gemSpriteId(resource, tier)) as any;
     gem.setDisplaySize(14, 14);
     this.physics.add.existing(gem);
     this.gems.add(gem);
