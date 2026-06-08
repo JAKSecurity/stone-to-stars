@@ -20,6 +20,8 @@ export const HERO: SpriteDef = {
     { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.skin, role: 'arm' },
     // head + hair
     { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    { kind: 'circle', cx: 54, cy: 42, r: 2, color: '#2b2622', role: 'eye' },
+    { kind: 'circle', cx: 66, cy: 42, r: 2, color: '#2b2622', role: 'eye' },
     { kind: 'poly', points: [[43, 37], [44, 28], [49, 23], [55, 21], [60, 21], [65, 21], [71, 23], [76, 28], [77, 37]], color: PAL.hair, role: 'hair' },
     // shield
     { kind: 'circle', cx: 35, cy: 84, r: 13, color: PAL.shieldRed, role: 'shield' },
@@ -61,6 +63,8 @@ export const HERO_IRON: SpriteDef = {
     { kind: 'rect', x: 78, y: 74, w: 9, h: 16, rx: 2, color: PAL.iron, role: 'vambrace' },
     // head + hair
     { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    { kind: 'circle', cx: 54, cy: 42, r: 2, color: '#2b2622', role: 'eye' },
+    { kind: 'circle', cx: 66, cy: 42, r: 2, color: '#2b2622', role: 'eye' },
     { kind: 'poly', points: [[43, 37], [44, 28], [49, 23], [55, 21], [60, 21], [65, 21], [71, 23], [76, 28], [77, 37]], color: PAL.hair, role: 'hair' },
     // iron helm — nasal helm shape over the hair
     { kind: 'poly', points: [[44, 36], [45, 26], [50, 21], [60, 19], [70, 21], [75, 26], [76, 36]], color: PAL.iron, role: 'helm' },
@@ -188,6 +192,8 @@ export const HERO_RENAISSANCE: SpriteDef = {
     { kind: 'poly', points: [[22, 86], [30, 86], [28, 96], [20, 94]], color: PAL.walnut, role: 'pistolGrip' },
     // head — skin
     { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    { kind: 'circle', cx: 54, cy: 44, r: 2, color: '#2b2622', role: 'eye' },
+    { kind: 'circle', cx: 66, cy: 44, r: 2, color: '#2b2622', role: 'eye' },
     // hair — visible under hat brim
     { kind: 'poly', points: [[44, 42], [45, 34], [50, 30], [55, 29], [60, 29], [65, 29], [70, 30], [75, 34], [76, 42]], color: PAL.hair, role: 'hair' },
     // wide-brim hat — blued felt, broad brim
@@ -387,6 +393,8 @@ export const HERO_CLASSICAL: SpriteDef = {
     { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.skin, role: 'arm' },
     // head (skin)
     { kind: 'circle', cx: 60, cy: 42, r: 16, color: PAL.skin, role: 'head' },
+    { kind: 'circle', cx: 54, cy: 41, r: 2, color: '#2b2622', role: 'eye' },
+    { kind: 'circle', cx: 66, cy: 41, r: 2, color: '#2b2622', role: 'eye' },
     // Corinthian helm — goldDark bowl covering hair + cheekpieces
     { kind: 'poly', points: [[44, 38], [45, 26], [50, 19], [60, 17], [70, 19], [75, 26], [76, 38]], color: PAL.goldDark, role: 'helm' },
     // nasal guard strip
