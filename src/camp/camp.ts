@@ -78,9 +78,9 @@ export function firstEmptyTile(civ: CivState): number | null {
 export function buildingEffectText(def: BuildingDef): string {
   const rb = def.runBonus;
   const parts: string[] = [];
-  if (rb.maxHp) parts.push(`+${rb.maxHp} HP`);
-  if (rb.damageMult) parts.push(`+${Math.round(rb.damageMult * 100)}% dmg`);
-  if (rb.draftChoices) parts.push(`+${rb.draftChoices} draft`);
+  if (rb.maxHp != null) parts.push(`+${rb.maxHp} HP`);
+  if (rb.damageMult != null) parts.push(`+${Math.round(rb.damageMult * 100)}% dmg`);
+  if (rb.draftChoices != null) parts.push(`+${rb.draftChoices} draft`);
   if (rb.weapons) for (const id of rb.weapons) parts.push(WEAPONS[id]?.name ?? id);
   return parts.join(' · ');
 }

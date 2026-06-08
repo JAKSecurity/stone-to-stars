@@ -114,11 +114,17 @@ describe('camp', () => {
     expect(civ.buildings.find((b) => b.tile === 0)!.id).toBe('mine');
   });
 
-  it('moveBuilding is a no-op when from === to and throws when source is empty', () => {
+  it('moveBuilding is a no-op (same reference) when from === to', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
     civ = build(civ, 'granary', 0);
-    expect(moveBuilding(civ, 0, 0)).toBe(civ); // same reference, unchanged
+    expect(moveBuilding(civ, 0, 0)).toBe(civ);
+  });
+
+  it('moveBuilding throws when the source tile has no building', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    civ = build(civ, 'granary', 0);
     expect(() => moveBuilding(civ, 9, 10)).toThrow();
   });
 
