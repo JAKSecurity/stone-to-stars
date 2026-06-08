@@ -6,7 +6,7 @@ A free browser game: a Phaser survivor mini-game feeds a tech-tree + base-camp c
 PvE, free, no monetization; builds to static files for GitHub Pages. Stack: TypeScript + Vite +
 Phaser (run scene) + HTML/CSS DOM (civ screen).
 
-## Current state (2026-06-07)
+## Current state (2026-06-08)
 - **Iron + four more ages shipped (2026-06-07):** on top of RC-006/007 foundations,
   **RC-008** (Iron content, folds in **RC-003** hero-by-age) plus a nightly autonomous
   expansion — **RC-010** (N-age engine readiness: bigger camp grid + `heroByAge.ts` map) and
@@ -78,21 +78,28 @@ tier-1 HP ×1.5; no NaN). **Art-free** — new enemy types/sprites + Deep Cavern
 Note for RC-008: add `EnemyDef.name` (pick screen shows raw ids today).
 
 ## Next step
-**RC-009 — Juice + balance pass (IN PROGRESS).** Slice 1 — combat juice (hit-flash, floating
-damage numbers, screen shake, death particles, gem pulse) + the multi-level-up draft-queue fix
-(KNOWN_ISSUES #3) — **SHIPPED + merged 2026-06-07** (116 tests green; intensities are first-pass,
-tune by feel). **Remaining slices (next session):** explicit building picker (KNOWN_ISSUES #4 — camp
-is ~21 buildings now, needs a flat-grid picker via `jeff-ui-design`), holistic balance across all 8
-ages (needs Jeff's playtest feel), gem/Magnet retune (KNOWN_ISSUES #2). Full breakdown in
-`docs/tickets/RC-009-juice-balance.md` (## Progress). Original scope: combat
-juice (hit-flash, damage numbers, shake, death particles, pickup glow), gem ergonomics, the
-multi-level-up draft queue fix, an explicit building picker (the building set is now ~18), and a
-holistic balance pass across all ages (enemy HP/damage vs `tierScaling`, weapon numbers) via
-playtesting. Write its plan first, then build via subagent-driven-development. Also open:
-**RC-015** (implement `orbit`/`lob` projectile behaviors — declared in the type but unimplemented
-in the run; found during the nightly expansion) and **RC-004** (D2 multi-tier gems — later art).
-A 5th+ age (Modern, Atomic, Space → C4 "The Last Stand" finale) is turnkey via the
-nightly-age-expansion pattern (would need `GRID_SIZE` 20→24 for more buildings).
+**RC-009 — Juice + balance pass (IN PROGRESS).**
+- **Slice 1 — combat juice** (hit-flash, floating damage numbers, screen shake, death particles,
+  gem pulse) + the multi-level-up draft-queue fix (KNOWN_ISSUES #3) — **SHIPPED + merged 2026-06-07**
+  (116 tests; intensities first-pass, tune by feel).
+- **Slice 2 — explicit building picker** (KNOWN_ISSUES #4) — **SHIPPED + merged 2026-06-08** (124
+  tests green; `main` pushed/in sync). Always-visible "Available Buildings" palette below the camp
+  grid (no modal, per `jeff-ui-design`): click a card to build on the first free tile, drag a card
+  onto a chosen tile, drag placed buildings to rearrange (move to empty / swap on occupied — both
+  free). New pure `camp.ts` helpers (`buildableBuildings`, `firstEmptyTile`, `moveBuilding`,
+  `buildingEffectText`) + `canBuild` hardened for one-of-each (closed the KNOWN_ISSUES #4 logic gap).
+  Cards show sprite/name/cost + run-bonus line; affordable = green/draggable, unaffordable = dimmed
+  with a deficit "need X" note. Playwright live-verified all six interactions.
+  Spec `docs/superpowers/specs/2026-06-08-building-picker-design.md`, plan
+  `docs/superpowers/plans/2026-06-08-building-picker.md`.
+- **Remaining slices:** (1) **holistic balance pass** across all 8 ages — enemy HP/damage/speed vs
+  `tierScaling`, weapon numbers, spawn ramp; **needs Jeff's playtest feel** (first-pass content
+  numbers are placeholders). (2) **gem ergonomics / Magnet retune** (KNOWN_ISSUES #2). (3) optional:
+  tune slice-1 juice intensities once Jeff has played them. Breakdown in
+  `docs/tickets/RC-009-juice-balance.md` (## Progress).
+
+Also open (separate tickets): **RC-015** (implement `orbit`/`lob` projectile behaviors — declared in
+`WeaponDef.behavior` but unimplemented in the run) and **RC-004** (D2 multi-tier gems — later art).
 
 ## Key docs
 - Design specs: `docs/superpowers/specs/2026-06-05-rogue-civ-design.md`,
