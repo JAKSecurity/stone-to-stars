@@ -24,7 +24,7 @@ function costText(cost: Partial<Record<Resource, number>>): string {
 }
 
 function shortfallText(banked: Record<Resource, number>, cost: Partial<Record<Resource, number>>): string {
-  return RESOURCES.filter((r) => (cost[r] ?? 0) > banked[r]).map((r) => `${ICON[r]}${cost[r]}`).join(' ');
+  return RESOURCES.filter((r) => (cost[r] ?? 0) > banked[r]).map((r) => `${ICON[r]}${(cost[r] ?? 0) - banked[r]}`).join(' ');
 }
 
 export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbacks): void {
@@ -94,11 +94,13 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
       cell.classList.remove('drop-hover');
       const raw = e.dataTransfer?.getData('text/plain');
       if (!raw) return;
-      const payload = JSON.parse(raw) as { kind: string; id?: string; from?: number };
+      let payload: { kind: string; id?: string; from?: number };
+      try { payload = JSON.parse(raw); } catch { return; }
       if (payload.kind === 'new' && payload.id && !tileOccupied(civ, tile)) {
         cb.onBuild(payload.id, tile);
       }
       if (payload.kind === 'move' && payload.from !== undefined) {
+        if (payload.from === tile) return;
         cb.onMoveBuilding(payload.from, tile);
       }
     });

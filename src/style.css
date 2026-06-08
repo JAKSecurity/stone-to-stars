@@ -27,7 +27,7 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .bcard { display: flex; gap: 8px; align-items: flex-start; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 7px 8px; }
 .bcard.afford { border-color: #3fb950; cursor: grab; }
 .bcard.afford:hover { background: #11161d; }
-.bcard.locked { opacity: 0.45; }
+.bcard.locked { opacity: 0.45; cursor: not-allowed; }
 .bcard canvas { flex: none; }
 .bcard .bnm { font-weight: 600; font-size: 0.8rem; }
 .bcard .bcost { font-size: 0.7rem; opacity: 0.8; margin-top: 1px; }
@@ -35,6 +35,7 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .bcard.locked .beff { color: #6e7681; }
 .bcard .bneed { font-size: 0.65rem; color: #d29922; margin-top: 2px; }
 .cell.drop-hover { border-color: #58a6ff; box-shadow: inset 0 0 0 2px #58a6ff; }
+.cell[draggable="true"] { cursor: grab; }
 
 #expedition { display: none; }
 #expedition.active { display: block; }
