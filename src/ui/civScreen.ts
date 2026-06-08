@@ -2,7 +2,7 @@ import { CivState, Resource, RESOURCES } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge } from '../tech/tech';
-import { buildableBuildings, firstEmptyTile, buildingEffectText, upgradeCost } from '../camp/camp';
+import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost } from '../camp/camp';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
@@ -85,6 +85,19 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   for (let tile = 0; tile < GRID_SIZE; tile++) {
     const cell = document.createElement('div');
     cell.className = 'cell';
+    cell.addEventListener('dragover', (e) => { e.preventDefault(); cell.classList.add('drop-hover'); });
+    cell.addEventListener('dragleave', () => cell.classList.remove('drop-hover'));
+    cell.addEventListener('drop', (e) => {
+      e.preventDefault();
+      cell.classList.remove('drop-hover');
+      const raw = e.dataTransfer?.getData('text/plain');
+      if (!raw) return;
+      const payload = JSON.parse(raw) as { kind: string; id?: string; from?: number };
+      if (payload.kind === 'new' && payload.id && !tileOccupied(civ, tile)) {
+        cb.onBuild(payload.id, tile);
+      }
+      // 'move' handled in Task 8
+    });
     const placed = civ.buildings.find((b) => b.tile === tile);
     if (placed) {
       const def = BUILDINGS[placed.id];
@@ -141,6 +154,10 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
           const tile = firstEmptyTile(civ);
           if (tile !== null) cb.onBuild(def.id, tile);
         };
+        card.draggable = true;
+        card.addEventListener('dragstart', (e) => {
+          e.dataTransfer?.setData('text/plain', JSON.stringify({ kind: 'new', id: def.id }));
+        });
       }
       bgrid.appendChild(card);
     }
