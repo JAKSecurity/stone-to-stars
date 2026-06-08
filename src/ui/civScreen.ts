@@ -15,6 +15,7 @@ export interface CivCallbacks {
   onResearch: (techId: string) => void;
   onBuild: (buildingId: string, tile: number) => void;
   onUpgrade: (tile: number) => void;
+  onMoveBuilding: (fromTile: number, toTile: number) => void;
   onStartRun: () => void;
 }
 
@@ -28,6 +29,7 @@ function shortfallText(banked: Record<Resource, number>, cost: Partial<Record<Re
 
 export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbacks): void {
   root.innerHTML = '';
+  let didDrag = false;
   const wrap = document.createElement('div');
   wrap.className = 'civ-wrap';
 
@@ -96,7 +98,9 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
       if (payload.kind === 'new' && payload.id && !tileOccupied(civ, tile)) {
         cb.onBuild(payload.id, tile);
       }
-      // 'move' handled in Task 8
+      if (payload.kind === 'move' && payload.from !== undefined) {
+        cb.onMoveBuilding(payload.from, tile);
+      }
     });
     const placed = civ.buildings.find((b) => b.tile === tile);
     if (placed) {
@@ -112,10 +116,17 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
           ? `Upgrade — ${costText(upgradeCost(placed.id, placed.level))}`
           : 'Max level';
       cell.onclick = () => {
+        if (didDrag) { didDrag = false; return; }
         if (placed.level < def.maxLevel && canAfford(civ.banked, upgradeCost(placed.id, placed.level))) {
           cb.onUpgrade(tile);
         }
       };
+      cell.draggable = true;
+      cell.addEventListener('dragstart', (e) => {
+        didDrag = true;
+        e.dataTransfer?.setData('text/plain', JSON.stringify({ kind: 'move', from: tile }));
+      });
+      cell.addEventListener('dragend', () => { didDrag = false; });
     } else {
       cell.innerHTML = '<span class="lvl">empty</span>';
     }

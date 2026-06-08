@@ -5,7 +5,7 @@ import { newCivState, applyRunResult } from './state/civState';
 import { load, save } from './state/saveLoad';
 import { research, getAge } from './tech/tech';
 import { heroSpriteFor } from './game/heroByAge';
-import { build, upgradeBuilding } from './camp/camp';
+import { build, upgradeBuilding, moveBuilding } from './camp/camp';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen } from './ui/civScreen';
 import { renderExpeditionScreen } from './ui/expeditionScreen';
@@ -41,6 +41,7 @@ function showCiv() {
     onResearch: (id) => { civ = research(civ, id); persist(); showCiv(); },
     onBuild: (id, tile) => { civ = build(civ, id, tile); persist(); showCiv(); },
     onUpgrade: (tile) => { civ = upgradeBuilding(civ, tile); persist(); showCiv(); },
+    onMoveBuilding: (from, to) => { civ = moveBuilding(civ, from, to); persist(); showCiv(); },
     onStartRun: () => startRun(),
   });
 }
