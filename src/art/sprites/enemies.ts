@@ -874,4 +874,183 @@ export const MECHA: SpriteDef = {
   ],
 };
 
-export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT, RIVETER, STEAM_TANK, DRONE, MECHA];
+// A lean infantry soldier. Canvas 26×36.
+// olive/khaki fatigues, a gunmetal helmet, holding an assault rifle (gunmetal line/rect).
+// Upright fast-read soldier silhouette, distinct from all historical foot-soldiers.
+export const RIFLEMAN: SpriteDef = {
+  id: 'rifleman',
+  w: 26,
+  h: 36,
+  prims: [
+    // legs — olive trousers
+    { kind: 'rect', x: 6, y: 22, w: 5, h: 14, rx: 1, color: PAL.olive, role: 'leg' },
+    { kind: 'rect', x: 15, y: 22, w: 5, h: 14, rx: 1, color: PAL.olive, role: 'leg' },
+    // boots (gunmetal, below trouser hem)
+    { kind: 'rect', x: 5, y: 30, w: 6, h: 6, rx: 1, color: PAL.gunmetal, role: 'boot' },
+    { kind: 'rect', x: 14, y: 30, w: 6, h: 6, rx: 1, color: PAL.gunmetal, role: 'boot' },
+    // torso — khaki shirt
+    { kind: 'rect', x: 7, y: 12, w: 12, h: 12, rx: 1, color: PAL.khaki, role: 'torso' },
+    // left arm — down at side
+    { kind: 'poly', points: [[7, 13], [4, 23], [7, 24], [10, 14]], color: PAL.olive, role: 'arm' },
+    // right arm — raised, holding rifle grip
+    { kind: 'poly', points: [[17, 13], [21, 10], [23, 14], [19, 17]], color: PAL.olive, role: 'arm' },
+    // right hand
+    { kind: 'circle', cx: 22, cy: 11, r: 2, color: PAL.skin, role: 'hand' },
+    // assault rifle — gunmetal body rect + barrel line extending forward-up
+    { kind: 'rect', x: 18, y: 8, w: 7, h: 3, rx: 1, color: PAL.gunmetal, role: 'rifle-body' },
+    { kind: 'line', x1: 25, y1: 7, x2: 26, y2: 3, width: 2, color: PAL.gunmetal, role: 'rifle-barrel' },
+    // magazine — small rect below rifle body
+    { kind: 'rect', x: 20, y: 11, w: 3, h: 4, rx: 0, color: PAL.gunmetal, role: 'magazine' },
+    // head
+    { kind: 'circle', cx: 13, cy: 7, r: 5, color: PAL.skin, role: 'head' },
+    // gunmetal helmet — flat-top rim + dome
+    { kind: 'rect', x: 7, y: 2, w: 12, h: 3, rx: 1, color: PAL.gunmetal, role: 'helm-brim' },
+    { kind: 'rect', x: 9, y: 0, w: 8, h: 4, rx: 2, color: PAL.gunmetal, role: 'helm-dome' },
+    // eyes — alert
+    { kind: 'circle', cx: 11, cy: 8, r: 1, color: '#1a0a0a', role: 'eye' },
+    { kind: 'circle', cx: 15, cy: 8, r: 1, color: '#1a0a0a', role: 'eye' },
+  ],
+};
+
+// A wide armored halftrack vehicle. Canvas 48×34.
+// gunmetal/olive hull on wheels, a mounted gunmetal gun, hazard warning stripe.
+// Wide mechanized silhouette — clearly motorized, distinct from Steam Tank.
+export const HALFTRACK: SpriteDef = {
+  id: 'halftrack',
+  w: 48,
+  h: 34,
+  prims: [
+    // rear track base — wide dark rect
+    { kind: 'rect', x: 2, y: 22, w: 26, h: 10, rx: 2, color: PAL.asphalt, role: 'track-base' },
+    // track road wheels — 3 circles on the rear track
+    { kind: 'circle', cx: 7, cy: 28, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    { kind: 'circle', cx: 17, cy: 28, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    { kind: 'circle', cx: 26, cy: 28, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    // wheel hub bolts
+    { kind: 'circle', cx: 7, cy: 28, r: 1, color: PAL.khaki, role: 'hub' },
+    { kind: 'circle', cx: 17, cy: 28, r: 1, color: PAL.khaki, role: 'hub' },
+    { kind: 'circle', cx: 26, cy: 28, r: 1, color: PAL.khaki, role: 'hub' },
+    // front axle wheels — two rubber tires
+    { kind: 'circle', cx: 37, cy: 28, r: 5, color: PAL.asphalt, role: 'front-tire' },
+    { kind: 'circle', cx: 37, cy: 28, r: 2, color: PAL.gunmetal, role: 'wheel-hub' },
+    { kind: 'circle', cx: 44, cy: 28, r: 4, color: PAL.asphalt, role: 'front-tire' },
+    { kind: 'circle', cx: 44, cy: 28, r: 2, color: PAL.gunmetal, role: 'wheel-hub' },
+    // main hull — olive trapezoidal body
+    { kind: 'poly', points: [[4, 22], [6, 8], [42, 8], [46, 14], [46, 22]], color: PAL.olive, role: 'hull' },
+    // gunmetal hull overlay — darker armor plate on front cab
+    { kind: 'poly', points: [[32, 8], [42, 8], [46, 14], [46, 18], [32, 18]], color: PAL.gunmetal, role: 'cab' },
+    // hazard stripe on hull side — yellow diagonal warning marks
+    { kind: 'poly', points: [[8, 18], [14, 18], [12, 22], [6, 22]], color: PAL.hazard, role: 'hazard-stripe' },
+    { kind: 'poly', points: [[16, 18], [22, 18], [20, 22], [14, 22]], color: PAL.hazard, role: 'hazard-stripe' },
+    // windshield slit
+    { kind: 'rect', x: 33, y: 10, w: 10, h: 4, rx: 1, color: PAL.asphalt, role: 'windshield' },
+    // mounted gun on top — gunmetal barrel pointing forward
+    { kind: 'rect', x: 14, y: 4, w: 18, h: 5, rx: 1, color: PAL.gunmetal, role: 'gun-mount' },
+    { kind: 'line', x1: 32, y1: 6, x2: 47, y2: 4, width: 3, color: PAL.gunmetal, role: 'gun-barrel' },
+    // gun shield plate
+    { kind: 'rect', x: 28, y: 2, w: 6, h: 8, rx: 1, color: PAL.gunmetal, role: 'gun-shield' },
+  ],
+};
+
+// An attack helicopter. Canvas 40×28.
+// gunmetal fuselage, long rotor across the top, tail boom, hazard/radio markings, small skids.
+// Wide-low flyer silhouette — very different from winged Harpy/Gargoyle and quad-rotor Drone.
+export const GUNSHIP: SpriteDef = {
+  id: 'gunship',
+  w: 40,
+  h: 28,
+  prims: [
+    // main rotor — long line spanning the full width
+    { kind: 'line', x1: 0, y1: 5, x2: 40, y2: 5, width: 2, color: PAL.gunmetal, role: 'rotor' },
+    // rotor hub — small circle at center
+    { kind: 'circle', cx: 20, cy: 5, r: 2, color: PAL.asphalt, role: 'rotor-hub' },
+    // tail boom — narrow rect extending right
+    { kind: 'rect', x: 28, y: 9, w: 12, h: 4, rx: 1, color: PAL.gunmetal, role: 'tail-boom' },
+    // tail rotor (small vertical line at the tail tip)
+    { kind: 'line', x1: 39, y1: 6, x2: 39, y2: 14, width: 2, color: PAL.gunmetal, role: 'tail-rotor' },
+    // main fuselage — wide oval-ish body
+    { kind: 'poly', points: [[6, 8], [14, 6], [28, 6], [36, 10], [34, 20], [10, 20], [4, 16]], color: PAL.gunmetal, role: 'fuselage' },
+    // cockpit canopy — olive tinted bubble at the front
+    { kind: 'poly', points: [[4, 10], [10, 6], [18, 6], [20, 14], [6, 16]], color: PAL.olive, role: 'cockpit' },
+    // cockpit glass slit
+    { kind: 'poly', points: [[6, 9], [12, 7], [16, 7], [17, 12], [7, 13]], color: PAL.asphalt, role: 'canopy-glass' },
+    // hazard stripe along the fuselage mid-section
+    { kind: 'rect', x: 22, y: 12, w: 8, h: 4, rx: 0, color: PAL.hazard, role: 'hazard-stripe' },
+    // radio/comms antenna marking — small radio-green dot
+    { kind: 'circle', cx: 30, cy: 9, r: 2, color: PAL.radio, role: 'radio-mark' },
+    // left landing skid
+    { kind: 'line', x1: 8, y1: 22, x2: 22, y2: 22, width: 2, color: PAL.gunmetal, role: 'skid' },
+    { kind: 'line', x1: 10, y1: 20, x2: 10, y2: 22, width: 2, color: PAL.gunmetal, role: 'skid-strut' },
+    { kind: 'line', x1: 20, y1: 20, x2: 20, y2: 22, width: 2, color: PAL.gunmetal, role: 'skid-strut' },
+    // right landing skid (same pattern, below right fuselage side)
+    { kind: 'line', x1: 26, y1: 22, x2: 36, y2: 22, width: 2, color: PAL.gunmetal, role: 'skid' },
+    { kind: 'line', x1: 28, y1: 20, x2: 28, y2: 22, width: 2, color: PAL.gunmetal, role: 'skid-strut' },
+    { kind: 'line', x1: 34, y1: 20, x2: 34, y2: 22, width: 2, color: PAL.gunmetal, role: 'skid-strut' },
+    // stub wing weapons pylons
+    { kind: 'rect', x: 14, y: 17, w: 6, h: 3, rx: 1, color: PAL.asphalt, role: 'pylon' },
+    // chin gun below nose
+    { kind: 'line', x1: 2, y1: 15, x2: 0, y2: 22, width: 3, color: PAL.gunmetal, role: 'chin-gun' },
+  ],
+};
+
+// A massive armored battle-tank / mech mini-boss. Canvas 62×62.
+// Heavy gunmetal/olive plated body + treads, a big main cannon barrel, hazard warning
+// stripes, a radio/ember optic. The biggest enemy in the game.
+// Juggernaut at weight 1 = rare mini-boss encounter (proper boss-wave mechanics deferred).
+export const JUGGERNAUT: SpriteDef = {
+  id: 'juggernaut',
+  w: 62,
+  h: 62,
+  prims: [
+    // left tread — wide long rect
+    { kind: 'rect', x: 0, y: 36, w: 14, h: 26, rx: 3, color: PAL.asphalt, role: 'tread-left' },
+    // left tread road wheels
+    { kind: 'circle', cx: 7, cy: 42, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    { kind: 'circle', cx: 7, cy: 52, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    { kind: 'circle', cx: 7, cy: 58, r: 3, color: PAL.gunmetal, role: 'wheel' },
+    // right tread
+    { kind: 'rect', x: 48, y: 36, w: 14, h: 26, rx: 3, color: PAL.asphalt, role: 'tread-right' },
+    // right tread road wheels
+    { kind: 'circle', cx: 55, cy: 42, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    { kind: 'circle', cx: 55, cy: 52, r: 4, color: PAL.gunmetal, role: 'wheel' },
+    { kind: 'circle', cx: 55, cy: 58, r: 3, color: PAL.gunmetal, role: 'wheel' },
+    // massive hull body — olive/gunmetal plated box
+    { kind: 'poly', points: [[10, 60], [12, 28], [20, 18], [42, 18], [50, 28], [52, 60]], color: PAL.olive, role: 'hull' },
+    // upper hull plate — gunmetal overlay
+    { kind: 'poly', points: [[14, 42], [48, 42], [50, 56], [12, 56]], color: PAL.gunmetal, role: 'hull-lower-plate' },
+    // front glacis plate — angled front armor
+    { kind: 'poly', points: [[16, 30], [46, 30], [48, 42], [14, 42]], color: PAL.gunmetal, role: 'glacis' },
+    // hazard warning stripes on the lower hull
+    { kind: 'poly', points: [[14, 50], [20, 50], [18, 56], [12, 56]], color: PAL.hazard, role: 'hazard' },
+    { kind: 'poly', points: [[24, 50], [30, 50], [28, 56], [22, 56]], color: PAL.hazard, role: 'hazard' },
+    { kind: 'poly', points: [[34, 50], [40, 50], [38, 56], [32, 56]], color: PAL.hazard, role: 'hazard' },
+    { kind: 'poly', points: [[44, 50], [50, 50], [48, 56], [42, 56]], color: PAL.hazard, role: 'hazard' },
+    // turret base — wide ring on top of hull
+    { kind: 'rect', x: 16, y: 16, w: 30, h: 16, rx: 3, color: PAL.gunmetal, role: 'turret-base' },
+    // turret top — angled gunmetal dome
+    { kind: 'poly', points: [[18, 16], [44, 16], [46, 8], [16, 8]], color: PAL.gunmetal, role: 'turret-top' },
+    // main cannon barrel — long thick rect extending left
+    { kind: 'rect', x: 0, y: 10, w: 20, h: 6, rx: 1, color: PAL.gunmetal, role: 'cannon' },
+    // cannon muzzle brake
+    { kind: 'rect', x: 0, y: 9, w: 6, h: 8, rx: 1, color: PAL.asphalt, role: 'muzzle-brake' },
+    // secondary MG barrel on turret right
+    { kind: 'line', x1: 44, y1: 13, x2: 56, y2: 11, width: 2, color: PAL.gunmetal, role: 'mg-barrel' },
+    // commander's optic / radio dome on turret — radio-green lens
+    { kind: 'circle', cx: 38, cy: 12, r: 4, color: PAL.asphalt, role: 'optic-housing' },
+    { kind: 'circle', cx: 38, cy: 12, r: 3, color: PAL.radio, role: 'optic-lens' },
+    { kind: 'circle', cx: 39, cy: 11, r: 1, color: '#ffffff', role: 'optic-glint' },
+    // ember targeting reticle ring inside optic
+    { kind: 'circle', cx: 38, cy: 12, r: 2, color: PAL.ember, role: 'targeting-ring' },
+    // armor plate bolts on turret
+    { kind: 'circle', cx: 22, cy: 20, r: 1, color: PAL.khaki, role: 'bolt' },
+    { kind: 'circle', cx: 40, cy: 20, r: 1, color: PAL.khaki, role: 'bolt' },
+    { kind: 'circle', cx: 22, cy: 28, r: 1, color: PAL.khaki, role: 'bolt' },
+    { kind: 'circle', cx: 40, cy: 28, r: 1, color: PAL.khaki, role: 'bolt' },
+    // exhaust grill on rear hull
+    { kind: 'rect', x: 44, y: 32, w: 6, h: 8, rx: 1, color: PAL.asphalt, role: 'exhaust' },
+    { kind: 'line', x1: 45, y1: 34, x2: 49, y2: 34, width: 1, color: PAL.gunmetal, role: 'grill' },
+    { kind: 'line', x1: 45, y1: 37, x2: 49, y2: 37, width: 1, color: PAL.gunmetal, role: 'grill' },
+  ],
+};
+
+export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT, RIVETER, STEAM_TANK, DRONE, MECHA, RIFLEMAN, HALFTRACK, GUNSHIP, JUGGERNAUT];

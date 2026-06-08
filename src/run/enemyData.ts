@@ -66,4 +66,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     baseHp: 80, speed: 120, contactDamage: 14, drop: 'science', xp: 9, displaySize: { w: 32, h: 26 } },
   mecha: { id: 'mecha', name: 'Mecha', sprite: 'mecha',
     baseHp: 460, speed: 38, contactDamage: 34, drop: 'industry', xp: 48, displaySize: { w: 60, h: 60 } },
+  rifleman: { id: 'rifleman', name: 'Rifleman', sprite: 'rifleman',
+    baseHp: 65, speed: 100, contactDamage: 15, drop: 'industry', xp: 7, displaySize: { w: 26, h: 36 } },
+  halftrack: { id: 'halftrack', name: 'Halftrack', sprite: 'halftrack',
+    baseHp: 240, speed: 50, contactDamage: 26, drop: 'industry', xp: 18, displaySize: { w: 48, h: 34 } },
+  gunship: { id: 'gunship', name: 'Gunship', sprite: 'gunship',
+    baseHp: 95, speed: 130, contactDamage: 16, drop: 'science', xp: 10, displaySize: { w: 40, h: 28 } },
+  juggernaut: { id: 'juggernaut', name: 'Juggernaut', sprite: 'juggernaut',
+    baseHp: 540, speed: 36, contactDamage: 38, drop: 'industry', xp: 55, displaySize: { w: 62, h: 62 } },
 };

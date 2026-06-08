@@ -62,4 +62,12 @@ export const BIOMES: Record<string, BiomeDef> = {
     spawnTable: { riveter: 6, drone: 3, steam_tank: 3, mecha: 1 },
     tint: '#0a0806',
   },
+  // Modern Age biome — tech-gated behind flight. Juggernaut at weight 1 is a rare
+  // mini-boss encounter (proper boss-wave mechanics deferred to a later ticket).
+  no_mans_land: {
+    id: 'no_mans_land', name: "No Man's Land", minAge: 'modern', requiresTech: 'flight',
+    resourceBias: { industry: 1, science: 1 },
+    spawnTable: { rifleman: 6, gunship: 3, halftrack: 3, juggernaut: 1 },
+    tint: '#14130e',
+  },
 };
