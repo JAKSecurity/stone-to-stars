@@ -126,8 +126,9 @@ export class RunScene extends Phaser.Scene {
     this.spawnCooldown -= dt;
     if (this.spawnCooldown <= 0) {
       this.spawnEnemy();
-      const ramp = 1 + this.elapsed / 60000;
-      this.spawnCooldown = Math.max(250, 1100 / ramp);
+      // Faster base + steeper ramp so the field fills and you can be swarmed (was 1100/60000/250).
+      const ramp = 1 + this.elapsed / 45000;
+      this.spawnCooldown = Math.max(140, 650 / ramp);
     }
 
     this.explorationCooldown -= dt;
@@ -148,11 +149,15 @@ export class RunScene extends Phaser.Scene {
       this.physics.moveToObject(e, this.player, e.getData('speed'));
     });
 
-    // Gems always drift toward the player so a run reliably delivers its resources;
-    // they accelerate once inside pickupRadius (the Magnet perk widens that fast zone).
+    // Gems are vacuumed in only within pickupRadius — outside it they stay put, so collection is
+    // positional and the radius (widened by the Magnet perk) actually matters. Move near a gem to grab it.
     (this.gems.getChildren() as any[]).forEach((g) => {
       const d = Phaser.Math.Distance.Between(g.x, g.y, this.player.x, this.player.y);
-      this.physics.moveToObject(g, this.player, d < this.stats.pickupRadius ? 340 : 150);
+      if (d < this.stats.pickupRadius) {
+        this.physics.moveToObject(g, this.player, 340);
+      } else {
+        g.body.setVelocity(0, 0);
+      }
     });
 
     this.hud.setText(

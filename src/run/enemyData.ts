@@ -1,17 +1,17 @@
 import { EnemyDef } from '../game/types';
 
-// RC-007 reuses the two existing sprites (beast, scholar). New enemy types + art
-// land in RC-008. Values for beast match the pre-RC-007 hardcoded enemy (24 hp,
-// 6 contact, 3 xp, ~29x26) so The Wilds plays as before at tier 0.
+// Stone enemies (also reused by the Bronze biome). Buffed from the original (beast 24/60/6,
+// scholar 18/70/5) — the early game was unthreatening: enemies were too slow to reach you and
+// too soft to matter. Faster + tankier + harder-hitting so you can actually be swarmed. Tune by feel.
 export const ENEMIES: Record<string, EnemyDef> = {
   beast: {
     id: 'beast', name: 'Beast', sprite: 'beast',
-    baseHp: 24, speed: 60, contactDamage: 6, drop: 'industry', xp: 3,
+    baseHp: 32, speed: 105, contactDamage: 10, drop: 'industry', xp: 3,
     displaySize: { w: 29, h: 26 },
   },
   scholar: {
     id: 'scholar', name: 'Scholar', sprite: 'scholar',
-    baseHp: 18, speed: 70, contactDamage: 5, drop: 'science', xp: 3,
+    baseHp: 24, speed: 110, contactDamage: 8, drop: 'science', xp: 3,
     displaySize: { w: 20, h: 26 },
   },
   cave_dweller: {

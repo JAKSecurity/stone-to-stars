@@ -14,7 +14,9 @@ export function initialRunStats(mods: RunModifiers): RunStats {
 }
 
 export function xpForLevel(level: number): number {
-  return 5 + 3 * level;
+  // ~3x the original (5 + 3*level) so level-ups land every ~15-30s instead of every few seconds —
+  // they were interrupting play. Tune by feel.
+  return 15 + 9 * level;
 }
 
 export function addXp(stats: RunStats, amount: number): { stats: RunStats; levelsGained: number } {
