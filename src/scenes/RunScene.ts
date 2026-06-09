@@ -13,6 +13,7 @@ import { ENEMIES } from '../run/enemyData';
 import { pickEnemy } from '../run/expedition';
 import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { gemValueForTier } from '../game/economy';
+import { spawnTableAt } from '../run/spawnEscalation';
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -200,7 +201,10 @@ export class RunScene extends Phaser.Scene {
     const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
 
-    const def = ENEMIES[pickEnemy(this.biome.spawnTable, () => Math.random())];
+    // RC-017: spawn mix escalates over the run — toward this age's tough enemies + next-age seeds.
+    const progress = this.elapsed / RUN_DURATION_MS;
+    const table = spawnTableAt(this.biome, progress, BIOMES, ENEMIES);
+    const def = ENEMIES[pickEnemy(table, () => Math.random())];
     // RC-017: fixed per-age enemy stats — the difficulty step lives in each age's enemy set, not a
     // continuous per-tier multiplier.
     const enemy = this.add.image(x, y, def.sprite) as any;
