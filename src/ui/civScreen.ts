@@ -38,8 +38,15 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   bar.className = 'resbar';
   for (const r of RESOURCES) {
     const span = document.createElement('span');
+    span.className = 'res';
     span.appendChild(spriteCanvas('gem_' + r, 18));
-    span.appendChild(document.createTextNode(' ' + civ.banked[r]));
+    const name = document.createElement('span');
+    name.className = 'rname';
+    name.textContent = r.charAt(0).toUpperCase() + r.slice(1);
+    span.appendChild(name);
+    const val = document.createElement('strong');
+    val.textContent = String(civ.banked[r]);
+    span.appendChild(val);
     bar.appendChild(span);
   }
   const ageSpan = document.createElement('span');

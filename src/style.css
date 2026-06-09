@@ -1,4 +1,5 @@
 * { box-sizing: border-box; }
+html, body { width: 100%; max-width: 100%; min-height: 100%; overflow-x: hidden; }
 body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, sans-serif; }
 #run { display: none; position: fixed; inset: 0; }
 #run.active { display: block; }
@@ -18,8 +19,10 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .runend-btn { padding: 14px 30px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
 .runend-btn:hover { background: #2ea043; }
 
-.civ-wrap { max-width: 2000px; width: 96%; margin: 0 auto; padding: 16px; }
-.resbar { display: flex; gap: 18px; font-size: 1.1rem; padding: 10px 14px; background: #161b22; border-radius: 8px; }
+.civ-wrap { width: 100%; margin: 0; padding: 16px 28px; }
+.resbar { display: flex; gap: 22px; font-size: 1.1rem; padding: 10px 14px; background: #161b22; border-radius: 8px; align-items: center; }
+.resbar .res { display: inline-flex; align-items: center; gap: 6px; }
+.resbar .res .rname { opacity: 0.7; font-size: 0.85rem; }
 .resbar .age { margin-left: auto; opacity: 0.85; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
 .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
@@ -54,7 +57,7 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 
 #expedition { display: none; }
 #expedition.active { display: block; }
-.exp-wrap { max-width: 2000px; width: 96%; margin: 0 auto; padding: 16px; }
+.exp-wrap { width: 100%; margin: 0; padding: 16px 28px; }
 .exp-wrap h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
 .exp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
 .exp-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; color: inherit; }
