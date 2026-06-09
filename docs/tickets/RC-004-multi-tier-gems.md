@@ -1,5 +1,5 @@
 # RC-004: Multi-tier gems (Diablo II–inspired faceting + quality progression)
-**Status**: Open  **Priority**: P3  **Type**: Enhancement
+**Status**: In Progress  **Priority**: P3  **Type**: Enhancement
 **Created**: 2026-06-06
 **Capability**: C3 (Content & ages)
 
