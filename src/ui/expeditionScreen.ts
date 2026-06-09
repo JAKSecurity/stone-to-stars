@@ -2,6 +2,7 @@ import { CivState, Expedition, Resource, RESOURCES } from '../game/types';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { availableExpeditions } from '../run/expedition';
+import { incomeMult } from '../game/economy';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
@@ -30,11 +31,11 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
     card.className = 'exp-card';
     const enemies = Object.keys(biome.spawnTable).map((id) => ENEMIES[id].name).join(', ');
     card.innerHTML =
-      `<span class="tier">Tier ${exp.tier}</span>` +
+      `<span class="tier">${biome.minAge}</span>` +
       `<div class="name">${biome.name}</div>` +
       `<div class="meta">Yields: ${biasText(biome.resourceBias)}<br>` +
       `Foes: ${enemies}<br>` +
-      `Threat ×${exp.scaling.hpMult.toFixed(1)} · Reward ×${exp.scaling.dropMult.toFixed(1)}</div>`;
+      `Reward ×${incomeMult(exp.tier).toFixed(1)}</div>`;
     card.onclick = () => cb.onPick(exp);
     grid.appendChild(card);
   }

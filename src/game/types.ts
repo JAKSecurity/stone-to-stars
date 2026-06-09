@@ -81,17 +81,10 @@ export interface BiomeDef {
   tint: string;                                     // run background color
 }
 
-export interface ExpeditionScaling {
-  hpMult: number;
-  speedMult: number;
-  spawnRateMult: number;
-  dropMult: number;
-}
-
 export interface Expedition {
   biomeId: string;
-  tier: number;               // difficulty; equals an AGE_ORDER index
-  scaling: ExpeditionScaling;
+  tier: number;               // = AGE_ORDER index of the biome's age; reward = incomeMult(tier).
+                              // Enemy stats are fixed per age (no continuous scaling) — RC-017.
 }
 
 export interface PlacedBuilding {

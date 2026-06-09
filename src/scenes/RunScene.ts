@@ -126,7 +126,7 @@ export class RunScene extends Phaser.Scene {
     if (this.spawnCooldown <= 0) {
       this.spawnEnemy();
       const ramp = 1 + this.elapsed / 60000;
-      this.spawnCooldown = Math.max(250, 1100 / (ramp * this.expedition.scaling.spawnRateMult));
+      this.spawnCooldown = Math.max(250, 1100 / ramp);
     }
 
     this.explorationCooldown -= dt;
@@ -201,15 +201,16 @@ export class RunScene extends Phaser.Scene {
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
 
     const def = ENEMIES[pickEnemy(this.biome.spawnTable, () => Math.random())];
-    const sc = this.expedition.scaling;
+    // RC-017: fixed per-age enemy stats — the difficulty step lives in each age's enemy set, not a
+    // continuous per-tier multiplier.
     const enemy = this.add.image(x, y, def.sprite) as any;
     enemy.setDisplaySize(def.displaySize.w, def.displaySize.h);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
-    enemy.setData('hp', def.baseHp * sc.hpMult);
+    enemy.setData('hp', def.baseHp);
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
-    enemy.setData('speed', def.speed * sc.speedMult);
+    enemy.setData('speed', def.speed);
     enemy.setData('contactDamage', def.contactDamage);
   }
 
