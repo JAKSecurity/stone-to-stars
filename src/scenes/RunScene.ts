@@ -172,9 +172,10 @@ export class RunScene extends Phaser.Scene {
     this.spawnCooldown -= dt;
     if (this.spawnCooldown <= 0) {
       this.spawnEnemy();
-      // Start gentle (~half the prior early rate) and ramp up — sparse at first, busier over the run.
+      // Start gentle and ramp up — sparse at first, busier over the run. Base is ~25% slower again
+      // for the early game (the 150ms floor keeps late-game density unchanged).
       const ramp = 1 + this.elapsed / 30000;
-      this.spawnCooldown = Math.max(150, 1300 / ramp);
+      this.spawnCooldown = Math.max(150, 1625 / ramp);
     }
 
     this.explorationCooldown -= dt;
