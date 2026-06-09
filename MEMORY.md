@@ -30,9 +30,13 @@ Phaser (run scene) + HTML/CSS DOM (civ screen).
   - **149 tests green, build clean** on rc-017. Specs/plans: `docs/superpowers/specs|plans/
     2026-06-08-orbit-lob-behaviors-*`, `2026-06-08-multi-tier-gems-*`, `2026-06-08-exponential-economy-*`
     / `2026-06-08-rc017-exponential-economy.md`. Nightly handoff: `docs/NIGHTLY-REPORT-2026-06-08.md`.
-  - **Dev-server note:** run from the repo with `npm run dev` (currently serves `localhost:5173`). A
-    full-screen "menu is boxed" report turned out to be **browser CSS caching** (HMR updated JS not CSS);
-    fix = hard-reload / fresh port. The page CSS is correct (`max-width: none`, fills the viewport).
+  - **Dev-server note:** run from the repo with `npm run dev` (currently serves `localhost:5173`). The
+    page CSS is **verifiably correct** (`.civ-wrap` `max-width: none`, fills the viewport — confirmed via
+    an on-page `innerWidth`/`civWrap` readout AND a separate Playwright instance). A persistent "menu is
+    boxed / not full-screen" symptom on Jeff's 4K/multi-monitor setup did NOT resolve via hard-reload,
+    fresh port, or restarting the dev server — it cleared only after a **desktop reboot**. Root cause
+    unconfirmed (likely a wedged long-running dev server + browser state). If it recurs: reboot is the
+    known-good reset; don't chase it as a CSS bug — the stylesheet is correct.
 - **Iron + four more ages shipped (2026-06-07):** on top of RC-006/007 foundations,
   **RC-008** (Iron content, folds in **RC-003** hero-by-age) plus a nightly autonomous
   expansion — **RC-010** (N-age engine readiness: bigger camp grid + `heroByAge.ts` map) and
