@@ -14,6 +14,8 @@ const BUILDING_BASE = { primary: 12, secondary: 6 };
 export function buildingCost(id: string, level: number): Partial<ResourceBundle> {
   const def = BUILDINGS[id];
   const mult = COST_BASE * costMult(ageIndexOf(def.age)) * level;
+  // Largest current component = primary. Ties (e.g. foundry industry==science) fall back to key
+  // insertion order — deterministic and identical for charge + display; re-keying would swap them.
   const entries = (Object.entries(def.baseCost) as [Resource, number][]).sort((a, b) => b[1] - a[1]);
   const out: Partial<ResourceBundle> = {};
   if (entries[0]) out[entries[0][0]] = Math.round(BUILDING_BASE.primary * mult);
