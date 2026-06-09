@@ -362,8 +362,11 @@ export class RunScene extends Phaser.Scene {
   private hitPlayer(enemy: any) {
     this.stats.hp -= enemy.getData('contactDamage');
     enemy.destroy();
-    // --- Juice: screen shake on player taking contact damage ---
+    // --- Juice: a red screen flash + the hero flashing red so a hit is unmistakable, plus shake ---
+    this.cameras.main.flash(110, 130, 0, 0);
     this.cameras.main.shake(120, 0.008);
+    this.player.setTintFill(0xff3333);
+    this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
     if (this.stats.hp <= 0) this.finish(true);
   }
 
