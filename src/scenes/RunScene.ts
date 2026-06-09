@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource, Expedition, BiomeDef } from '../game/types';
+import { RunModifiers, RunResult, Resource, RESOURCES, Expedition, BiomeDef } from '../game/types';
 import { RUN_DURATION_MS } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
 import { applyPerk } from '../run/draft';
@@ -14,6 +14,9 @@ import { pickEnemy } from '../run/expedition';
 import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { gemValueForTier } from '../game/economy';
 import { spawnTableAt } from '../run/spawnEscalation';
+
+// Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
+const RUN_SCALE = 2;
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -33,6 +36,7 @@ export class RunScene extends Phaser.Scene {
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
   private gems!: Phaser.Physics.Arcade.Group;
+  private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private keys!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
@@ -43,6 +47,7 @@ export class RunScene extends Phaser.Scene {
   private spawnCooldown = 0;
   private explorationCooldown = 0;
   private relicCooldown = 0;
+  private resourceCooldown = 0;
   private paused = false;
   private finished = false;
   private pendingDrafts = 0;
@@ -63,25 +68,29 @@ export class RunScene extends Phaser.Scene {
     this.equipped = initialWeapons();
     this.ownedPerks = [];
     this.weaponCooldowns = {};
-    this.explorationCooldown = 0; this.relicCooldown = 0;
+    this.explorationCooldown = 0; this.relicCooldown = 0; this.resourceCooldown = 0;
     this.paused = false; this.finished = false; this.pendingDrafts = 0;
   }
 
   create() {
     const { width, height } = this.scale;
+    this.physics.world.setBounds(0, 0, width, height);
+    this.cameras.main.setBackgroundColor(this.biome.tint);
+    this.drawBackground(width, height);
+
     const player = this.add.image(width / 2, height / 2, this.heroSprite);
-    player.setDisplaySize(34, 42); // scale 120x150 art down to play size
+    player.setDisplaySize(34 * RUN_SCALE, 42 * RUN_SCALE);
     this.physics.add.existing(player);
     this.player = player as any;
     (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
-    // Leave the body at its default (the scaled sprite size, ~34x42). An explicit
-    // setSize(w,h) here is interpreted in the texture's *source* pixels and then scaled
-    // by the display scale (~0.28), which shrank the hitbox to ~8x10 and made the player
-    // nearly immune to contact damage.
+    // Leave the body at its default (the scaled sprite size). An explicit setSize here is read in
+    // the texture's source pixels then scaled down, which shrank the hitbox and broke contact damage.
 
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group();
     this.gems = this.physics.add.group();
+    this.obstacles = this.physics.add.staticGroup();
+    this.scatterObstacles(width, height);
 
     this.keys = {
       up: this.input.keyboard!.addKey('W'),
@@ -93,9 +102,46 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
     this.physics.add.overlap(this.player, this.gems, (_p, g) => this.collectGem(g as any));
+    // Obstacles block movement for both the player and the chasing enemies (they bunch up on them).
+    this.physics.add.collider(this.player, this.obstacles);
+    this.physics.add.collider(this.enemies, this.obstacles);
 
-    this.cameras.main.setBackgroundColor(this.biome.tint);
-    this.hud = this.add.text(8, 8, '', { fontSize: '14px', color: '#fff' }).setDepth(10);
+    this.hud = this.add.text(12, 12, '',
+      { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10);
+  }
+
+  /** Biome-tinted ground with a faint grid + scattered specks so motion reads against the field. */
+  private drawBackground(width: number, height: number) {
+    const grid = this.add.graphics().setDepth(-10);
+    grid.lineStyle(1, 0xffffff, 0.05);
+    const step = 96;
+    for (let x = 0; x <= width; x += step) grid.lineBetween(x, 0, x, height);
+    for (let y = 0; y <= height; y += step) grid.lineBetween(0, y, width, y);
+    const specks = Math.min(600, Math.round((width * height) / 9000));
+    for (let i = 0; i < specks; i++) {
+      const shade = Phaser.Math.Between(0, 1) ? 0xffffff : 0x000000;
+      this.add.circle(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height),
+        Phaser.Math.Between(1, 2), shade, 0.06).setDepth(-9);
+    }
+  }
+
+  /** Scatter static boulders (collidable terrain), keeping the player's spawn area clear. */
+  private scatterObstacles(width: number, height: number) {
+    const count = Math.round((width * height) / 90000) + 4;
+    const cx = width / 2, cy = height / 2;
+    for (let i = 0; i < count; i++) {
+      let x = 0, y = 0, tries = 0;
+      do {
+        x = Phaser.Math.Between(70, width - 70);
+        y = Phaser.Math.Between(70, height - 70);
+        tries++;
+      } while (Phaser.Math.Distance.Between(x, y, cx, cy) < 200 && tries < 25);
+      const r = Phaser.Math.Between(26, 46);
+      const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
+      rock.setStrokeStyle(2, 0xffffff, 0.08);
+      this.physics.add.existing(rock, true);
+      this.obstacles.add(rock);
+    }
   }
 
   update(_t: number, deltaMs: number) {
@@ -106,7 +152,7 @@ export class RunScene extends Phaser.Scene {
     const dt = deltaMs;
     this.elapsed += dt;
 
-    const speed = 180 * this.stats.moveSpeedMult;
+    const speed = 180 * RUN_SCALE * this.stats.moveSpeedMult;
     const b = this.player.body;
     b.setVelocity(0);
     if (this.keys.left.isDown) b.setVelocityX(-speed);
@@ -145,6 +191,14 @@ export class RunScene extends Phaser.Scene {
       this.relicCooldown = 5000 / (this.biome.resourceBias.culture ?? 1);
     }
 
+    // Scattered resource deposits — income you gather by exploring the field, not just from kills.
+    this.resourceCooldown -= dt;
+    if (this.resourceCooldown <= 0) {
+      const { width, height } = this.scale;
+      this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), this.biasedResource());
+      this.resourceCooldown = 2600;
+    }
+
     (this.enemies.getChildren() as any[]).forEach((e) => {
       this.physics.moveToObject(e, this.player, e.getData('speed'));
     });
@@ -153,8 +207,8 @@ export class RunScene extends Phaser.Scene {
     // positional and the radius (widened by the Magnet perk) actually matters. Move near a gem to grab it.
     (this.gems.getChildren() as any[]).forEach((g) => {
       const d = Phaser.Math.Distance.Between(g.x, g.y, this.player.x, this.player.y);
-      if (d < this.stats.pickupRadius) {
-        this.physics.moveToObject(g, this.player, 340);
+      if (d < this.stats.pickupRadius * RUN_SCALE) {
+        this.physics.moveToObject(g, this.player, 340 * RUN_SCALE);
       } else {
         g.body.setVelocity(0, 0);
       }
@@ -181,12 +235,12 @@ export class RunScene extends Phaser.Scene {
         : 0;
       const angle = baseAngle + offset;
       const bullet = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
-      bullet.setDisplaySize(12, 12);
+      bullet.setDisplaySize(12 * RUN_SCALE, 12 * RUN_SCALE);
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
       bullet.setData('damage', shot.damage);
       bullet.setData('pierce', shot.pierce);
-      bullet.body.setVelocity(Math.cos(angle) * shot.speed, Math.sin(angle) * shot.speed);
+      bullet.body.setVelocity(Math.cos(angle) * shot.speed * RUN_SCALE, Math.sin(angle) * shot.speed * RUN_SCALE);
       this.time.delayedCall(1200, () => bullet.destroy());
     }
   }
@@ -213,14 +267,26 @@ export class RunScene extends Phaser.Scene {
     // RC-017: fixed per-age enemy stats — the difficulty step lives in each age's enemy set, not a
     // continuous per-tier multiplier.
     const enemy = this.add.image(x, y, def.sprite) as any;
-    enemy.setDisplaySize(def.displaySize.w, def.displaySize.h);
+    enemy.setDisplaySize(def.displaySize.w * RUN_SCALE, def.displaySize.h * RUN_SCALE);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
     enemy.setData('hp', def.baseHp);
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
-    enemy.setData('speed', def.speed);
+    enemy.setData('speed', def.speed * RUN_SCALE);
     enemy.setData('contactDamage', def.contactDamage);
+  }
+
+  /** A resource id biased toward the biome's lean (but every resource can appear). */
+  private biasedResource(): Resource {
+    const weights = RESOURCES.map((r) => 0.5 + (this.biome.resourceBias[r] ?? 0));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * total;
+    for (let i = 0; i < RESOURCES.length; i++) {
+      roll -= weights[i];
+      if (roll < 0) return RESOURCES[i];
+    }
+    return RESOURCES[RESOURCES.length - 1];
   }
 
   private hitEnemy(bullet: any, enemy: any) {
@@ -304,7 +370,7 @@ export class RunScene extends Phaser.Scene {
   private dropGem(x: number, y: number, resource: Resource) {
     const tier = gemTierForExpeditionTier(this.expedition.tier);
     const gem = this.add.image(x, y, gemSpriteId(resource, tier)) as any;
-    gem.setDisplaySize(14, 14);
+    gem.setDisplaySize(14 * RUN_SCALE, 14 * RUN_SCALE);
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);

@@ -1,8 +1,22 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, sans-serif; }
-#run { display: none; }
+#run { display: none; position: fixed; inset: 0; }
 #run.active { display: block; }
+#run canvas { display: block; }
 #civ.hidden { display: none; }
+
+#runend { display: none; position: fixed; inset: 0; background: #0d1117; z-index: 20; }
+#runend.active { display: flex; align-items: center; justify-content: center; }
+.runend-wrap { max-width: 600px; text-align: center; padding: 24px; }
+.runend-wrap h2 { font-size: 1.5rem; line-height: 1.4; margin: 0 0 8px; }
+.runend-sub { opacity: 0.8; margin-bottom: 22px; }
+.runend-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+.runend-res { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 8px; }
+.runend-res .ricon { font-size: 2rem; }
+.runend-res .rval { font-size: 1.7rem; font-weight: 700; margin-top: 4px; }
+.runend-res .rlbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; margin-top: 2px; }
+.runend-btn { padding: 14px 30px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+.runend-btn:hover { background: #2ea043; }
 
 .civ-wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
 .resbar { display: flex; gap: 18px; font-size: 1.1rem; padding: 10px 14px; background: #161b22; border-radius: 8px; }
