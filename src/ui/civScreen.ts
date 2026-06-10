@@ -8,6 +8,8 @@ import { traditionRank, nextRankCost, canBuyTradition } from '../civics/traditio
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
+import { heroSpriteFor } from '../game/heroByAge';
+import { ageUnlocks } from '../game/ageUnlocks';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
@@ -38,11 +40,60 @@ function costLine(banked: Record<Resource, number>, cost: Partial<Record<Resourc
   return parts.join(' · ') || 'free';
 }
 
-export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbacks): void {
+export interface AgeUpEvent { from: AgeId; to: AgeId }
+
+const ageName = (a: AgeId) => a.charAt(0).toUpperCase() + a.slice(1);
+
+/** The inline age-up celebration: hero old→new, the new age name, and the data-derived unlock list. */
+function ageUpBanner(ev: AgeUpEvent): HTMLElement {
+  const u = ageUnlocks(ev.to);
+  const bits: string[] = [];
+  if (u.biomes.length) bits.push(`<b>Biome:</b> ${u.biomes.join(', ')}`);
+  if (u.weapons.length) bits.push(`<b>Weapons:</b> ${u.weapons.join(', ')}`);
+  if (u.buildings.length) bits.push(`<b>Buildings:</b> ${u.buildings.join(', ')}`);
+  if (u.techs.length) bits.push(`<b>Techs:</b> ${u.techs.join(', ')}`);
+
+  const banner = document.createElement('div');
+  banner.className = 'ageup';
+
+  const heroes = document.createElement('div');
+  heroes.className = 'ageup-heroes';
+  heroes.appendChild(spriteCanvas(heroSpriteFor(ev.from), 44));
+  const arrow = document.createElement('span');
+  arrow.className = 'ageup-arrow';
+  arrow.textContent = '→';
+  heroes.appendChild(arrow);
+  heroes.appendChild(spriteCanvas(heroSpriteFor(ev.to), 56));
+  banner.appendChild(heroes);
+
+  const text = document.createElement('div');
+  text.className = 'ageup-text';
+  text.innerHTML =
+    `<div class="ageup-title">⊹ Entered the ${ageName(ev.to)} Age ⊹</div>` +
+    `<div class="ageup-unlocks">${bits.join(' &nbsp;·&nbsp; ')}</div>`;
+  banner.appendChild(text);
+
+  const x = document.createElement('button');
+  x.className = 'ageup-x';
+  x.textContent = '✕';
+  x.title = 'Dismiss';
+  x.onclick = () => banner.remove();
+  banner.appendChild(x);
+
+  return banner;
+}
+
+export function renderCivScreen(
+  root: HTMLElement, civ: CivState, cb: CivCallbacks, celebrate?: AgeUpEvent,
+): void {
   root.innerHTML = '';
   let didDrag = false;
   const wrap = document.createElement('div');
   wrap.className = 'civ-wrap';
+
+  // RC-024: one-shot age-up celebration, inserted inline at the very top (no modal). Shows the new
+  // age, hero old→new, and what the data just introduced. Dismissible; gone on the next re-render.
+  if (celebrate) wrap.appendChild(ageUpBanner(celebrate));
 
   // Resource bar + age.
   const bar = document.createElement('div');
