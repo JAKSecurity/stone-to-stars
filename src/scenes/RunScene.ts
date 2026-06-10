@@ -15,6 +15,7 @@ import { pickEnemy } from '../run/expedition';
 import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { rewardValueForTier } from '../game/economy';
 import { spawnTableAt } from '../run/spawnEscalation';
+import { playSfx } from '../audio';
 import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
   ORBIT_RADIUS, ORBIT_HIT_INTERVAL_MS, LOB_BLAST_RADIUS, LOB_PEAK_HEIGHT,
@@ -22,6 +23,9 @@ import {
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
+
+// RC-020: pitch the gem-pickup chime up by the gem's value (kept musical, ~one-octave span).
+const gemValueToSemitones = (v: number) => Math.min(12, Math.floor(Math.log2(Math.max(1, v)) * 2));
 
 // End-of-run "Zone Cleared" ceremony: clear non-boss enemies, magnet every gem in, then summarize.
 const CEREMONY_MS = 3000;
@@ -357,6 +361,7 @@ export class RunScene extends Phaser.Scene {
     if (this.ceremony || this.finished) return;
     this.ceremony = true;
     this.ceremonyMs = CEREMONY_MS;
+    playSfx('zone-cleared'); // RC-020
 
     (this.enemies.getChildren() as any[]).slice().forEach((e) => {
       if (e.getData('isBoss')) return;
@@ -395,7 +400,8 @@ export class RunScene extends Phaser.Scene {
   }
 
   private fireWeapon(shot: WeaponShot, weaponId: string) {
-    if (shot.behavior === 'orbit') { this.summonOrbit(shot, weaponId); return; }
+    if (shot.behavior === 'orbit') { this.summonOrbit(shot, weaponId); return; } // persistent ring — no per-refresh shot sound
+    playSfx('shoot'); // RC-020 (recipe self-throttles); lob + straight/cone fire a projectile
     if (shot.behavior === 'lob') { this.fireLob(shot); return; }
     const target = this.nearestEnemy() as any;
     const baseAngle = target
@@ -571,6 +577,7 @@ export class RunScene extends Phaser.Scene {
     if (!bullet.active) return;
     this.stats.hp -= bullet.getData('damage') ?? 0;
     bullet.destroy();
+    playSfx('player-hit'); // RC-020
     this.cameras.main.flash(90, 130, 0, 0);
     this.player.setTintFill(0xff3333);
     this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
@@ -642,6 +649,7 @@ export class RunScene extends Phaser.Scene {
         fontSize: '14px', color: '#9fe0ff', stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5).setDepth(30);
       this.tweens.add({ targets: blk, y: blk.y - 18, alpha: 0, duration: 380, onComplete: () => blk.destroy() });
+      playSfx('enemy-hit'); // RC-020: a hit landed, even if armor absorbed it
       return;
     }
 
@@ -687,8 +695,10 @@ export class RunScene extends Phaser.Scene {
         });
       }
 
+      playSfx('enemy-death'); // RC-020
       this.gainXp(xpGain);
     } else {
+      playSfx('enemy-hit'); // RC-020
       enemy.setData('hp', hp);
     }
   }
@@ -696,6 +706,7 @@ export class RunScene extends Phaser.Scene {
   private hitPlayer(enemy: any) {
     this.stats.hp -= enemy.getData('contactDamage');
     enemy.destroy();
+    playSfx('player-hit'); // RC-020
     // --- Juice: a red screen flash + the hero flashing red so a hit is unmistakable, plus shake ---
     this.cameras.main.flash(110, 130, 0, 0);
     this.cameras.main.shake(120, 0.008);
@@ -725,7 +736,9 @@ export class RunScene extends Phaser.Scene {
   }
 
   private collectGem(gem: any) {
-    this.collected[gem.getData('resource') as Resource] += gem.getData('value') ?? 1;
+    const value = gem.getData('value') ?? 1;
+    this.collected[gem.getData('resource') as Resource] += value;
+    playSfx('gem-pickup', { semitones: gemValueToSemitones(value) }); // RC-020: chime pitched by value
     gem.destroy();
   }
 
@@ -733,6 +746,7 @@ export class RunScene extends Phaser.Scene {
     const r = addXp(this.stats, amount);
     this.stats = r.stats;
     if (r.levelsGained > 0) {
+      playSfx('level-up'); // RC-020
       this.pendingDrafts += r.levelsGained;
       // Only trigger openDraft if we're not already inside a draft (paused).
       // If already paused, the queue will be drained by the card pointerdown handler.
@@ -745,6 +759,7 @@ export class RunScene extends Phaser.Scene {
     this.pendingDrafts -= 1;
     this.paused = true;
     this.physics.pause();
+    playSfx('draft-open'); // RC-020 (reroll re-renders without re-opening, so no extra sound)
     this.renderDraft();
   }
 
@@ -784,7 +799,7 @@ export class RunScene extends Phaser.Scene {
         { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
       const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
         { fontSize: '12px', color: '#d2f0d8' }).setOrigin(0.5);
-      card.on('pointerdown', () => { this.applyDraftOption(opt); closeAndAdvance(); });
+      card.on('pointerdown', () => { playSfx('draft-select'); this.applyDraftOption(opt); closeAndAdvance(); });
       panel.add(card); panel.add(label); panel.add(sub);
     });
 
