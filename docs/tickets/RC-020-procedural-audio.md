@@ -1,0 +1,33 @@
+# RC-020: Procedural audio pass (SFX + ambient)
+**Status**: Open  **Priority**: P2  **Type**: Feature
+**Created**: 2026-06-09
+
+## Summary
+The game is completely silent. Add procedurally synthesized WebAudio sound effects and a simple
+ambient loop — no audio assets needed, consistent with the all-code art pipeline.
+
+## Context
+From the 2026-06-09 review (item B2) — judged the single biggest feel upgrade available. Phaser
+boots with Web Audio already. Proposed minimum SFX set:
+- weapon fire tick (subtle, per-shot; consider throttling at high fire rates)
+- enemy hit thunk + enemy death pop
+- gem pickup chime (pitch could scale with gem value — ties into RC-022's value readability)
+- player hurt
+- level-up sting + draft pick confirm
+- mini-boss arrival sting (lands with RC-019)
+- civ-side: research complete, building placed, age-up fanfare (lands with RC-024)
+- one low-key ambient loop per run (could vary per biome later)
+
+Build as a small pure-ish `src/audio/` module (synth recipes as data, one play function), with a
+mute toggle persisted to localStorage. Volumes/recipes are feel constants — expect Jeff tuning.
+
+## Acceptance Criteria
+- [ ] WebAudio synth module with data-driven sound recipes; no binary audio assets
+- [ ] Core run SFX wired (fire, hit, death, gem, hurt, level-up)
+- [ ] At least one civ-side SFX (research complete) to prove the cross-screen path
+- [ ] Mute toggle visible in the UI, persisted across sessions
+- [ ] High fire-rate weapons don't produce audio spam (throttle/voice cap)
+- [ ] Playwright smoke: no console errors with audio enabled; mute toggle works
+
+## References
+- Review session 2026-06-09 (item B2)

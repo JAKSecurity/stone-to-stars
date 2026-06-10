@@ -1,5 +1,5 @@
 # Rogue · Civ -- Backlog
-> Last verified: 2026-06-07
+> Last verified: 2026-06-09
 
 Hub tracking surface for the AI Assistant registry. Detailed design lives in
 `docs/superpowers/specs/` and `docs/superpowers/plans/`; resolved defects in
@@ -34,3 +34,16 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-014 | Industrial age content (steam & steel) | Delivered | P2 | C3 | docs/superpowers/plans/2026-06-07-nightly-age-expansion.md |
 | RC-015 | Implement orbit/lob projectile behaviors | Open | P3 | C3 | docs/tickets/RC-015-orbit-lob-behaviors.md |
 | RC-016 | Modern age content (mechanized warfare) + hero face/eye fixes | Delivered | P2 | C3 | docs/tickets/RC-016-modern-age.md |
+| RC-018 | Enemy behavior archetypes (ranged/charger/splitter/circler) | Open | P2 | C3 | docs/tickets/RC-018-enemy-behavior-archetypes.md |
+| RC-019 | Mini-boss arrival events (announce, HP bar, jackpot) | Open | P2 | C3 | docs/tickets/RC-019-mini-boss-events.md |
+| RC-020 | Procedural audio pass (WebAudio SFX + ambient) | Open | P2 | C3 | docs/tickets/RC-020-procedural-audio.md |
+| RC-021 | Biome visual identity (palettes + themed obstacles) | Open | P2 | C3 | docs/tickets/RC-021-biome-visual-identity.md |
+| RC-022 | Run readability bundle (HUD XP bar/loadout, draft cards, gem value, projectiles) | Open | P2 | C3 | docs/tickets/RC-022-run-readability-bundle.md |
+| RC-023 | Civ screen info density (tech effects inline, age grouping, yields, record strip) | Open | P2 | C3 | docs/tickets/RC-023-civ-screen-info-density.md |
+| RC-024 | Age-up celebration moment | Open | P2 | C3 | docs/tickets/RC-024-age-up-celebration.md |
+| RC-025 | Perk pool expansion + healing pickups | Open | P2 | C3 | docs/tickets/RC-025-perk-pool-healing.md |
+| RC-026 | In-run point-of-interest events (shrine, treasure courier) | Open | P3 | C3 | docs/tickets/RC-026-in-run-poi-events.md |
+| RC-027 | Expedition screen upgrade + starting-weapon choice | Open | P3 | C3 | docs/tickets/RC-027-expedition-screen-upgrade.md |
+| RC-028 | Culture sink — Traditions meta-progression | Open | P3 | C3 | docs/tickets/RC-028-culture-traditions.md |
+| RC-029 | Expedition mutators (risk/reward modifiers) | Open | P3 | C3 | docs/tickets/RC-029-expedition-mutators.md |
+| RC-030 | Polish defects: fresh-save palette message + favicon | Open | P3 | C3 | docs/tickets/RC-030-polish-defects.md |
