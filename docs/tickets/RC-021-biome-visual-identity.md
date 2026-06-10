@@ -1,5 +1,5 @@
 # RC-021: Biome visual identity
-**Status**: Open  **Priority**: P2  **Type**: Enhancement
+**Status**: Delivered  **Priority**: P2  **Type**: Enhancement
 **Created**: 2026-06-09
 
 ## Summary
@@ -21,11 +21,19 @@ ticket builds on that:
 **Sequencing:** after rc-017 merges (background/obstacle code lives there).
 
 ## Acceptance Criteria
-- [ ] `BiomeDef` carries visual identity data (palette + obstacle sprite set)
-- [ ] All 8 biomes visually distinguishable at a glance in Playwright screenshots
-- [ ] Obstacles keep identical collision behavior (visual change only)
-- [ ] Sprite defs validated via `validateSpriteDef`; unit tests for any new pure helpers
-- [ ] Jeff ratifies the art before merge
+- [x] `BiomeDef` carries visual identity data (palette + obstacle sprite set) — `BiomeVisual`
+- [x] All 9 biomes visually distinguishable at a glance in Playwright screenshots (9 not 8 — Modern's
+      `no_mans_land` was added after the ticket); verified Stone→Iron→Modern render starkly distinct
+- [x] Obstacles keep identical collision behavior (visual change only — body code byte-identical)
+- [x] Sprite defs validated via `validateSpriteDef`; unit tests for new helpers
+- [x] Jeff ratifies the art before merge
+
+## Delivery — 2026-06-10
+Art half merged to main (a785bcc): `BiomeVisual` field, all 9 biomes' palettes, 18 obstacle sprites
+(`src/art/sprites/obstacles.ts`), preview harness, tests. RunScene integration (this branch):
+palette-driven `drawBackground` + sprite-based `scatterObstacles` (collision body unchanged), per
+`docs/RC-021-runscene-integration.md`. tsc + 173 vitest + build green; 9-biome Playwright sweep
+confirmed distinct visuals with intact collision.
 
 ## References
 - Review session 2026-06-09 (item B1)

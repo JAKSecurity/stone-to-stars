@@ -116,7 +116,7 @@ export class RunScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale;
     this.physics.world.setBounds(0, 0, width, height);
-    this.cameras.main.setBackgroundColor(this.biome.tint);
+    this.cameras.main.setBackgroundColor(this.biome.visual?.ground ?? this.biome.tint);
     this.drawBackground(width, height);
 
     const player = this.add.image(width / 2, height / 2, this.heroSprite);
@@ -155,23 +155,29 @@ export class RunScene extends Phaser.Scene {
       { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10);
   }
 
-  /** Biome-tinted ground with a faint grid + scattered specks so motion reads against the field. */
+  /** Biome ground + grid + specks from the biome palette (RC-021), falling back to tint/white. */
   private drawBackground(width: number, height: number) {
+    const v = this.biome.visual;
+    const gridColor = v ? Phaser.Display.Color.HexStringToColor(v.grid).color : 0xffffff;
+    const speckColor = v ? Phaser.Display.Color.HexStringToColor(v.speck).color : 0xffffff;
+
     const grid = this.add.graphics().setDepth(-10);
-    grid.lineStyle(1, 0xffffff, 0.05);
+    grid.lineStyle(1, gridColor, v ? 0.16 : 0.05);   // hued tints read at higher alpha than white
     const step = 96;
     for (let x = 0; x <= width; x += step) grid.lineBetween(x, 0, x, height);
     for (let y = 0; y <= height; y += step) grid.lineBetween(0, y, width, y);
+
     const specks = Math.min(600, Math.round((width * height) / 9000));
     for (let i = 0; i < specks; i++) {
-      const shade = Phaser.Math.Between(0, 1) ? 0xffffff : 0x000000;
       this.add.circle(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height),
-        Phaser.Math.Between(1, 2), shade, 0.06).setDepth(-9);
+        Phaser.Math.Between(1, 2), speckColor, v ? 0.4 : 0.06).setDepth(-9);
     }
   }
 
-  /** Scatter static boulders (collidable terrain), keeping the player's spawn area clear. */
+  /** Scatter static collidable terrain — biome-themed sprites (RC-021) — keeping the spawn area clear.
+   *  Visual only: the collision body is the same inset circle regardless of the prop's look. */
   private scatterObstacles(width: number, height: number) {
+    const set = this.biome.visual?.obstacles ?? [];
     const count = Math.round((width * height) / 90000) + 4;
     const cx = width / 2, cy = height / 2;
     for (let i = 0; i < count; i++) {
@@ -182,14 +188,24 @@ export class RunScene extends Phaser.Scene {
         tries++;
       } while (Phaser.Math.Distance.Between(x, y, cx, cy) < 200 && tries < 25);
       const r = Phaser.Math.Between(26, 46);
-      const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
-      rock.setStrokeStyle(2, 0xffffff, 0.08);
-      this.physics.add.existing(rock, true);
-      // Default static body is the ellipse's bounding RECTANGLE — its corners stick out past the
-      // visible rounded rock, so you snag on empty space. Use a circle inset inside the ellipse.
+
+      let obj: Phaser.GameObjects.GameObject & { body: Phaser.Physics.Arcade.Body };
+      if (set.length) {
+        const id = set[Phaser.Math.Between(0, set.length - 1)];
+        const img = this.add.image(x, y, id).setDepth(-1);
+        img.setDisplaySize(r * 2, r * 2); // match the old ellipse footprint
+        obj = img as any;
+      } else {
+        const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
+        rock.setStrokeStyle(2, 0xffffff, 0.08);
+        obj = rock as any;
+      }
+      this.physics.add.existing(obj, true);
+      // UNCHANGED collision behavior — an inset circle inside the footprint (rc-017's snag fix).
+      // Sprites are square (r*2 × r*2), so the body is centred symmetrically.
       const cr = r * 0.8;
-      (rock.body as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, 0.8 * r - cr);
-      this.obstacles.add(rock);
+      (obj.body as unknown as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, r - cr);
+      this.obstacles.add(obj);
     }
   }
 

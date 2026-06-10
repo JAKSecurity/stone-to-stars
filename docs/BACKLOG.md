@@ -38,7 +38,7 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-018 | Enemy behavior archetypes (ranged/charger/splitter/circler) | In Progress | P2 | C3 | docs/tickets/RC-018-enemy-behavior-archetypes.md |
 | RC-019 | Mini-boss arrival events (announce, HP bar, jackpot) | Open | P2 | C3 | docs/tickets/RC-019-mini-boss-events.md |
 | RC-020 | Procedural audio pass (WebAudio SFX + ambient) | Open | P2 | C3 | docs/tickets/RC-020-procedural-audio.md |
-| RC-021 | Biome visual identity (palettes + themed obstacles) | In Progress | P2 | C3 | docs/tickets/RC-021-biome-visual-identity.md |
+| RC-021 | Biome visual identity (palettes + themed obstacles) | Delivered | P2 | C3 | docs/tickets/RC-021-biome-visual-identity.md |
 | RC-022 | Run readability bundle (HUD XP bar/loadout, draft cards, gem value, projectiles) | In Progress | P2 | C3 | docs/tickets/RC-022-run-readability-bundle.md |
 | RC-023 | Civ screen info density (tech effects inline, age grouping, yields, record strip) | In Progress | P2 | C3 | docs/tickets/RC-023-civ-screen-info-density.md |
 | RC-024 | Age-up celebration moment | Open | P2 | C3 | docs/tickets/RC-024-age-up-celebration.md |
