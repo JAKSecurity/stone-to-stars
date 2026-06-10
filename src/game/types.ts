@@ -78,6 +78,19 @@ export interface BiomeDef {
   spawnTable: Record<string, number>;              // enemyId -> spawn weight
   requiresTech?: string;                            // biome hidden until this tech is researched
   tint: string;                                     // run background color
+  // RC-021 — additive visual identity. Optional so existing data/tests stay undisturbed and the
+  // unmerged rc-017 RunScene keeps compiling; once both land, RunScene reads `visual` for the
+  // ground palette + themed obstacle sprites and falls back to `tint` + plain ellipses when absent.
+  visual?: BiomeVisual;
+}
+
+/** RC-021 — per-biome in-run look: a readable hued ground (vs the near-black `tint`), faint
+ *  grid/speck tints, and the set of themed obstacle sprite ids scattered as collidable terrain. */
+export interface BiomeVisual {
+  ground: string;       // background fill — a readable, hued ground color
+  grid: string;         // faint grid-line tint
+  speck: string;        // scattered dust-speck tint
+  obstacles: string[];  // art-registry sprite ids scattered as collidable terrain (visual only)
 }
 
 export interface ExpeditionScaling {

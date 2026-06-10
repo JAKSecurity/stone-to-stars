@@ -176,4 +176,17 @@ describe('SPRITES registry', () => {
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }
   });
+
+  it('RC-021 biome obstacle sprites are registered and valid', () => {
+    const obstacleIds = [
+      'obs_tree', 'obs_rock', 'obs_fallen_column', 'obs_rubble', 'obs_boulder_moss', 'obs_stump',
+      'obs_stalagmite', 'obs_crystal', 'obs_broken_pillar', 'obs_statue_rubble', 'obs_gravestone',
+      'obs_wall_rubble', 'obs_ruined_wall', 'obs_barrel_crate', 'obs_slag_heap', 'obs_scrap',
+      'obs_sandbags', 'obs_barbed_wire',
+    ];
+    for (const id of obstacleIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
 });
