@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rogue · Civ — Biome Visual Identity (RC-021)</title>
+<style>
+  body { margin: 0; font-family: ui-monospace, Consolas, monospace; background: #0b0e16; color: #cbd5e1; }
+  header {
+    position: sticky; top: 0; z-index: 5; background: #0b0e16;
+    padding: 14px 22px; border-bottom: 1px solid #2a3344;
+    display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: 0.04em; }
+  h2 { font-size: 13px; color: #8b97a8; margin: 28px 22px 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .sub { font-size: 12px; color: #6b7686; }
+  .controls { margin-left: auto; display: flex; gap: 14px; align-items: center; font-size: 13px; }
+  button { font-family: inherit; font-size: 13px; background: #1f2a3a; color: #cbd5e1;
+    border: 1px solid #2a3344; padding: 6px 12px; cursor: pointer; border-radius: 4px; }
+  button.active { background: #238636; border-color: #2ea043; color: #fff; }
+  #biomes { display: flex; flex-wrap: wrap; gap: 22px; padding: 16px 22px; }
+  .panel { display: flex; flex-direction: column; gap: 6px; }
+  .panel canvas { border: 1px solid #2a3344; border-radius: 4px; }
+  .meta { display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; }
+  .swatches { display: flex; gap: 4px; align-items: center; }
+  .sw { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #0008; }
+  #gallery { display: flex; flex-wrap: wrap; gap: 26px; padding: 12px 22px 40px; align-items: flex-end; }
+  .card { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .card canvas { border: 1px solid #2a3344; }
+  .cap { font-size: 11px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Rogue · Civ — Biome Visual Identity <span class="sub">RC-021</span></h1>
+      <div class="sub">in-run preview: ground palette + grid/specks + scattered themed obstacles (real art pipeline)</div>
+    </div>
+    <div class="controls">
+      <span>style:</span>
+      <button id="flat" class="active">flat</button>
+      <button id="shaded">shaded</button>
+    </div>
+  </header>
+
+  <h2>Biomes — each panel is what a run floor looks like</h2>
+  <div id="biomes"></div>
+
+  <h2>Obstacle sprite gallery (3×)</h2>
+  <div id="gallery"></div>
+
+  <script type="module">
+    import { BIOMES } from '/src/run/biomeData.ts';
+    import { SPRITES } from '/src/art/registry.ts';
+    import { renderSprite } from '/src/art/render.ts';
+
+    let style = 'flat';
+    const PANEL_W = 440, PANEL_H = 230;
+
+    // Deterministic per-panel jitter so layout is stable across redraws.
+    function mulberry32(seed) {
+      return function () {
+        seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function drawPanel(canvas, biome) {
+      const ctx = canvas.getContext('2d');
+      const v = biome.visual;
+      const ground = v ? v.ground : biome.tint;
+      // ground fill
+      ctx.fillStyle = ground;
+      ctx.fillRect(0, 0, PANEL_W, PANEL_H);
+      // faint grid (matches rc-017 drawBackground step=96, here scaled down)
+      ctx.strokeStyle = v ? v.grid : '#ffffff';
+      ctx.globalAlpha = 0.18;
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= PANEL_W; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, PANEL_H); ctx.stroke(); }
+      for (let y = 0; y <= PANEL_H; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(PANEL_W, y); ctx.stroke(); }
+      // specks
+      const rnd = mulberry32(biome.id.length * 2654435761);
+      ctx.fillStyle = v ? v.speck : '#ffffff';
+      ctx.globalAlpha = 0.5;
+      for (let i = 0; i < 90; i++) {
+        ctx.beginPath();
+        ctx.arc(rnd() * PANEL_W, rnd() * PANEL_H, rnd() < 0.5 ? 1 : 1.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // scattered obstacles from the biome's set
+      const ids = (v && v.obstacles && v.obstacles.length) ? v.obstacles : [];
+      const placements = 7;
+      for (let i = 0; i < placements; i++) {
+        const id = ids[i % ids.length];
+        const def = SPRITES[id];
+        if (!def) continue;
+        const scale = 1.15;
+        const dw = def.w * scale, dh = def.h * scale;
+        const px = 18 + rnd() * (PANEL_W - dw - 36);
+        const py = 10 + rnd() * (PANEL_H - dh - 20);
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.scale(scale, scale);
+        renderSprite(ctx, def, style);
+        ctx.restore();
+      }
+    }
+
+    function drawBiomes() {
+      const wrap = document.getElementById('biomes');
+      wrap.innerHTML = '';
+      for (const biome of Object.values(BIOMES)) {
+        const v = biome.visual;
+        const panel = document.createElement('div');
+        panel.className = 'panel';
+        const c = document.createElement('canvas');
+        c.width = PANEL_W; c.height = PANEL_H;
+        drawPanel(c, biome);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const name = document.createElement('span');
+        name.textContent = `${biome.name}  ·  ${biome.minAge}`;
+        const sw = document.createElement('div');
+        sw.className = 'swatches';
+        if (v) {
+          for (const col of [v.ground, v.grid, v.speck]) {
+            const s = document.createElement('span'); s.className = 'sw'; s.style.background = col; s.title = col;
+            sw.appendChild(s);
+          }
+          const ob = document.createElement('span');
+          ob.style.fontSize = '11px'; ob.style.color = '#6b7686';
+          ob.textContent = ' ' + v.obstacles.join(', ');
+          sw.appendChild(ob);
+        }
+        meta.appendChild(name); meta.appendChild(sw);
+        panel.appendChild(c); panel.appendChild(meta);
+        wrap.appendChild(panel);
+      }
+    }
+
+    function drawGallery() {
+      const grid = document.getElementById('gallery');
+      grid.innerHTML = '';
+      const obstacleIds = Object.keys(SPRITES).filter((id) => id.startsWith('obs_'));
+      const scale = 3;
+      for (const id of obstacleIds) {
+        const def = SPRITES[id];
+        const card = document.createElement('div');
+        card.className = 'card';
+        const c = document.createElement('canvas');
+        c.width = Math.round(def.w * scale);
+        c.height = Math.round(def.h * scale);
+        c.style.background = '#1a2018';
+        const ctx = c.getContext('2d');
+        ctx.scale(scale, scale);
+        renderSprite(ctx, def, style);
+        const cap = document.createElement('div');
+        cap.className = 'cap';
+        cap.textContent = `${id}  ${def.w}×${def.h}`;
+        card.appendChild(c); card.appendChild(cap);
+        grid.appendChild(card);
+      }
+    }
+
+    function draw() { drawBiomes(); drawGallery(); }
+    function setStyle(s) {
+      style = s;
+      document.getElementById('flat').classList.toggle('active', s === 'flat');
+      document.getElementById('shaded').classList.toggle('active', s === 'shaded');
+      draw();
+    }
+    document.getElementById('flat').onclick = () => setStyle('flat');
+    document.getElementById('shaded').onclick = () => setStyle('shaded');
+    draw();
+  </script>
+</body>
+</html>

@@ -1,7 +1,10 @@
 import { CivState } from '../game/types';
 
 export const SAVE_KEY = 'rogue-civ-save-v1';
-const CURRENT_VERSION = 2;
+// v2 = RC-017 economy rescale; v3 = RC-028 traditions map. Both make older saves incompatible
+// (old-scale banked resources / missing traditions), so any pre-v3 save resets — load → null —
+// rather than migrate. This matches RC-017's "rescale resets saves" stance.
+const CURRENT_VERSION = 3;
 
 export function serialize(civ: CivState): string {
   return JSON.stringify(civ);
@@ -15,21 +18,13 @@ export function save(civ: CivState, storage: Storage = localStorage): void {
   storage.setItem(SAVE_KEY, serialize(civ));
 }
 
-/** Bring a parsed save up to CURRENT_VERSION. Returns null for unknown/future versions. */
-function migrate(parsed: any): CivState | null {
-  let civ = parsed;
-  if (civ.version === 1) {
-    civ = { ...civ, version: 2, traditions: {} };
-  }
-  if (civ.version !== CURRENT_VERSION) return null;
-  return civ as CivState;
-}
-
 export function load(storage: Storage = localStorage): CivState | null {
   const raw = storage.getItem(SAVE_KEY);
   if (raw === null) return null;
   try {
-    return migrate(deserialize(raw));
+    const parsed = deserialize(raw);
+    if (parsed.version !== CURRENT_VERSION) return null; // stale/unknown version → reset
+    return parsed;
   } catch {
     return null;
   }

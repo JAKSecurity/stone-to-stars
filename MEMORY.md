@@ -6,7 +6,37 @@ A free browser game: a Phaser survivor mini-game feeds a tech-tree + base-camp c
 PvE, free, no monetization; builds to static files for GitHub Pages. Stack: TypeScript + Vite +
 Phaser (run scene) + HTML/CSS DOM (civ screen).
 
-## Current state (2026-06-08)
+## Current state (2026-06-09)
+- **THREE feature branches built this session, NONE merged to `main` — awaiting Jeff's playtest +
+  review.** `main` is still the 8-age RC-009 state (below). Branches:
+  - **`rc-015-orbit-lob`** — implements the declared-but-unimplemented `orbit` (persistent player-
+    tracking ring, re-hit cadence) and `lob` (arc-to-target + AoE detonation) behaviors. Pure motion
+    helper `src/run/projectileMotion.ts`; re-themed flail/morningstar→orbit, grenade/cluster_bomb→lob
+    (no new art). Playwright-verified; adversarial-reviewed APPROVED. **Mergeable after a feel-check.**
+  - **`rc-004-gem-tiers`** — value-bearing 3-tier gems (chipped/cut/brilliant) keyed to age via
+    `src/run/gemTier.ts`; `dropGem` picks by tier. New sprites → art-ratification gate.
+  - **`rc-017-exponential-economy`** (stacked on rc-004; **the active playtest branch**) — the big one:
+    1) **Exponential economy** (`src/game/economy.ts`, `G=1.75`): income `×G^runTier` (gem value,
+       faucets, building yields), cost `×G^ageIndex` (derived `techCost`/`buildingCost`), constant
+       progression velocity + anti-farm gate. `COST_BASE=12` first-pass. Save bumped v1→v2.
+    2) **Fixed-per-age difficulty** — dropped continuous `tierScaling`; reward = biome age;
+       offer-once expeditions; within-run spawn escalation (`spawnEscalation.ts`, tough + next-age seeds).
+    3) **Run-scene overhaul** — full-screen canvas (fills window), 2× sprites/movement (`RUN_SCALE`),
+       procedural background (grid+specks) + collidable boulders, end-of-run screen
+       (`src/ui/runEndScreen.ts`), scattered non-kill resource deposits, player-hit red flash.
+    4) **Early-game balance** (playtest-driven): faster/tankier/harder-hitting Stone enemies, ~3×
+       slower level-ups (`xpForLevel`), positional gem pickup (vacuum only within `pickupRadius`),
+       early spawn rate dialed down twice (base now 1625ms).
+  - **149 tests green, build clean** on rc-017. Specs/plans: `docs/superpowers/specs|plans/
+    2026-06-08-orbit-lob-behaviors-*`, `2026-06-08-multi-tier-gems-*`, `2026-06-08-exponential-economy-*`
+    / `2026-06-08-rc017-exponential-economy.md`. Nightly handoff: `docs/NIGHTLY-REPORT-2026-06-08.md`.
+  - **Dev-server note:** run from the repo with `npm run dev` (currently serves `localhost:5173`). The
+    page CSS is **verifiably correct** (`.civ-wrap` `max-width: none`, fills the viewport — confirmed via
+    an on-page `innerWidth`/`civWrap` readout AND a separate Playwright instance). A persistent "menu is
+    boxed / not full-screen" symptom on Jeff's 4K/multi-monitor setup did NOT resolve via hard-reload,
+    fresh port, or restarting the dev server — it cleared only after a **desktop reboot**. Root cause
+    unconfirmed (likely a wedged long-running dev server + browser state). If it recurs: reboot is the
+    known-good reset; don't chase it as a CSS bug — the stylesheet is correct.
 - **Iron + four more ages shipped (2026-06-07):** on top of RC-006/007 foundations,
   **RC-008** (Iron content, folds in **RC-003** hero-by-age) plus a nightly autonomous
   expansion — **RC-010** (N-age engine readiness: bigger camp grid + `heroByAge.ts` map) and
@@ -77,8 +107,23 @@ no tech gates it yet). Playwright-verified (2 cards stone / 5 bronze; Ruins bias
 tier-1 HP ×1.5; no NaN). **Art-free** — new enemy types/sprites + Deep Caverns are RC-008.
 Note for RC-008: add `EnemyDef.name` (pick screen shows raw ids today).
 
-## Next step
-**RC-009 — Juice + balance pass (IN PROGRESS).**
+## Next step (2026-06-09)
+**Jeff is playtesting `rc-017-exponential-economy` (on `localhost:5173`) and directing feel tuning.**
+Active loop: he plays Stone runs, reports what's off, the agent dials a one-liner, repeat. Live knobs:
+early **spawn rate** (`RunScene` base 1625ms), **enemy stats** (`enemyData` beast/scholar), level-up
+pace (`runStats.xpForLevel`), `RUN_SCALE`, obstacle/background density, non-kill-deposit frequency,
+**`COST_BASE`** (economy scale). Goal: get the early game feeling right, *then* push up the ages to
+feel the **per-age difficulty step** (the structural piece is in; the step magnitude vs player power is
+the felt part). After the feel lands: **merge order rc-015 → rc-004 → rc-017** (rc-004 art needs Jeff's
+ratification; rc-017 stacks on it). RC-009's holistic balance is now largely folded into rc-017.
+
+Open follow-ups noted (non-blocking): Bronze reuses Stone enemies (soft step; next-age seed is a no-op
+there); expedition-screen "Foes" lists only base enemies; `requiresTech` expedition test under-covers;
+`validateSpriteDef` doesn't bounds-check `poly` vertices.
+
+---
+### Prior context — RC-009 (on `main`)
+**RC-009 — Juice + balance pass (IN PROGRESS on main; superseded by rc-017 for the balance half).**
 - **Slice 1 — combat juice** (hit-flash, floating damage numbers, screen shake, death particles,
   gem pulse) + the multi-level-up draft-queue fix (KNOWN_ISSUES #3) — **SHIPPED + merged 2026-06-07**
   (116 tests; intensities first-pass, tune by feel).

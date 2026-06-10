@@ -5,7 +5,7 @@ import { research } from '../src/tech/tech';
 import { build } from '../src/camp/camp';
 import { buyTradition } from '../src/civics/traditions';
 
-const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
+const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
 describe('computeRunModifiers', () => {
   it('a fresh civ yields the base loadout', () => {

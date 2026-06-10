@@ -19,7 +19,7 @@ describe('saveLoad', () => {
   it('round-trips a civ state through serialize/deserialize', () => {
     const civ = applyRunResult(newCivState(), {
       collected: { exploration: 1, science: 2, industry: 3, culture: 4 },
-      survivedMs: 1, died: false,
+      survivedMs: 1, died: false, tier: 0,
     });
     expect(deserialize(serialize(civ))).toEqual(civ);
   });
@@ -48,18 +48,15 @@ describe('saveLoad', () => {
     expect(load(storage)).toBeNull();
   });
 
-  it('migrates a v1 save (no traditions) to v2 with an empty traditions map', () => {
+  it('resets pre-v3 saves (RC-017 economy rescale + RC-028 traditions make them incompatible)', () => {
     const storage = memStorage();
-    const v1 = {
-      version: 1,
-      banked: { exploration: 1, science: 2, industry: 3, culture: 4 },
-      researched: ['hunting'], buildings: [], runs: 2,
-    };
-    storage.setItem(SAVE_KEY, JSON.stringify(v1));
-    const loaded = load(storage)!;
-    expect(loaded.version).toBe(2);
-    expect(loaded.traditions).toEqual({});
-    expect(loaded.banked.culture).toBe(4); // other fields preserved
-    expect(loaded.researched).toEqual(['hunting']);
+    for (const stale of [1, 2]) {
+      storage.setItem(SAVE_KEY, JSON.stringify({
+        version: stale,
+        banked: { exploration: 1, science: 2, industry: 3, culture: 4 },
+        researched: ['hunting'], buildings: [], runs: 2,
+      }));
+      expect(load(storage)).toBeNull();
+    }
   });
 });

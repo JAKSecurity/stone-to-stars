@@ -2,12 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { BUILDINGS } from '../src/camp/buildingData';
 import {
   isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding,
-  buildableBuildings, firstEmptyTile, moveBuilding, buildingEffectText,
+  buildableBuildings, firstEmptyTile, moveBuilding, buildingEffectText, buildingCost,
+  unlockedTileCount, tileUnlocked,
 } from '../src/camp/camp';
+import { CAMP_SLOTS_BASE, CAMP_SLOTS_PER_AGE, GRID_SIZE } from '../src/game/config';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 
-const RICH = { exploration: 99, science: 99, industry: 99, culture: 99 };
+const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
 describe('camp', () => {
   it('defines granary, mine, forge, smelter, foundry, deep_mine, classical buildings (academy, market, workshop), medieval buildings (armory, cathedral, keep), renaissance buildings (bank, gunsmith, university), industrial buildings (arsenal, factory, powerplant), and modern buildings (airfield, barracks, motor_pool)', () => {
@@ -34,7 +36,7 @@ describe('camp', () => {
     const beforeIndustry = civ.banked.industry;
     civ = build(civ, 'granary', 4);
     expect(civ.buildings).toEqual([{ id: 'granary', level: 1, tile: 4 }]);
-    expect(civ.banked.industry).toBe(beforeIndustry - 10);
+    expect(civ.banked.industry).toBe(beforeIndustry - (buildingCost('granary', 1).industry ?? 0));
     expect(tileOccupied(civ, 4)).toBe(true);
   });
 
@@ -49,7 +51,7 @@ describe('camp', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
     civ = build(civ, 'granary', 4);
-    expect(upgradeCost('granary', 1)).toEqual({ industry: 20 });
+    expect(upgradeCost('granary', 1)).toEqual(buildingCost('granary', 2)); // level-2 cost
     civ = upgradeBuilding(civ, 4);
     expect(civ.buildings.find((b) => b.tile === 4)!.level).toBe(2);
   });
@@ -128,11 +130,36 @@ describe('camp', () => {
     expect(() => moveBuilding(civ, 9, 10)).toThrow();
   });
 
-  it('buildingEffectText summarizes the run bonus (hp / dmg / draft / weapon names)', () => {
-    expect(buildingEffectText(BUILDINGS.granary)).toBe('+25 HP');
-    expect(buildingEffectText(BUILDINGS.mine)).toBe('+5% dmg');
-    expect(buildingEffectText(BUILDINGS.forge)).toBe('+10% dmg · Bronze Spear');
-    expect(buildingEffectText(BUILDINGS.academy)).toBe('+1 draft · Gladius');
-    expect(buildingEffectText(BUILDINGS.gunsmith)).toBe('+16% dmg · Blunderbuss · Grenade');
+  it('camp slots start at the base count in the Stone age and grow per age (capped at GRID_SIZE)', () => {
+    const civ = { ...newCivState(), banked: { ...RICH } };
+    expect(unlockedTileCount(civ)).toBe(CAMP_SLOTS_BASE); // stone
+    // advance to bronze (mining -> bronze_working gates bronze) -> one age up
+    const bronze = research(research(civ, 'mining'), 'bronze_working');
+    expect(unlockedTileCount(bronze)).toBe(CAMP_SLOTS_BASE + CAMP_SLOTS_PER_AGE);
+    expect(unlockedTileCount(bronze)).toBeLessThanOrEqual(GRID_SIZE);
+  });
+
+  it('cannot build on a tile beyond the age-unlocked range', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    expect(tileUnlocked(civ, CAMP_SLOTS_BASE - 1)).toBe(true);
+    expect(tileUnlocked(civ, CAMP_SLOTS_BASE)).toBe(false);
+    expect(canBuild(civ, 'granary', CAMP_SLOTS_BASE)).toBe(false); // locked tile
+  });
+
+  it('firstEmptyTile only returns unlocked tiles', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    // occupy every unlocked Stone-age tile -> no free unlocked tile remains
+    const filled = Array.from({ length: CAMP_SLOTS_BASE }, (_, t) => ({ id: 'x', level: 1, tile: t }));
+    civ = { ...civ, buildings: filled };
+    expect(firstEmptyTile(civ)).toBe(null);
+  });
+
+  it('buildingEffectText summarizes per-run yield then run bonus (hp / dmg / draft / weapon names)', () => {
+    expect(buildingEffectText(BUILDINGS.granary)).toBe('+60🎭/run · +25 HP');
+    expect(buildingEffectText(BUILDINGS.mine)).toBe('+80🏭/run · +5% dmg');
+    expect(buildingEffectText(BUILDINGS.forge)).toBe('+60🔬/run · +10% dmg · Bronze Spear');
+    expect(buildingEffectText(BUILDINGS.academy)).toBe('+120🔬/run · +1 draft · Gladius');
+    expect(buildingEffectText(BUILDINGS.gunsmith)).toBe('+220🏭/run · +16% dmg · Blunderbuss · Grenade');
   });
 });
