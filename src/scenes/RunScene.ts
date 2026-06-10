@@ -50,6 +50,7 @@ const ENEMY_SHOT = {
 const ORBIT_RING = ORBIT_RADIUS * RUN_SCALE;
 const LOB_BLAST = LOB_BLAST_RADIUS * RUN_SCALE;
 const PROJ_SIZE = 14 * RUN_SCALE; // orbit/lob projectile display size
+const CHARGER_CONFIG_SCALED = { ...CHARGER_CONFIG, trigger: CHARGER_CONFIG.trigger * RUN_SCALE };
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -370,6 +371,7 @@ export class RunScene extends Phaser.Scene {
     (this.enemies.getChildren() as any[]).slice().forEach((e) => {
       if (e.getData('isBoss')) return;
       this.dropGem(e.x, e.y, e.getData('drop'));
+      this.stopChargerTell(e);
       e.destroy();
     });
     // Freeze the hero and magnet radius out past the screen so every gem flies in.
@@ -566,9 +568,8 @@ export class RunScene extends Phaser.Scene {
     const ux = dx / dist, uy = dy / dist;
 
     if (behavior === 'charger') {
-      const cfg = { ...CHARGER_CONFIG, trigger: CHARGER_CONFIG.trigger * RUN_SCALE };
       const prev = (e.getData('chargerState') as ChargerState) ?? initChargerState();
-      const r = chargerStep(prev, dist, ux, uy, speed, dt, cfg);
+      const r = chargerStep(prev, dist, ux, uy, speed, dt, CHARGER_CONFIG_SCALED);
       e.setData('chargerState', r.state);
       e.body.setVelocity(r.vx, r.vy);
       this.renderChargerTell(e, r.state.phase);
@@ -787,6 +788,7 @@ export class RunScene extends Phaser.Scene {
 
   private hitPlayer(enemy: any) {
     this.stats.hp -= enemy.getData('contactDamage');
+    this.stopChargerTell(enemy);
     enemy.destroy();
     playSfx('player-hit'); // RC-020
     // --- Juice: a red screen flash + the hero flashing red so a hit is unmistakable, plus shake ---
