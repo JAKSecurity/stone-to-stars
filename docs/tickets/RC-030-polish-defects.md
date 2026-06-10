@@ -25,3 +25,10 @@ on a fresh save, and every page load 404s on the favicon.
 ## References
 - Review session 2026-06-09 (defects section)
 - `src/ui/civScreen.ts`, `src/camp/camp.ts`, `index.html`
+
+## Update — 2026-06-10 (fixed on rc-017, pending merge)
+- **Favicon — DONE:** inline SVG (gem) favicon added in `index.html`; no more `/favicon.ico` 404.
+- **Empty-palette message — DONE:** fresh save (no buildings placed) now reads "Research tech to
+  unlock buildings, then build them here."; the all-constructed message is kept for its case.
+- Acceptance note: the "unit test for both empty-state branches" criterion is covered by the
+  civ-screen Playwright verification rather than a unit test (the branch is in DOM render code).

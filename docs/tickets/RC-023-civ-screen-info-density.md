@@ -37,3 +37,15 @@ density is a feature):
 ## References
 - Review session 2026-06-09 (items C1, C2, C3, C5)
 - `src/ui/civScreen.ts`, `src/tech/techData.ts`, `src/camp/camp.ts` (`buildingEffectText`), `src/state/`
+
+## Update — 2026-06-10 (substantially delivered on rc-017, pending merge)
+- **C1 tech effect lines — DONE:** every tech row now shows inline effects incl. unlocked-building
+  summary ("Pottery — Unlocks Granary (+60🎭/run · +25 HP)"), run bonuses, and "Advances to X Age";
+  missing-prereq ("Requires Mining") is distinguished from can't-afford ("need 18 more").
+- **C3 building yields — DONE:** palette cards and the new "Your Buildings" upgrade list show
+  per-run yield + run bonus together; cost shown inline with shortfall.
+- **C5 record strip — PARTIAL:** current age is shown in the resource bar; **remaining** = runs
+  counter, lifetime-resources tally (save-schema addition), and "Age N of 8" framing.
+- **C2 age-grouped tech grid — REMAINING:** the list is still flat; group by age (column/section).
+
+Net remaining: **C2** (age-grouped grid) + **C5** (runs / lifetime / N-of-8).

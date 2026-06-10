@@ -34,3 +34,13 @@ once, no hidden information.
 ## References
 - Review session 2026-06-09 (items B3–B6)
 - `src/scenes/RunScene.ts` (HUD, draft overlay, gems, projectiles), `src/run/weaponData.ts`, `src/art/`
+
+## Update — 2026-06-10 (partial delivery on rc-017, pending merge)
+- **B4 draft cards — PARTIAL:** rc-017 made cards two-line (bold title + a stat/effect description
+  via `weaponStatText` / `weaponLevelGainText`, incl. what a level-up changes). Remaining: weapon
+  **sprite** on the card, **color-coding by option type**, and **gold** evolution cards.
+- **B5 gem value — PARTIAL:** value scaling shipped (`rewardValueForTier`). Remaining: visual
+  **size/glow tier** so a jackpot looks like one.
+- **B6 projectiles — PARTIAL:** *enemy* projectiles are now distinct (red/orange circles). Remaining:
+  *player* projectile polish (bigger, per-class color/trail, muzzle flash).
+- **B3 HUD — REMAINING in full:** XP progress bar, weapon-slot icons w/ level pips, kill counter.

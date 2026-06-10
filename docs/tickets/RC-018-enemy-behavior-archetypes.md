@@ -33,3 +33,14 @@ both heavily modified on that branch.
 ## References
 - Review session 2026-06-09 (item A1)
 - `src/run/enemyData.ts`, `src/scenes/RunScene.ts` (enemy update), `src/run/spawnEscalation.ts`
+
+## Update — 2026-06-10 (partial delivery on rc-017, pending merge)
+rc-017 shipped enemy *firing* behavior as a separate `EnemyDef.attack` field (`'ranged' | 'melee'`),
+with slow dodgeable projectiles and a 10-bullet global cap. So:
+- **DONE:** the `ranged` archetype's firing + "ranged projectiles are dodgeable" acceptance criterion;
+  also a short-range `melee` projectile attacker (bonus) and enemy `armor`.
+- **CAVEAT:** rc-017's ranged enemies still *chase* while firing — they do not yet stand off at
+  distance. Movement is still all-chase.
+- **REMAINING:** the movement archetypes — **charger** (telegraph + dash), **splitter** (death-split),
+  **circler** (orbit) — plus optional standoff positioning for ranged. Reconcile with the proposed
+  `behavior` field: `attack` (firing) and `behavior` (movement) are complementary, keep both.
