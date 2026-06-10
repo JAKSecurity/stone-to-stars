@@ -1,6 +1,18 @@
 # RC-023: Civ screen information density
-**Status**: In Progress  **Priority**: P2  **Type**: Enhancement
+**Status**: Delivered  **Priority**: P2  **Type**: Enhancement
 **Created**: 2026-06-09
+
+## Delivery complete — 2026-06-10
+All four review items shipped. C1 (tech effects inline) + C3 (building yields inline) landed on
+rc-017; **C2 (age-grouped tech grid)** and **C5 (record strip)** added here:
+- **C2:** tech panel is now sectioned by age (Stone→Modern subheaders, reached ages highlighted);
+  every tech stays visible (no tabs/collapse) and the sections scale to any future age.
+- **C5:** a record strip under the resource bar shows expeditions run, lifetime resources earned
+  (new optional `CivState.lifetimeResources`, lazy-defaulted so no save-version bump/reset), and
+  "Age N of 8".
+
+Verified: tsc clean, 186 vitest, vite build clean, Playwright (8 age sections render, record strip
+reads "7 expeditions · 🧭310 🔬540 🏭880 🎭220 · Age 4 of 8").
 
 ## Summary
 The civ screen hides the most decision-relevant information: tech rows show name + cost but not

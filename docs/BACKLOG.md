@@ -40,11 +40,11 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-020 | Procedural audio pass (WebAudio SFX + ambient) | Open | P2 | C3 | docs/tickets/RC-020-procedural-audio.md |
 | RC-021 | Biome visual identity (palettes + themed obstacles) | Delivered | P2 | C3 | docs/tickets/RC-021-biome-visual-identity.md |
 | RC-022 | Run readability bundle (HUD XP bar/loadout, draft cards, gem value, projectiles) | In Progress | P2 | C3 | docs/tickets/RC-022-run-readability-bundle.md |
-| RC-023 | Civ screen info density (tech effects inline, age grouping, yields, record strip) | In Progress | P2 | C3 | docs/tickets/RC-023-civ-screen-info-density.md |
+| RC-023 | Civ screen info density (tech effects inline, age grouping, yields, record strip) | Delivered | P2 | C3 | docs/tickets/RC-023-civ-screen-info-density.md |
 | RC-024 | Age-up celebration moment | Open | P2 | C3 | docs/tickets/RC-024-age-up-celebration.md |
 | RC-025 | Perk pool expansion + healing pickups | Open | P2 | C3 | docs/tickets/RC-025-perk-pool-healing.md |
 | RC-026 | In-run point-of-interest events (shrine, treasure courier) | Open | P3 | C3 | docs/tickets/RC-026-in-run-poi-events.md |
 | RC-027 | Expedition screen upgrade + starting-weapon choice | Open | P3 | C3 | docs/tickets/RC-027-expedition-screen-upgrade.md |
 | RC-028 | Culture sink — Traditions meta-progression | Delivered | P3 | C3 | docs/tickets/RC-028-culture-traditions.md |
 | RC-029 | Expedition mutators (risk/reward modifiers) | Open | P3 | C3 | docs/tickets/RC-029-expedition-mutators.md |
-| RC-030 | Polish defects: fresh-save palette message + favicon | In Progress | P3 | C3 | docs/tickets/RC-030-polish-defects.md |
+| RC-030 | Polish defects: fresh-save palette message + favicon | Delivered | P3 | C3 | docs/tickets/RC-030-polish-defects.md |

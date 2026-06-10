@@ -140,6 +140,8 @@ export interface CivState {
   buildings: PlacedBuilding[];
   traditions: Record<string, number>; // traditionId -> rank (absent/0 = unowned)
   runs: number;
+  lifetimeResources?: ResourceBundle; // total ever earned (collected + yields). Optional: pre-existing
+                                      // v3 saves lack it and lazy-default to zero (no save-version bump).
 }
 
 export interface RunModifiers {

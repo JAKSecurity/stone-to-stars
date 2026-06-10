@@ -27,6 +27,21 @@ describe('civState', () => {
     expect(after.runs).toBe(1);
   });
 
+  it('applyRunResult accumulates lifetimeResources (collected + yields), lazy-defaulting old saves', () => {
+    // Old v3 save without the optional field still accumulates from zero.
+    const stale = { ...newCivState(), lifetimeResources: undefined } as any;
+    const r1 = applyRunResult(stale, {
+      collected: { exploration: 5, science: 2, industry: 7, culture: 1 },
+      survivedMs: 1, died: false, tier: 0,
+    });
+    expect(r1.lifetimeResources).toEqual({ exploration: 5, science: 2, industry: 7, culture: 1 });
+    const r2 = applyRunResult(r1, {
+      collected: { exploration: 1, science: 1, industry: 1, culture: 1 },
+      survivedMs: 1, died: false, tier: 0,
+    });
+    expect(r2.lifetimeResources).toEqual({ exploration: 6, science: 3, industry: 8, culture: 2 });
+  });
+
   it('applyRunResult also adds per-run building yields times level', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');

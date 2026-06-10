@@ -1,5 +1,5 @@
 # RC-030: Polish defects — fresh-save palette message + missing favicon
-**Status**: In Progress  **Priority**: P3  **Type**: Bug
+**Status**: Delivered  **Priority**: P3  **Type**: Bug
 **Created**: 2026-06-09
 
 ## Summary
