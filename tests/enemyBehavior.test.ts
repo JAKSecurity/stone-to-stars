@@ -3,6 +3,7 @@ import {
   initChargerState, chargerStep, CHARGER_CONFIG,
 } from '../src/run/enemyBehavior';
 import { circlerVelocity, CIRCLER_RADIUS } from '../src/run/enemyBehavior';
+import { standoffVelocity, STANDOFF_MIN, STANDOFF_MAX } from '../src/run/enemyBehavior';
 
 describe('enemyBehavior — charger', () => {
   const cfg = CHARGER_CONFIG;
@@ -76,5 +77,24 @@ describe('enemyBehavior — circler', () => {
     // outside: far right of player (> radius) → radial component points inward (−x)
     const outside = circlerVelocity(100 + CIRCLER_RADIUS + 200, 100, 100, 100, 1, 50);
     expect(outside.vx).toBeLessThan(0);
+  });
+});
+
+describe('enemyBehavior — standoff', () => {
+  it('advances when farther than the max band', () => {
+    const v = standoffVelocity(STANDOFF_MAX + 50, 1, 0, 60);
+    expect(v.vx).toBeCloseTo(60); // toward the player
+  });
+
+  it('holds position inside the band', () => {
+    const mid = (STANDOFF_MIN + STANDOFF_MAX) / 2;
+    const v = standoffVelocity(mid, 1, 0, 60);
+    expect(v.vx).toBe(0);
+    expect(v.vy).toBe(0);
+  });
+
+  it('kites away when closer than the min band', () => {
+    const v = standoffVelocity(STANDOFF_MIN - 50, 1, 0, 60);
+    expect(v.vx).toBeCloseTo(-60); // away from the player
   });
 });

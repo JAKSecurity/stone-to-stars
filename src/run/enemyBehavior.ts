@@ -97,3 +97,21 @@ export function circlerVelocity(
   const radial = Math.max(-speed, Math.min(speed, (radius - dist) * pull)); // inside ⇒ +out, outside ⇒ −in
   return { vx: tx * speed + ux * radial, vy: ty * speed + uy * radial };
 }
+
+// --- Standoff: hold a firing distance instead of beelining ---
+
+export const STANDOFF_MIN = 170; // closer than this ⇒ kite away (px, pre-RUN_SCALE)
+export const STANDOFF_MAX = 230; // farther than this ⇒ advance; between ⇒ hold
+
+/**
+ * Velocity for a ranged enemy holding a standoff band. (dirX,dirY) is the unit vector toward the
+ * player. Beyond `max` it advances; inside `min` it kites directly away; in the band it holds.
+ */
+export function standoffVelocity(
+  dist: number, dirX: number, dirY: number, speed: number,
+  min = STANDOFF_MIN, max = STANDOFF_MAX,
+): BehaviorVel {
+  if (dist > max) return { vx: dirX * speed, vy: dirY * speed };
+  if (dist < min) return { vx: -dirX * speed, vy: -dirY * speed };
+  return { vx: 0, vy: 0 };
+}
