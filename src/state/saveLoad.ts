@@ -1,7 +1,7 @@
 import { CivState } from '../game/types';
 
 export const SAVE_KEY = 'rogue-civ-save-v1';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2; // RC-017 rescaled the economy; stale v1 saves reset (load → null)
 
 export function serialize(civ: CivState): string {
   return JSON.stringify(civ);

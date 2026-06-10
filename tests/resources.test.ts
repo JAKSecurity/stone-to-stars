@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { RESOURCES } from '../src/game/types';
-import { emptyBundle, addBundles, canAfford, spend } from '../src/economy/resources';
+import { emptyBundle, addBundles, canAfford, spend, scaleBundle } from '../src/economy/resources';
 
 describe('resources', () => {
   it('has exactly four resource types', () => {
@@ -32,5 +32,17 @@ describe('resources', () => {
       exploration: 0, science: 0, industry: 6, culture: 0,
     });
     expect(banked.industry).toBe(10);
+  });
+});
+
+describe('scaleBundle', () => {
+  it('multiplies present components by the factor and rounds', () => {
+    expect(scaleBundle({ industry: 10, science: 4 }, 1.75)).toEqual({ industry: 18, science: 7 });
+  });
+  it('leaves absent components absent', () => {
+    expect(scaleBundle({ culture: 10 }, 5)).toEqual({ culture: 50 });
+  });
+  it('factor 1 is identity (after rounding)', () => {
+    expect(scaleBundle({ industry: 8, exploration: 3 }, 1)).toEqual({ industry: 8, exploration: 3 });
   });
 });

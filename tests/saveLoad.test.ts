@@ -19,7 +19,7 @@ describe('saveLoad', () => {
   it('round-trips a civ state through serialize/deserialize', () => {
     const civ = applyRunResult(newCivState(), {
       collected: { exploration: 1, science: 2, industry: 3, culture: 4 },
-      survivedMs: 1, died: false,
+      survivedMs: 1, died: false, tier: 0,
     });
     expect(deserialize(serialize(civ))).toEqual(civ);
   });

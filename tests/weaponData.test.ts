@@ -35,3 +35,14 @@ describe('weapon evolution integrity', () => {
     }
   });
 });
+
+describe('RC-015 re-themed behaviors', () => {
+  it('flail and its evolution orbit', () => {
+    expect(WEAPONS.flail.behavior).toBe('orbit');
+    expect(WEAPONS.morningstar.behavior).toBe('orbit');
+  });
+  it('grenade and its evolution lob', () => {
+    expect(WEAPONS.grenade.behavior).toBe('lob');
+    expect(WEAPONS.cluster_bomb.behavior).toBe('lob');
+  });
+});
