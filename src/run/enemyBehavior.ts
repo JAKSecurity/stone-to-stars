@@ -75,3 +75,25 @@ export function chargerStep(
     }
   }
 }
+
+// --- Circler: orbit/strafe the player at a fixed band, sense fixed per-enemy ---
+
+export const CIRCLER_RADIUS = 140; // px orbit band around the player (pre-RUN_SCALE)
+export const CIRCLER_PULL = 2.0;   // radius-correction gain: px/s of radial pull per px of band error
+
+/**
+ * Velocity for a circler orbiting (px,py) at `radius`, sense `dir` (±1), at `speed`. Tangential
+ * motion carries it around the band; a clamped radial term spirals it onto the band then holds.
+ */
+export function circlerVelocity(
+  ex: number, ey: number, px: number, py: number, dir: number, speed: number,
+  radius = CIRCLER_RADIUS, pull = CIRCLER_PULL,
+): BehaviorVel {
+  let rx = ex - px, ry = ey - py; // player → enemy (outward)
+  let dist = Math.hypot(rx, ry);
+  if (dist < 1e-6) { rx = 1; ry = 0; dist = 1; } // degenerate: pick an arbitrary radial
+  const ux = rx / dist, uy = ry / dist;          // outward unit
+  const tx = -uy * dir, ty = ux * dir;           // tangent (outward rotated 90°, sense by dir)
+  const radial = Math.max(-speed, Math.min(speed, (radius - dist) * pull)); // inside ⇒ +out, outside ⇒ −in
+  return { vx: tx * speed + ux * radial, vy: ty * speed + uy * radial };
+}

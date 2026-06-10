@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   initChargerState, chargerStep, CHARGER_CONFIG,
 } from '../src/run/enemyBehavior';
+import { circlerVelocity, CIRCLER_RADIUS } from '../src/run/enemyBehavior';
 
 describe('enemyBehavior — charger', () => {
   const cfg = CHARGER_CONFIG;
@@ -50,5 +51,30 @@ describe('enemyBehavior — charger', () => {
     r = chargerStep({ phase: 'recover', timer: 5, dashX: 0, dashY: 0 }, 100, 1, 0, 50, 16);
     expect(r.state.phase).toBe('chase');
     expect(r.vx).toBeCloseTo(50);
+  });
+});
+
+describe('enemyBehavior — circler', () => {
+  it('moves purely tangentially (perpendicular to the player vector) when on the band', () => {
+    // enemy is CIRCLER_RADIUS to the right of the player → on band, no radial correction
+    const v = circlerVelocity(100 + CIRCLER_RADIUS, 100, 100, 100, 1, 50);
+    // outward radial is +x; velocity must be perpendicular to it (vx ≈ 0) and full speed
+    expect(v.vx).toBeCloseTo(0);
+    expect(Math.hypot(v.vx, v.vy)).toBeCloseTo(50);
+  });
+
+  it('reverses orbit sense with dir', () => {
+    const cw = circlerVelocity(100 + CIRCLER_RADIUS, 100, 100, 100, 1, 50);
+    const ccw = circlerVelocity(100 + CIRCLER_RADIUS, 100, 100, 100, -1, 50);
+    expect(ccw.vy).toBeCloseTo(-cw.vy);
+  });
+
+  it('pushes outward when inside the band and inward when outside', () => {
+    // inside: 40px right of player (< radius) → radial component points outward (+x)
+    const inside = circlerVelocity(140, 100, 100, 100, 1, 50);
+    expect(inside.vx).toBeGreaterThan(0);
+    // outside: far right of player (> radius) → radial component points inward (−x)
+    const outside = circlerVelocity(100 + CIRCLER_RADIUS + 200, 100, 100, 100, 1, 50);
+    expect(outside.vx).toBeLessThan(0);
   });
 });
