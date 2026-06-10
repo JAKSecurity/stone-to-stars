@@ -40,5 +40,11 @@ export const PAL = {
   // modern age — olive drab, gunmetal, khaki, asphalt, hazard, radio green
   olive: '#6b6f3a', gunmetal: '#3a3f44', khaki: '#b3a06a', asphalt: '#2a2d31',
   hazard: '#e8b923', radio: '#5fd35f',
+  // RC-021 — biome obstacle tones (themed terrain props scattered in-run)
+  foliage: '#3a6b35', foliageDark: '#27512a', bark: '#553b26', barkDark: '#382616',
+  rockLite: '#8a857f', rockDark: '#46433f', moss: '#557a36', ringWood: '#9a6e44',
+  crystal: '#5ad1c7', crystalDeep: '#2c7c9a', crystalLite: '#9fece3',
+  brick: '#7a4a3a', slag: '#3a2c24', slagLite: '#5a463a',
+  wire: '#9a9da2', earthDark: '#241c14',
   shadow: 'rgba(0,0,0,0.28)',
 } as const;
