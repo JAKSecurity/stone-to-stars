@@ -35,3 +35,37 @@ describe('enemyData', () => {
     }
   });
 });
+
+describe('enemyData — RC-018 behavior archetypes', () => {
+  const ALLOWED = new Set(['chase', 'charger', 'splitter', 'circler', 'standoff', undefined]);
+
+  it('every behavior is a known archetype (or absent ⇒ chase)', () => {
+    for (const def of Object.values(ENEMIES)) {
+      expect(ALLOWED.has(def.behavior as any), `${def.id}: ${def.behavior}`).toBe(true);
+    }
+  });
+
+  it('at least three distinct non-chase archetypes are assigned', () => {
+    const kinds = new Set(
+      Object.values(ENEMIES).map((d) => d.behavior).filter((b) => b && b !== 'chase'),
+    );
+    expect(kinds.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('every splitter targets an existing, non-splitting enemy (no infinite split)', () => {
+    for (const def of Object.values(ENEMIES)) {
+      if (def.behavior !== 'splitter') continue;
+      expect(def.split, `${def.id} is a splitter but has no split{}`).toBeDefined();
+      const child = ENEMIES[def.split!.into];
+      expect(child, `${def.id} splits into unknown ${def.split!.into}`).toBeDefined();
+      expect(child.behavior === 'splitter').toBe(false);
+      expect(def.split!.count).toBeGreaterThan(0);
+    }
+  });
+
+  it('only splitters carry a split{} payload', () => {
+    for (const def of Object.values(ENEMIES)) {
+      if (def.split) expect(def.behavior).toBe('splitter');
+    }
+  });
+});
