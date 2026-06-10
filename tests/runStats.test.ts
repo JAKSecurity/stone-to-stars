@@ -13,17 +13,17 @@ describe('runStats', () => {
     expect(s.moveSpeedMult).toBe(1);
   });
 
-  it('xpForLevel rises with level', () => {
-    expect(xpForLevel(1)).toBe(24);
-    expect(xpForLevel(2)).toBe(33);
+  it('xpForLevel rises with level (lvl 1 = base pace, ramped after)', () => {
+    expect(xpForLevel(1)).toBe(24); // (15+9)·1.0
+    expect(xpForLevel(2)).toBe(36); // round((15+18)·1.1)
   });
 
   it('addXp carries over and can produce multiple level-ups', () => {
     const s = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] });
-    // xpForLevel(1)=24, xpForLevel(2)=33 => 24+33=57 crosses two levels, remainder 3
+    // xpForLevel(1)=24, xpForLevel(2)=36 => 24+36=60 crosses two levels exactly, remainder 0
     const r = addXp(s, 60);
     expect(r.stats.level).toBe(3);
-    expect(r.stats.xp).toBe(3);
+    expect(r.stats.xp).toBe(0);
     expect(r.levelsGained).toBe(2);
   });
 
@@ -47,9 +47,9 @@ describe('runStats', () => {
 
   it('addXp returns levelsGained=3 crossing three thresholds (draft queue depth)', () => {
     // Simulate a large XP grant (e.g. high-tier enemy or multi-kill)
-    // xpForLevel(1)=24, xpForLevel(2)=33, xpForLevel(3)=42  =>  24+33+42=99 XP crosses 3 levels
+    // xpForLevel(1)=24, xpForLevel(2)=36, xpForLevel(3)=50  =>  24+36+50=110 XP crosses 3 levels
     const s = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] });
-    const r = addXp(s, 99);
+    const r = addXp(s, 110);
     expect(r.levelsGained).toBe(3);
     expect(r.stats.level).toBe(4);
     expect(r.stats.xp).toBe(0);

@@ -1,22 +1,37 @@
 import Phaser from 'phaser';
 import { RunModifiers, RunResult, Resource, RESOURCES, Expedition, BiomeDef } from '../game/types';
-import { RUN_DURATION_MS } from '../game/config';
+import { runDurationForTier } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
 import { applyPerk } from '../run/draft';
 import {
   EquippedWeapon, initialWeapons, addWeapon, levelWeapon, applyEvolve,
   weaponShot, WeaponShot, rollRunDraft, DraftOption,
+  weaponStatText, weaponLevelGainText, weaponClass,
 } from '../run/weapons';
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { pickEnemy } from '../run/expedition';
 import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
-import { gemValueForTier } from '../game/economy';
+import { rewardValueForTier } from '../game/economy';
 import { spawnTableAt } from '../run/spawnEscalation';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
+
+// End-of-run "Zone Cleared" ceremony: clear non-boss enemies, magnet every gem in, then summarize.
+const CEREMONY_MS = 3000;
+
+// Hard cap on enemy projectiles alive at once — guarantees there are never more than this many to
+// dodge, even at end-game mob density. Combined with low per-enemy fire cadence below.
+const MAX_ENEMY_BULLETS = 10;
+
+// Enemy projectile profiles by attack type. `speed` is pre-RUN_SCALE and deliberately slow so the
+// shots are easy to sidestep. `range` (melee only) gates firing to when the player is close.
+const ENEMY_SHOT = {
+  ranged: { speed: 70, lifeMs: 4000, cooldownMs: 3400, damageMult: 0.8, color: 0xff5544, radius: 7 },
+  melee: { speed: 110, lifeMs: 650, cooldownMs: 1600, damageMult: 1.0, color: 0xff8833, radius: 7, range: 200 },
+} as const;
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -35,12 +50,14 @@ export class RunScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Image & { body: Phaser.Physics.Arcade.Body };
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
+  private enemyBullets!: Phaser.Physics.Arcade.Group;
   private gems!: Phaser.Physics.Arcade.Group;
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private keys!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
+  private runDurationMs = runDurationForTier(0);
   private equipped: EquippedWeapon[] = initialWeapons();
   private ownedPerks: string[] = [];
   private weaponCooldowns: Record<string, number> = {};
@@ -50,6 +67,9 @@ export class RunScene extends Phaser.Scene {
   private resourceCooldown = 0;
   private paused = false;
   private finished = false;
+  private pendingComplete: RunResult | null = null;
+  private ceremony = false;
+  private ceremonyMs = 0;
   private pendingDrafts = 0;
   private hud!: Phaser.GameObjects.Text;
   private heroSprite = 'hero';
@@ -61,6 +81,7 @@ export class RunScene extends Phaser.Scene {
     this.onComplete = data.onComplete;
     this.expedition = data.expedition;
     this.biome = BIOMES[data.expedition.biomeId];
+    this.runDurationMs = runDurationForTier(data.expedition.tier);
     this.heroSprite = data.heroSprite ?? 'hero';
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
@@ -69,7 +90,8 @@ export class RunScene extends Phaser.Scene {
     this.ownedPerks = [];
     this.weaponCooldowns = {};
     this.explorationCooldown = 0; this.relicCooldown = 0; this.resourceCooldown = 0;
-    this.paused = false; this.finished = false; this.pendingDrafts = 0;
+    this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
+    this.ceremony = false; this.ceremonyMs = 0;
   }
 
   create() {
@@ -83,11 +105,14 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.existing(player);
     this.player = player as any;
     (this.player.body as Phaser.Physics.Arcade.Body).setCollideWorldBounds(true);
-    // Leave the body at its default (the scaled sprite size). An explicit setSize here is read in
-    // the texture's source pixels then scaled down, which shrank the hitbox and broke contact damage.
+    // The sprite frame has transparent padding, so the default body is wider than the visible hero and
+    // you'd snag on obstacle corners with room to spare. Shrink the body to ~64% of the display,
+    // centered, so collisions match what you see. (shrinkBody sizes proportionally, not in raw px.)
+    this.shrinkBody(this.player, 0.64);
 
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group();
+    this.enemyBullets = this.physics.add.group();
     this.gems = this.physics.add.group();
     this.obstacles = this.physics.add.staticGroup();
     this.scatterObstacles(width, height);
@@ -101,6 +126,7 @@ export class RunScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
+    this.physics.add.overlap(this.player, this.enemyBullets, (_p, b) => this.hitPlayerProjectile(b as any));
     this.physics.add.overlap(this.player, this.gems, (_p, g) => this.collectGem(g as any));
     // Obstacles block movement for both the player and the chasing enemies (they bunch up on them).
     this.physics.add.collider(this.player, this.obstacles);
@@ -140,6 +166,10 @@ export class RunScene extends Phaser.Scene {
       const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
       rock.setStrokeStyle(2, 0xffffff, 0.08);
       this.physics.add.existing(rock, true);
+      // Default static body is the ellipse's bounding RECTANGLE — its corners stick out past the
+      // visible rounded rock, so you snag on empty space. Use a circle inset inside the ellipse.
+      const cr = r * 0.8;
+      (rock.body as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, 0.8 * r - cr);
       this.obstacles.add(rock);
     }
   }
@@ -148,8 +178,19 @@ export class RunScene extends Phaser.Scene {
     // Guard the scene-restart race: a queued update() can fire after the previous
     // scene was stopped but before create() rebuilds the player. (Not reachable in
     // normal play — a run is always stopped before the next starts — but cheap insurance.)
+    // Drain a deferred run-completion first (set by finish() from inside a collision callback), now
+    // that the physics step has unwound — safe to stop the scene and tear down groups here.
+    if (this.pendingComplete) {
+      const r = this.pendingComplete;
+      this.pendingComplete = null;
+      this.onComplete(r);
+      return;
+    }
     if (this.paused || !this.player?.body) return;
     const dt = deltaMs;
+    // Once the timer expires we hand off to the Zone-Cleared ceremony, which runs its own trimmed
+    // loop (no spawns, no faucets) — just sweep gems in — until it finishes the run.
+    if (this.ceremony) { this.updateCeremony(dt); return; }
     this.elapsed += dt;
 
     const speed = 180 * RUN_SCALE * this.stats.moveSpeedMult;
@@ -172,15 +213,15 @@ export class RunScene extends Phaser.Scene {
     this.spawnCooldown -= dt;
     if (this.spawnCooldown <= 0) {
       this.spawnEnemy();
-      // Start gentle and ramp up — sparse at first, busier over the run. Base is ~25% slower again
-      // for the early game (the 150ms floor keeps late-game density unchanged).
+      // Start gentle and ramp up — sparse at first, busier over the run. Base widened to 2000ms
+      // for a calmer early game (the 150ms floor keeps late-game density unchanged).
       const ramp = 1 + this.elapsed / 30000;
-      this.spawnCooldown = Math.max(150, 1625 / ramp);
+      this.spawnCooldown = Math.max(150, 2000 / ramp);
     }
 
     this.explorationCooldown -= dt;
     if (this.explorationCooldown <= 0) {
-      this.collected.exploration += gemValueForTier(this.expedition.tier);
+      this.collected.exploration += rewardValueForTier(this.expedition.tier);
       this.explorationCooldown = 4000 / (this.biome.resourceBias.exploration ?? 1);
     }
 
@@ -203,9 +244,25 @@ export class RunScene extends Phaser.Scene {
     (this.enemies.getChildren() as any[]).forEach((e) => {
       this.physics.moveToObject(e, this.player, e.getData('speed'));
     });
+    this.updateEnemyFire(dt);
 
-    // Gems are vacuumed in only within pickupRadius — outside it they stay put, so collection is
-    // positional and the radius (widened by the Magnet perk) actually matters. Move near a gem to grab it.
+    this.vacuumGems();
+
+    this.hud.setText(
+      `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
+      `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
+      `⏱ ${Math.max(0, Math.ceil((this.runDurationMs - this.elapsed) / 1000))}s`,
+    );
+
+    if (this.elapsed >= this.runDurationMs) this.startCeremony();
+  }
+
+  /**
+   * Gems are vacuumed in only within pickupRadius — outside it they stay put, so collection is
+   * positional and the radius (widened by the Magnet perk) actually matters. The Zone-Cleared
+   * ceremony reuses this with a screen-sized radius to sweep everything in.
+   */
+  private vacuumGems() {
     (this.gems.getChildren() as any[]).forEach((g) => {
       const d = Phaser.Math.Distance.Between(g.x, g.y, this.player.x, this.player.y);
       if (d < this.stats.pickupRadius * RUN_SCALE) {
@@ -214,14 +271,52 @@ export class RunScene extends Phaser.Scene {
         g.body.setVelocity(0, 0);
       }
     });
+  }
 
+  /**
+   * Timer's up: flash a "Zone Cleared" banner, wipe every non-boss enemy (each drops its gem as a
+   * parting reward), and crank the pickup radius past the screen edges so the next few seconds magnet
+   * every gem in before the run summary. Bosses (data flag 'isBoss') are spared for future fights.
+   */
+  private startCeremony() {
+    if (this.ceremony || this.finished) return;
+    this.ceremony = true;
+    this.ceremonyMs = CEREMONY_MS;
+
+    (this.enemies.getChildren() as any[]).slice().forEach((e) => {
+      if (e.getData('isBoss')) return;
+      this.dropGem(e.x, e.y, e.getData('drop'));
+      e.destroy();
+    });
+    // Freeze the hero and magnet radius out past the screen so every gem flies in.
+    this.player.body.setVelocity(0, 0);
+    this.stats.pickupRadius = Math.max(this.scale.width, this.scale.height);
+
+    this.showZoneClearedBanner();
+  }
+
+  private updateCeremony(dt: number) {
+    this.player.body.setVelocity(0, 0);
+    this.vacuumGems();
     this.hud.setText(
-      `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
-      `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
-      `⏱ ${Math.max(0, Math.ceil((RUN_DURATION_MS - this.elapsed) / 1000))}s`,
+      `${this.biome.name} Cleared!   ` +
+      `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}`,
     );
+    this.ceremonyMs -= dt;
+    if (this.ceremonyMs <= 0) this.finish(false);
+  }
 
-    if (this.elapsed >= RUN_DURATION_MS) this.finish(false);
+  private showZoneClearedBanner() {
+    const { width, height } = this.scale;
+    this.cameras.main.flash(320, 70, 200, 110); // green wash
+    const txt = this.add.text(width / 2, height / 2 - 40, `${this.biome.name} Cleared!`, {
+      fontSize: '48px', color: '#ffffff', fontStyle: 'bold', stroke: '#0b2', strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(40).setScale(0.4).setAlpha(0);
+    this.tweens.add({ targets: txt, scale: 1, alpha: 1, duration: 360, ease: 'Back.easeOut' });
+    this.tweens.add({
+      targets: txt, alpha: 0, delay: CEREMONY_MS - 700, duration: 650,
+      onComplete: () => txt.destroy(),
+    });
   }
 
   private fireWeapon(shot: WeaponShot) {
@@ -241,8 +336,10 @@ export class RunScene extends Phaser.Scene {
       this.bullets.add(bullet);
       bullet.setData('damage', shot.damage);
       bullet.setData('pierce', shot.pierce);
+      bullet.setData('ignoresArmor', shot.ignoresArmor);
       bullet.body.setVelocity(Math.cos(angle) * shot.speed * RUN_SCALE, Math.sin(angle) * shot.speed * RUN_SCALE);
-      this.time.delayedCall(1200, () => bullet.destroy());
+      // Range = speed × life; earlier weapons get a shorter life so their shots don't cross the field.
+      this.time.delayedCall(shot.lifeMs, () => bullet.destroy());
     }
   }
 
@@ -262,7 +359,7 @@ export class RunScene extends Phaser.Scene {
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
 
     // RC-017: spawn mix escalates over the run — toward this age's tough enemies + next-age seeds.
-    const progress = this.elapsed / RUN_DURATION_MS;
+    const progress = this.elapsed / this.runDurationMs;
     const table = spawnTableAt(this.biome, progress, BIOMES, ENEMIES);
     const def = ENEMIES[pickEnemy(table, () => Math.random())];
     // RC-017: fixed per-age enemy stats — the difficulty step lives in each age's enemy set, not a
@@ -276,6 +373,63 @@ export class RunScene extends Phaser.Scene {
     enemy.setData('xp', def.xp);
     enemy.setData('speed', def.speed * RUN_SCALE);
     enemy.setData('contactDamage', def.contactDamage);
+    enemy.setData('armor', def.armor ?? 0);
+    enemy.setData('attack', def.attack);
+    // Stagger first shots so spawns don't volley in unison.
+    enemy.setData('fireMs', Phaser.Math.Between(800, 2600));
+    // Match the hitbox to the visible mob so you don't get stuck on enemies that look clear.
+    this.shrinkBody(enemy, 0.72);
+  }
+
+  /** Shrink a physics body to `frac` of the sprite's display size, kept centered. */
+  private shrinkBody(obj: any, frac: number) {
+    const body = obj.body as Phaser.Physics.Arcade.Body;
+    const sw = obj.width, sh = obj.height; // source-frame px; footprint = sw·frac·displayScale
+    body.setSize(sw * frac, sh * frac);
+    body.setOffset((sw * (1 - frac)) / 2, (sh * (1 - frac)) / 2);
+  }
+
+  /** Per-frame: armed enemies count down and fire a slow, dodgeable projectile (global cap enforced). */
+  private updateEnemyFire(dt: number) {
+    for (const e of this.enemies.getChildren() as any[]) {
+      const atk = e.getData('attack') as 'ranged' | 'melee' | undefined;
+      if (!atk) continue;
+      let fireMs = (e.getData('fireMs') ?? 0) - dt;
+      if (fireMs <= 0) {
+        const prof = ENEMY_SHOT[atk];
+        const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+        const inRange = atk === 'ranged' ? true : d < (prof as typeof ENEMY_SHOT.melee).range;
+        if (inRange && this.enemyBullets.countActive(true) < MAX_ENEMY_BULLETS) {
+          this.fireEnemyShot(e, atk);
+          fireMs = prof.cooldownMs + Phaser.Math.Between(-300, 700);
+        } else {
+          fireMs = 300; // capped or out of range — try again shortly
+        }
+      }
+      e.setData('fireMs', fireMs);
+    }
+  }
+
+  private fireEnemyShot(enemy: any, type: 'ranged' | 'melee') {
+    const prof = ENEMY_SHOT[type];
+    const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+    const b = this.add.circle(enemy.x, enemy.y, prof.radius, prof.color).setDepth(5) as any;
+    b.setStrokeStyle(2, 0x000000, 0.45);
+    this.physics.add.existing(b);
+    this.enemyBullets.add(b);
+    b.setData('damage', Math.round(enemy.getData('contactDamage') * prof.damageMult));
+    b.body.setVelocity(Math.cos(angle) * prof.speed * RUN_SCALE, Math.sin(angle) * prof.speed * RUN_SCALE);
+    this.time.delayedCall(prof.lifeMs, () => b.destroy());
+  }
+
+  private hitPlayerProjectile(bullet: any) {
+    if (!bullet.active) return;
+    this.stats.hp -= bullet.getData('damage') ?? 0;
+    bullet.destroy();
+    this.cameras.main.flash(90, 130, 0, 0);
+    this.player.setTintFill(0xff3333);
+    this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
+    if (this.stats.hp <= 0) this.finish(true);
   }
 
   /** A resource id biased toward the biome's lean (but every resource can appear). */
@@ -306,6 +460,22 @@ export class RunScene extends Phaser.Scene {
       bullet.destroy();
     }
 
+    // Armor absorbs whole hits (one layer per hit) regardless of damage — so tanky mobs always take
+    // several shots — unless the weapon pierces armor (sniper line). A blocked hit deals no HP damage.
+    const armor = enemy.getData('armor') ?? 0;
+    if (armor > 0 && !bullet.getData('ignoresArmor')) {
+      enemy.setData('armor', armor - 1);
+      if (enemy.active) {
+        enemy.setTintFill(0x66ccff);
+        this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
+      }
+      const blk = this.add.text(enemy.x, enemy.y - 8, '⛊', {
+        fontSize: '14px', color: '#9fe0ff', stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(30);
+      this.tweens.add({ targets: blk, y: blk.y - 18, alpha: 0, duration: 380, onComplete: () => blk.destroy() });
+      return;
+    }
+
     // --- Juice: hit-flash ---
     if (enemy.active) {
       enemy.setTintFill(0xffffff);
@@ -328,7 +498,6 @@ export class RunScene extends Phaser.Scene {
       // RC-017: one gem per kill, carrying a tier-scaled value (value, not swarm).
       this.dropGem(ex, ey, enemy.getData('drop'));
       const xpGain = enemy.getData('xp');
-      const isBig = (enemy.displayWidth ?? 0) >= 40;
       enemy.destroy();
 
       // --- Juice: death particles ---
@@ -350,9 +519,6 @@ export class RunScene extends Phaser.Scene {
           onComplete: () => particle.destroy(),
         });
       }
-
-      // --- Juice: screen shake on big enemy death ---
-      if (isBig) this.cameras.main.shake(140, 0.012);
 
       this.gainXp(xpGain);
     } else {
@@ -378,7 +544,7 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);
-    gem.setData('value', gemValueForTier(this.expedition.tier));
+    gem.setData('value', rewardValueForTier(this.expedition.tier));
     // --- Juice: pulsing scale yoyo so gems read as collectible ---
     this.tweens.add({
       targets: gem,
@@ -429,11 +595,13 @@ export class RunScene extends Phaser.Scene {
       { fontSize: '20px', color: '#fff' }).setOrigin(0.5);
     panel.add(title);
     picks.forEach((opt, i) => {
-      const y = height / 2 - 50 + i * 56;
-      const card = this.add.rectangle(width / 2, y, 380, 48, 0x238636)
+      const y = height / 2 - 50 + i * 64;
+      const card = this.add.rectangle(width / 2, y, 460, 54, 0x238636)
         .setInteractive({ useHandCursor: true });
-      const label = this.add.text(width / 2, y, this.draftLabel(opt),
-        { fontSize: '15px', color: '#fff' }).setOrigin(0.5);
+      const label = this.add.text(width / 2, y - 9, this.draftLabel(opt),
+        { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+      const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
+        { fontSize: '12px', color: '#d2f0d8' }).setOrigin(0.5);
       card.on('pointerdown', () => {
         this.applyDraftOption(opt);
         panel.destroy();
@@ -446,16 +614,35 @@ export class RunScene extends Phaser.Scene {
           this.physics.resume();
         }
       });
-      panel.add(card); panel.add(label);
+      panel.add(card); panel.add(label); panel.add(sub);
     });
   }
 
   private draftLabel(o: DraftOption): string {
     switch (o.kind) {
-      case 'perk': return `${o.perk.name} — ${o.perk.desc}`;
-      case 'newWeapon': return `New weapon: ${WEAPONS[o.weaponId].name}`;
-      case 'levelWeapon': return `Upgrade: ${WEAPONS[o.weaponId].name}`;
+      case 'perk': return o.perk.name;
+      case 'newWeapon': {
+        const cls = weaponClass(o.weaponId);
+        const cur = this.equipped.find((w) => weaponClass(w.id) === cls);
+        const verb = cur ? `Swap ${cls}` : `New ${cls}`;
+        return `${verb}: ${WEAPONS[o.weaponId].name}`;
+      }
+      case 'levelWeapon': {
+        const cur = this.equipped.find((w) => w.id === o.weaponId)?.level ?? 1;
+        const next = Math.min(cur + 1, WEAPONS[o.weaponId].maxLevel);
+        return `Upgrade: ${WEAPONS[o.weaponId].name} (Lv ${cur}→${next})`;
+      }
       case 'evolve': return `Evolve: ${WEAPONS[o.fromId].name} → ${WEAPONS[o.toId].name}`;
+    }
+  }
+
+  /** The second, smaller line on a draft card: what the option actually does. */
+  private draftDescription(o: DraftOption): string {
+    switch (o.kind) {
+      case 'perk': return o.perk.desc;
+      case 'newWeapon': return weaponStatText(WEAPONS[o.weaponId]);
+      case 'levelWeapon': return weaponLevelGainText(WEAPONS[o.weaponId]);
+      case 'evolve': return weaponStatText(WEAPONS[o.toId]);
     }
   }
 
@@ -480,11 +667,15 @@ export class RunScene extends Phaser.Scene {
   private finish(died: boolean) {
     if (this.finished) return;
     this.finished = true;
-    this.onComplete({
+    // finish() can be called from inside a physics collision callback (e.g. death via hitPlayer).
+    // onComplete stops this scene, which destroys the physics groups — doing that mid-collision-step
+    // crashes Phaser as it keeps iterating colliders over freed groups. So defer the hand-off to the
+    // top of the next update(), after the physics step has fully unwound.
+    this.pendingComplete = {
       collected: { ...this.collected },
       survivedMs: this.elapsed,
       died,
       tier: this.expedition.tier,
-    });
+    };
   }
 }

@@ -3,7 +3,9 @@ import { BUILDINGS } from '../src/camp/buildingData';
 import {
   isBuildingUnlocked, tileOccupied, canBuild, build, upgradeCost, upgradeBuilding,
   buildableBuildings, firstEmptyTile, moveBuilding, buildingEffectText, buildingCost,
+  unlockedTileCount, tileUnlocked,
 } from '../src/camp/camp';
+import { CAMP_SLOTS_BASE, CAMP_SLOTS_PER_AGE, GRID_SIZE } from '../src/game/config';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 
@@ -128,11 +130,36 @@ describe('camp', () => {
     expect(() => moveBuilding(civ, 9, 10)).toThrow();
   });
 
-  it('buildingEffectText summarizes the run bonus (hp / dmg / draft / weapon names)', () => {
-    expect(buildingEffectText(BUILDINGS.granary)).toBe('+25 HP');
-    expect(buildingEffectText(BUILDINGS.mine)).toBe('+5% dmg');
-    expect(buildingEffectText(BUILDINGS.forge)).toBe('+10% dmg · Bronze Spear');
-    expect(buildingEffectText(BUILDINGS.academy)).toBe('+1 draft · Gladius');
-    expect(buildingEffectText(BUILDINGS.gunsmith)).toBe('+16% dmg · Blunderbuss · Grenade');
+  it('camp slots start at the base count in the Stone age and grow per age (capped at GRID_SIZE)', () => {
+    const civ = { ...newCivState(), banked: { ...RICH } };
+    expect(unlockedTileCount(civ)).toBe(CAMP_SLOTS_BASE); // stone
+    // advance to bronze (mining -> bronze_working gates bronze) -> one age up
+    const bronze = research(research(civ, 'mining'), 'bronze_working');
+    expect(unlockedTileCount(bronze)).toBe(CAMP_SLOTS_BASE + CAMP_SLOTS_PER_AGE);
+    expect(unlockedTileCount(bronze)).toBeLessThanOrEqual(GRID_SIZE);
+  });
+
+  it('cannot build on a tile beyond the age-unlocked range', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    civ = research(civ, 'pottery');
+    expect(tileUnlocked(civ, CAMP_SLOTS_BASE - 1)).toBe(true);
+    expect(tileUnlocked(civ, CAMP_SLOTS_BASE)).toBe(false);
+    expect(canBuild(civ, 'granary', CAMP_SLOTS_BASE)).toBe(false); // locked tile
+  });
+
+  it('firstEmptyTile only returns unlocked tiles', () => {
+    let civ = { ...newCivState(), banked: { ...RICH } };
+    // occupy every unlocked Stone-age tile -> no free unlocked tile remains
+    const filled = Array.from({ length: CAMP_SLOTS_BASE }, (_, t) => ({ id: 'x', level: 1, tile: t }));
+    civ = { ...civ, buildings: filled };
+    expect(firstEmptyTile(civ)).toBe(null);
+  });
+
+  it('buildingEffectText summarizes per-run yield then run bonus (hp / dmg / draft / weapon names)', () => {
+    expect(buildingEffectText(BUILDINGS.granary)).toBe('+60🎭/run · +25 HP');
+    expect(buildingEffectText(BUILDINGS.mine)).toBe('+80🏭/run · +5% dmg');
+    expect(buildingEffectText(BUILDINGS.forge)).toBe('+60🔬/run · +10% dmg · Bronze Spear');
+    expect(buildingEffectText(BUILDINGS.academy)).toBe('+120🔬/run · +1 draft · Gladius');
+    expect(buildingEffectText(BUILDINGS.gunsmith)).toBe('+220🏭/run · +16% dmg · Blunderbuss · Grenade');
   });
 });

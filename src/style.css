@@ -27,13 +27,20 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
 .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
 .panel h2 { margin: 0 0 10px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
-.tech { display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 6px; }
+.tech { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 6px; }
 .tech.done { border-color: #3fb950; opacity: 0.7; }
+.techlabel { min-width: 0; }
+.techlabel .bnm { font-weight: 600; font-size: 0.85rem; line-height: 1.35; }
+.techlabel .bnm .effinline { font-weight: 400; color: #7fd99a; }
+.techlabel .bcost { font-size: 0.8rem; opacity: 0.85; margin-top: 2px; }
+.tech button { flex: none; }
 .tech button { cursor: pointer; }
 .tech button:disabled { cursor: not-allowed; opacity: 0.4; }
 .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .cell { aspect-ratio: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 1.4rem; }
-.cell .lvl { font-size: 0.7rem; opacity: 0.7; }
+.cell .lvl { font-size: 0.85rem; opacity: 0.8; text-align: center; }
+.cell.locked-tile { background: #0a0d12; border-style: dashed; border-color: #21262d; cursor: default; opacity: 0.5; }
+.cell.locked-tile .lvl { font-size: 1rem; opacity: 0.6; }
 .startrun { display: block; width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
 .cost { font-size: 0.8rem; opacity: 0.75; }
 
@@ -46,11 +53,14 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .bcard.afford:hover { background: #11161d; }
 .bcard.locked { opacity: 0.45; cursor: not-allowed; }
 .bcard canvas { flex: none; }
-.bcard .bnm { font-weight: 600; font-size: 0.8rem; }
-.bcard .bcost { font-size: 0.7rem; opacity: 0.8; margin-top: 1px; }
-.bcard .beff { font-size: 0.7rem; color: #3fb950; margin-top: 2px; }
+.bcard .bnm { font-weight: 600; font-size: 0.85rem; }
+.bcard .bcost { font-size: 0.8rem; opacity: 0.85; margin-top: 2px; }
+.bcard .beff { font-size: 0.8rem; color: #7fd99a; margin-top: 2px; }
 .bcard.locked .beff { color: #6e7681; }
-.bcard .bneed { font-size: 0.65rem; color: #d29922; margin-top: 2px; }
+.bcard .bneed { font-size: 0.75rem; color: #d29922; margin-top: 2px; }
+.bcard .lvltag { font-weight: 400; font-size: 0.75rem; opacity: 0.7; }
+.bcard .bmax { font-size: 0.78rem; color: #3fb950; opacity: 0.85; margin-top: 2px; }
+.placed .bcard.afford { cursor: pointer; }
 .cell.drop-hover { border-color: #58a6ff; box-shadow: inset 0 0 0 2px #58a6ff; }
 .cell[draggable="true"] { cursor: grab; }
 .cell:not([draggable="true"]) { cursor: default; }

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { newCivState, applyRunResult } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 import { build } from '../src/camp/camp';
+import { incomeMult } from '../src/game/economy';
 
 const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
@@ -34,7 +35,7 @@ describe('civState', () => {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
       survivedMs: 1, died: false, tier: 0,
     });
-    expect(after.banked.culture).toBe(before + 3); // granary culture yield 3 × incomeMult(0)=1
+    expect(after.banked.culture).toBe(before + 60); // granary culture yield 3 × YIELD_SCALE(20) × incomeMult(0)=1
   });
 
   it('building yields scale by the run tier (RC-017)', () => {
@@ -46,6 +47,6 @@ describe('civState', () => {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
       survivedMs: 1, died: false, tier: 4,
     });
-    expect(after.banked.culture).toBe(before + Math.round(3 * (1.75 ** 4))); // × incomeMult(4)
+    expect(after.banked.culture).toBe(before + Math.round(3 * 20 * incomeMult(4))); // × YIELD_SCALE × incomeMult(4)
   });
 });

@@ -2,9 +2,13 @@ import { CivState, Resource, ResourceBundle, BuildingDef } from '../game/types';
 import { canAfford, spend } from '../economy/resources';
 import { costMult, ageIndexOf, COST_BASE } from '../game/economy';
 import { TECHS } from '../tech/techData';
+import { getAge } from '../tech/tech';
 import { BUILDINGS } from './buildingData';
-import { GRID_SIZE } from '../game/config';
-import { WEAPONS } from '../run/weaponData';
+import { GRID_SIZE, CAMP_SLOTS_BASE, CAMP_SLOTS_PER_AGE } from '../game/config';
+
+// buildingEffectText lives in buildingData (no tech dependency) but is re-exported here so existing
+// callers/tests keep importing it from camp.
+export { buildingEffectText } from './buildingData';
 
 // RC-017: a building's flat base cost is derived; G^age (via costMult) and the level multiplier do
 // the scaling, so `baseCost` data only supplies the resource types + order (largest = primary).
@@ -27,6 +31,17 @@ export function isBuildingUnlocked(civ: CivState, buildingId: string): boolean {
   return civ.researched.some((t) => TECHS[t]?.unlocksBuilding === buildingId);
 }
 
+/** How many camp tiles are usable at the civ's current age: base + per-age, capped at GRID_SIZE. */
+export function unlockedTileCount(civ: CivState): number {
+  const ageIdx = ageIndexOf(getAge(civ));
+  return Math.min(GRID_SIZE, CAMP_SLOTS_BASE + CAMP_SLOTS_PER_AGE * ageIdx);
+}
+
+/** Whether tile index `tile` is unlocked at the civ's current age (tiles fill in low-index first). */
+export function tileUnlocked(civ: CivState, tile: number): boolean {
+  return tile < unlockedTileCount(civ);
+}
+
 export function tileOccupied(civ: CivState, tile: number): boolean {
   return civ.buildings.some((b) => b.tile === tile);
 }
@@ -35,6 +50,7 @@ export function canBuild(civ: CivState, buildingId: string, tile: number): boole
   const def = BUILDINGS[buildingId];
   if (!def) return false;
   if (!isBuildingUnlocked(civ, buildingId)) return false;
+  if (!tileUnlocked(civ, tile)) return false; // tile not yet unlocked for this age
   if (civ.buildings.some((b) => b.id === buildingId)) return false; // one of each
   if (tileOccupied(civ, tile)) return false;
   return canAfford(civ.banked, buildingCost(buildingId, 1));
@@ -79,23 +95,13 @@ export function buildableBuildings(civ: CivState): BuildingDef[] {
   );
 }
 
-/** Lowest tile index 0..GRID_SIZE-1 with no building, or null if the grid is full. */
+/** Lowest unlocked tile with no building, or null if every unlocked tile is occupied. */
 export function firstEmptyTile(civ: CivState): number | null {
-  for (let tile = 0; tile < GRID_SIZE; tile++) {
+  const unlocked = unlockedTileCount(civ);
+  for (let tile = 0; tile < unlocked; tile++) {
     if (!tileOccupied(civ, tile)) return tile;
   }
   return null;
-}
-
-/** Inline card summary of a building's run bonus (maxHp / damageMult / draftChoices / weapons). */
-export function buildingEffectText(def: BuildingDef): string {
-  const rb = def.runBonus;
-  const parts: string[] = [];
-  if (rb.maxHp != null) parts.push(`+${rb.maxHp} HP`);
-  if (rb.damageMult != null) parts.push(`+${Math.round(rb.damageMult * 100)}% dmg`);
-  if (rb.draftChoices != null) parts.push(`+${rb.draftChoices} draft`);
-  if (rb.weapons) for (const id of rb.weapons) parts.push(WEAPONS[id]?.name ?? id);
-  return parts.join(' · ');
 }
 
 /**

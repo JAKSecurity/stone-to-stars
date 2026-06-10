@@ -26,6 +26,7 @@ export interface WeaponDef {
   };
   evolvesTo?: string;          // weapon id of the evolved form
   evolveRequiresPerk?: string; // perk id that, owned while this weapon is maxed, enables evolution
+  pierceArmor?: boolean;       // if set, hits ignore enemy armor (e.g. the sniper rifle)
 }
 
 export interface RunBonus {
@@ -66,6 +67,9 @@ export interface EnemyDef {
   drop: Resource;             // gem dropped on kill
   xp: number;                 // xp granted on kill
   displaySize: { w: number; h: number };
+  armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
+                              // pierceArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
+  attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
 }
 
 export interface BiomeDef {

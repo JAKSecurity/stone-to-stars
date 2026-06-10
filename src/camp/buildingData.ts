@@ -1,4 +1,26 @@
-import { BuildingDef } from '../game/types';
+import { BuildingDef, Resource, RESOURCES } from '../game/types';
+import { WEAPONS } from '../run/weaponData';
+import { YIELD_SCALE } from '../game/economy';
+
+const YIELD_ICON: Record<Resource, string> = {
+  exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
+};
+
+/**
+ * One-line summary of what a building does: its passive per-run yield plus its run bonus (HP / damage
+ * / draft picks / weapons granted, by name). Lives here — not camp.ts — so tech.ts can describe an
+ * unlocked building without importing camp (which imports tech). Yield/bonus both scale by level.
+ */
+export function buildingEffectText(def: BuildingDef): string {
+  const parts: string[] = [];
+  for (const r of RESOURCES) if (def.yield[r]) parts.push(`+${(def.yield[r] ?? 0) * YIELD_SCALE}${YIELD_ICON[r]}/run`);
+  const rb = def.runBonus;
+  if (rb.maxHp != null) parts.push(`+${rb.maxHp} HP`);
+  if (rb.damageMult != null) parts.push(`+${Math.round(rb.damageMult * 100)}% dmg`);
+  if (rb.draftChoices != null) parts.push(`+${rb.draftChoices} draft`);
+  if (rb.weapons) for (const id of rb.weapons) parts.push(WEAPONS[id]?.name ?? id);
+  return parts.join(' · ');
+}
 
 export const BUILDINGS: Record<string, BuildingDef> = {
   granary: {
