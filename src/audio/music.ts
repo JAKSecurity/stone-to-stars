@@ -1,17 +1,31 @@
-// File-based background music: looping CC0 tracks routed through the engine's master
-// gain (so the volume slider and mute apply to music too). This is the primary ambient
-// layer; if a track can't be fetched/decoded, the caller falls back to the procedural
-// bed in engine.ts. Loaded lazily — decoding only happens after the audio is unlocked.
+// File-based background music: looping CC0 tracks chosen by game context, routed through
+// the engine's master gain (so the volume slider and mute apply to music too). This is
+// the primary ambient layer; if a track can't be fetched/decoded, the caller falls back
+// to the procedural bed in engine.ts. Loaded lazily — decoding only happens after audio
+// is unlocked.
 //
-// Tracks (both CC0 / public domain — see src/audio/README.md credits):
-//   civ → "Fantasy: Rising Moon" by RandomMind
-//   run → "Ambient Relaxing Loop" by isaiah658
+// Two axes of selection (the caller passes a `variant` — see index.startAmbient):
+//   • civ screen → keyed by AGE  → an "era" track (ages grouped into musical eras)
+//   • in-run     → keyed by BIOME → a "mood" track (biomes grouped into mood families)
 //
-// This module is imported ONLY by index.ts (never by tests), so the binary-asset imports
-// stay out of the node/Vitest path.
+// All tracks are CC0 / public domain — see src/audio/README.md for credits. This module
+// is imported ONLY by index.ts (never by tests), so the binary-asset imports stay out of
+// the node/Vitest path.
 
-import risingMoonUrl from './assets/fantasy-rising-moon.mp3';
-import ambientLoopUrl from './assets/ambient-relaxing-loop.ogg';
+// Era tracks (civ screen, grouped by age).
+import eraAncient from './assets/era-ancient.mp3';
+import eraClassical from './assets/era-classical.ogg';
+import eraMedieval from './assets/era-medieval.mp3';
+import eraRenaissance from './assets/era-renaissance.mp3';
+import eraIndustrial from './assets/era-industrial.ogg';
+import eraModern from './assets/era-modern.mp3';
+// Mood tracks (in-run, grouped by biome).
+import moodWilderness from './assets/mood-wilderness.mp3';
+import moodAncientMystery from './assets/mood-ancient-mystery.ogg';
+import moodDarkDungeon from './assets/mood-dark-dungeon.ogg';
+import moodEpicBattle from './assets/mood-epic-battle.mp3';
+import moodGrimWar from './assets/mood-grim-war.ogg';
+
 import { ensureAudio, peekAudio } from './engine';
 
 interface MusicTrack {
@@ -20,51 +34,106 @@ interface MusicTrack {
   gain: number;
 }
 
-const TRACKS: Record<string, MusicTrack> = {
-  civ: { url: risingMoonUrl, gain: 0.8 },
-  run: { url: ambientLoopUrl, gain: 0.7 },
+// ── Selection tables ───────────────────────────────────────────────────────
+// Age → era key (the civ screen). Stone/Bronze/Iron share one "ancient" bed; the rest
+// are 1:1. Adding finer granularity later = split a group + add one ERA_TRACKS entry.
+const AGE_ERA: Record<string, string> = {
+  stone: 'ancient', bronze: 'ancient', iron: 'ancient',
+  classical: 'classical',
+  medieval: 'medieval',
+  renaissance: 'renaissance',
+  industrial: 'industrial',
+  modern: 'modern',
 };
+
+// Biome → mood key (in-run). Multiple biomes share a mood family.
+const BIOME_MOOD: Record<string, string> = {
+  wilds: 'wilderness', frontier: 'wilderness',
+  ruins: 'ancient-mystery',
+  caverns: 'dark-dungeon', cursed_keep: 'dark-dungeon',
+  colosseum: 'epic-battle',
+  plague_city: 'grim-war', foundry_wastes: 'grim-war', no_mans_land: 'grim-war',
+};
+
+const ERA_TRACKS: Record<string, MusicTrack> = {
+  ancient: { url: eraAncient, gain: 0.7 },
+  classical: { url: eraClassical, gain: 0.85 },
+  medieval: { url: eraMedieval, gain: 0.85 },
+  renaissance: { url: eraRenaissance, gain: 0.8 },
+  industrial: { url: eraIndustrial, gain: 0.7 },
+  modern: { url: eraModern, gain: 0.6 },
+};
+
+const MOOD_TRACKS: Record<string, MusicTrack> = {
+  wilderness: { url: moodWilderness, gain: 0.6 },
+  'ancient-mystery': { url: moodAncientMystery, gain: 0.85 },
+  'dark-dungeon': { url: moodDarkDungeon, gain: 0.85 },
+  'epic-battle': { url: moodEpicBattle, gain: 0.6 },
+  'grim-war': { url: moodGrimWar, gain: 0.6 },
+};
+
+// Fallbacks when a variant isn't recognized (e.g. a future age/biome with no track yet).
+const DEFAULT_ERA = 'medieval';
+const DEFAULT_MOOD = 'ancient-mystery';
 
 const FADE_IN = 1.2;   // seconds
 const FADE_OUT = 0.6;  // seconds
 
-const decoded = new Map<string, AudioBuffer>();
-let current: { src: AudioBufferSourceNode; gain: GainNode; context: string } | null = null;
+// ── Resolution ─────────────────────────────────────────────────────────────
+
+/** Resolve a (context, variant) to a stable track key + track, or null for unknown context. */
+export function resolveTrack(context: string, variant?: string): { key: string; track: MusicTrack } | null {
+  if (context === 'civ') {
+    const era = (variant && AGE_ERA[variant]) || DEFAULT_ERA;
+    return { key: `civ:${era}`, track: ERA_TRACKS[era] };
+  }
+  if (context === 'run') {
+    const mood = (variant && BIOME_MOOD[variant]) || DEFAULT_MOOD;
+    return { key: `run:${mood}`, track: MOOD_TRACKS[mood] };
+  }
+  return null;
+}
 
 /** Whether a music track is defined for this context. */
 export function hasMusic(context: string): boolean {
-  return context in TRACKS;
+  return context === 'civ' || context === 'run';
 }
 
+// ── Playback ───────────────────────────────────────────────────────────────
+
+const decoded = new Map<string, AudioBuffer>(); // keyed by track URL
+let current: { src: AudioBufferSourceNode; gain: GainNode; key: string } | null = null;
+
 /**
- * Start (or keep) the looping music track for a context, fading it in. Returns true if
- * music is now playing, false if it couldn't (no context yet, unknown track, or a
- * fetch/decode failure) — in which case the caller should use the procedural bed.
+ * Start (or keep) the looping track selected by (context, variant), fading it in. Returns
+ * true if music is now playing, false if it couldn't (no context yet, unknown context, or
+ * a fetch/decode failure) — in which case the caller should use the procedural bed.
  */
-export async function playMusic(context: string): Promise<boolean> {
-  const track = TRACKS[context];
-  if (!track) return false;
+export async function playMusic(context: string, variant?: string): Promise<boolean> {
+  const resolved = resolveTrack(context, variant);
+  if (!resolved) return false;
+  const { key, track } = resolved;
   const guts = ensureAudio(); // caller only invokes this post-unlock, so no context is created here
   if (!guts) return false;
-  if (current && current.context === context) return true; // already playing this track
+  if (current && current.key === key) return true; // already playing this track
 
-  let buffer = decoded.get(context);
+  let buffer = decoded.get(track.url);
   if (!buffer) {
     try {
       const res = await fetch(track.url);
       if (!res.ok) return false;
       const bytes = await res.arrayBuffer();
       buffer = await guts.ctx.decodeAudioData(bytes);
-      decoded.set(context, buffer);
+      decoded.set(track.url, buffer);
     } catch {
       return false;
     }
   }
 
-  // The context may have been torn down or switched while we were decoding.
+  // The context may have been torn down, or the desired track switched, while decoding.
   const live = peekAudio();
   if (!live) return false;
-  if (current && current.context === context) return true;
+  if (current && current.key === key) return true;
   stopMusic();
 
   const src = live.ctx.createBufferSource();
@@ -76,7 +145,7 @@ export async function playMusic(context: string): Promise<boolean> {
   gain.gain.exponentialRampToValueAtTime(track.gain, now + FADE_IN);
   src.connect(gain).connect(live.master);
   src.start(now);
-  current = { src, gain, context };
+  current = { src, gain, key };
   return true;
 }
 
@@ -94,7 +163,7 @@ export function stopMusic(): void {
   try { c.src.stop(now + FADE_OUT + 0.05); } catch { /* already stopped */ }
 }
 
-/** The context whose music is currently playing, or null. */
-export function currentMusicContext(): string | null {
-  return current?.context ?? null;
+/** The track key currently playing (e.g. "civ:medieval", "run:dark-dungeon"), or null. */
+export function currentMusicKey(): string | null {
+  return current?.key ?? null;
 }

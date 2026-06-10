@@ -2,10 +2,11 @@
 
 A self-contained audio layer built on the Web Audio API. **All sound effects are
 procedurally synthesized** at runtime from oscillators + filtered noise + ADSR envelopes —
-no SFX asset files. The **background music** uses two small CC0 (public-domain) tracks (see
-*Music credits* below), routed through the same master gain so the volume slider and mute
-apply to them; if a track ever fails to load, the engine falls back to a procedural ambient
-bed. The module stands alone; the rest of the game talks to it only through
+no SFX asset files. The **background music** is a set of CC0 (public-domain) tracks selected
+by game context — an *era* track per age on the civ screen, a *mood* track per biome in a
+run (see *Music* below) — all routed through the same master gain so the volume slider and
+mute apply to them; if a track ever fails to load, the engine falls back to a procedural
+ambient bed. The module stands alone; the rest of the game talks to it only through
 `src/audio/index.ts`.
 
 ## Files
@@ -15,24 +16,50 @@ bed. The module stands alone; the rest of the game talks to it only through
 | `theory.ts`  | Pure math — `noteToFreq`, `transpose`, ADSR (`adsrValueAt`, `envSustainLevel`), `dbToGain` | no | ✅ `tests/audioTheory.test.ts` |
 | `recipes.ts` | The SFX library + procedural ambient beds (fallback), expressed purely as data | no | ✅ `tests/audioRecipes.test.ts` |
 | `engine.ts`  | Lazy `AudioContext`, oscillator/noise voices, master gain + mute + volume, voice cap, throttle, ambient bed | yes (lazy) | ✅ `tests/audioEngine.test.ts` |
-| `music.ts`   | File-based looping background music (fetch → decode → loop through master); procedural fallback | yes (lazy) | — |
+| `music.ts`   | Context-selected looping background music (age→era, biome→mood; fetch → decode → loop through master); procedural fallback | yes (lazy) | — |
 | `index.ts`   | Public API + autoplay unlock + the volume/mute controls panel | yes (lazy) | — |
-| `assets/`    | The two CC0 music tracks (imported as Vite assets) | — | — |
+| `assets/`    | The CC0 music tracks (imported as Vite assets) | — | — |
 
 `theory.ts` and `recipes.ts` carry **zero** `AudioContext`/DOM dependency, so they run in
 Vitest's `node` environment. `engine.ts`/`music.ts`/`index.ts` only touch an `AudioContext`
 lazily (inside functions, never at module load). `music.ts` is imported **only** by
 `index.ts` so the binary-asset imports stay out of the test path.
 
-## Music credits
+## Music
 
-Both tracks are **CC0 1.0 (public domain)** — no attribution is required, but credited here
-for provenance. Sourced from [OpenGameArt.org](https://opengameart.org).
+Tracks are selected by context in `music.ts`: the civ screen plays an **era** track keyed by
+the current age (stone/bronze/iron share one "ancient" bed; the rest are 1:1), and a run
+plays a **mood** track keyed by the expedition's biome. Adding finer granularity later = drop
+a file + add one registry line; `startAmbient('civ', ageId)` / `startAmbient('run', biomeId)`
+do the lookup with a default fallback.
 
-| Context | Track | Author | Source |
-|---------|-------|--------|--------|
-| civ screen | *Fantasy: Rising Moon* | RandomMind | https://opengameart.org/content/fantasy-rising-moon |
-| in-run | *Ambient Relaxing Loop* | isaiah658 | https://opengameart.org/content/ambient-relaxing-loop |
+All tracks are **CC0 1.0 (public domain)** — no attribution required, credited here for
+provenance. All from [OpenGameArt.org](https://opengameart.org).
+
+**Civ — era (by age):**
+
+| Era (ages) | Track | Author |
+|------------|-------|--------|
+| ancient (stone/bronze/iron) | *Tribal* | Of Far Different Nature |
+| classical | *Experimenting with Greek instrument samples* | Spring Spring |
+| medieval | *Medieval: Market Day* | RandomMind |
+| renaissance | *If my complaints could passions move* (Dowland, 1597) | Of Far Different Nature |
+| industrial | *Kohle und Stahl* | Spring Spring |
+| modern | *Hunter-class Lifeform* | Vitalezzz |
+
+**Run — mood (by biome):**
+
+| Mood (biomes) | Track | Author |
+|---------------|-------|--------|
+| wilderness (wilds/frontier) | *Adventure Time* | Scribe |
+| ancient-mystery (ruins) | *Shrine* | yd |
+| dark-dungeon (caverns/cursed-keep) | *Dark Cavern Ambient* | Paul Wortmann |
+| epic-battle (colosseum) | *A Legend Will Rise* | CodeManu |
+| grim-war (plague-city/foundry/no-man's-land) | *High Alert* | section31 |
+
+Fallbacks: civ → `medieval`, run → `ancient-mystery`. Loop quality varies — several tracks
+aren't authored as seamless loops, so a loop-point seam is possible; swap any offender by
+changing one line in `music.ts`.
 
 ## Public API
 

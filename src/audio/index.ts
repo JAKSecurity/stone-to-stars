@@ -37,21 +37,25 @@ export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
   playRecipe(name, recipe, opts.semitones ?? 0);
 }
 
-// Remember the most recently requested ambient context so we can (re)start it once the
-// AudioContext unlocks, or after unmuting.
+// Remember the most recently requested background (context + variant) so we can (re)start
+// it once the AudioContext unlocks, or after unmuting.
 let desiredAmbient: AmbientContext | null = null;
+let desiredVariant: string | undefined;
 
 /**
- * Start the looping background for a screen context. Prefers a CC0 music track and
+ * Start the looping background for a screen context. `variant` selects the specific track:
+ * the age id for `'civ'` (→ an era track) or the biome id for `'run'` (→ a mood track);
+ * an unknown/absent variant falls back to a default track. Prefers a CC0 music track and
  * falls back to the procedural ambient bed if the track can't be fetched/decoded.
  * Autoplay-safe: does nothing heavy until the context is unlocked by a gesture — the
- * unlock handler re-invokes this with the remembered context.
+ * unlock handler re-invokes this with the remembered context + variant.
  */
-export function startAmbient(context: AmbientContext): void {
+export function startAmbient(context: AmbientContext, variant?: string): void {
   desiredAmbient = context;
+  desiredVariant = variant;
   if (isMuted() || !isAudioReady()) return; // wait for unmute / the unlock gesture
   if (hasMusic(context)) {
-    void playMusic(context).then((ok) => {
+    void playMusic(context, variant).then((ok) => {
       // If the track failed AND this is still the desired context, use the synth bed.
       if (!ok && desiredAmbient === context) startAmbientBed(context, AMBIENT[context]);
     });
@@ -63,6 +67,7 @@ export function startAmbient(context: AmbientContext): void {
 /** Stop the background (music + procedural bed). */
 export function stopAmbient(): void {
   desiredAmbient = null;
+  desiredVariant = undefined;
   stopMusic();
   engineStopAmbient();
 }
@@ -70,13 +75,13 @@ export function stopAmbient(): void {
 /** Set mute on/off (persisted). When unmuting, the last ambient bed resumes. */
 export function setMuted(next: boolean): void {
   engineSetMuted(next);
-  if (!next && desiredAmbient) startAmbient(desiredAmbient);
+  if (!next && desiredAmbient) startAmbient(desiredAmbient, desiredVariant);
 }
 
 /** Toggle mute and return the new state (persisted). */
 export function toggleMute(): boolean {
   const nowMuted = toggleMuted();
-  if (!nowMuted && desiredAmbient) startAmbient(desiredAmbient);
+  if (!nowMuted && desiredAmbient) startAmbient(desiredAmbient, desiredVariant);
   return nowMuted;
 }
 
@@ -110,7 +115,7 @@ export function unlockAudioOnFirstGesture(): void {
     for (const e of events) target.removeEventListener?.(e, onGesture);
     // Start whatever bed was requested before the unlock. startAmbientBed guards against
     // building duplicate nodes, so this is safe even if a bed is already playing.
-    if (!isMuted() && desiredAmbient) startAmbient(desiredAmbient);
+    if (!isMuted() && desiredAmbient) startAmbient(desiredAmbient, desiredVariant);
   };
   for (const e of events) target.addEventListener?.(e, onGesture, { once: false });
 }

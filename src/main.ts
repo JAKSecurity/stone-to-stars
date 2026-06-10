@@ -46,7 +46,7 @@ function showCiv() {
   runEl.classList.remove('active');
   expEl.classList.remove('active');
   civEl.classList.remove('hidden');
-  startAmbient('civ'); // RC-020: calm planning-screen bed (no-op until first gesture)
+  startAmbient('civ', getAge(civ)); // RC-020: era music for the current age (no-op until first gesture)
   renderCivScreen(civEl, civ, {
     onResearch: (id) => { civ = research(civ, id); playSfx('research'); persist(); showCiv(); },
     onBuild: (id, tile) => { civ = build(civ, id, tile); playSfx('build'); persist(); showCiv(); },
@@ -70,7 +70,7 @@ function launchExpedition(expedition: Expedition) {
   expEl.classList.remove('active');
   runEl.classList.add('active');
   const modifiers: RunModifiers = computeRunModifiers(civ);
-  startAmbient('run');     // RC-020: switch to the in-run ambient bed
+  startAmbient('run', expedition.biomeId); // RC-020: mood music for the expedition's biome
   playSfx('run-start');
   game.scene.stop('run');
   game.scene.start('run', {
