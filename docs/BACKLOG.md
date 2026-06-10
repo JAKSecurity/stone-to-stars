@@ -35,7 +35,7 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-015 | Implement orbit/lob projectile behaviors | Delivered | P3 | C3 | docs/tickets/RC-015-orbit-lob-behaviors.md |
 | RC-016 | Modern age content (mechanized warfare) + hero face/eye fixes | Delivered | P2 | C3 | docs/tickets/RC-016-modern-age.md |
 | RC-017 | Exponential per-age progression (economy G=1.75 + fixed-per-age difficulty + run-scene overhaul + early-game balance) | Delivered | P2 | C3 | docs/superpowers/specs/2026-06-08-exponential-economy-design.md |
-| RC-018 | Enemy behavior archetypes (ranged/charger/splitter/circler) | In Progress | P2 | C3 | docs/tickets/RC-018-enemy-behavior-archetypes.md |
+| RC-018 | Enemy behavior archetypes (ranged/charger/splitter/circler) | Delivered | P2 | C3 | docs/tickets/RC-018-enemy-behavior-archetypes.md |
 | RC-019 | Mini-boss arrival events (announce, HP bar, jackpot) | Open | P2 | C3 | docs/tickets/RC-019-mini-boss-events.md |
 | RC-020 | Procedural audio pass (WebAudio SFX + ambient) | Delivered | P2 | C3 | docs/tickets/RC-020-procedural-audio.md |
 | RC-021 | Biome visual identity (palettes + themed obstacles) | Delivered | P2 | C3 | docs/tickets/RC-021-biome-visual-identity.md |
