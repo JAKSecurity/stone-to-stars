@@ -6,6 +6,7 @@ import { load, save } from './state/saveLoad';
 import { research, getAge } from './tech/tech';
 import { heroSpriteFor } from './game/heroByAge';
 import { build, upgradeBuilding, moveBuilding } from './camp/camp';
+import { buyTradition } from './civics/traditions';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen } from './ui/civScreen';
 import { renderExpeditionScreen } from './ui/expeditionScreen';
@@ -42,6 +43,7 @@ function showCiv() {
     onBuild: (id, tile) => { civ = build(civ, id, tile); persist(); showCiv(); },
     onUpgrade: (tile) => { civ = upgradeBuilding(civ, tile); persist(); showCiv(); },
     onMoveBuilding: (from, to) => { civ = moveBuilding(civ, from, to); persist(); showCiv(); },
+    onBuyTradition: (id) => { civ = buyTradition(civ, id); persist(); showCiv(); },
     onStartRun: () => startRun(),
   });
 }

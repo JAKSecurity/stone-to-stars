@@ -1,8 +1,10 @@
-import { CivState, Resource, RESOURCES } from '../game/types';
+import { CivState, Resource, RESOURCES, AGE_ORDER, AgeId } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge } from '../tech/tech';
 import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost } from '../camp/camp';
+import { TRADITIONS } from '../civics/traditionData';
+import { traditionRank, nextRankCost, canBuyTradition } from '../civics/traditions';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
@@ -16,12 +18,15 @@ export interface CivCallbacks {
   onBuild: (buildingId: string, tile: number) => void;
   onUpgrade: (tile: number) => void;
   onMoveBuilding: (fromTile: number, toTile: number) => void;
+  onBuyTradition: (traditionId: string) => void;
   onStartRun: () => void;
 }
 
 function costText(cost: Partial<Record<Resource, number>>): string {
   return RESOURCES.filter((r) => cost[r]).map((r) => `${ICON[r]}${cost[r]}`).join(' ') || 'free';
 }
+
+function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 function shortfallText(banked: Record<Resource, number>, cost: Partial<Record<Resource, number>>): string {
   return RESOURCES.filter((r) => (cost[r] ?? 0) > banked[r]).map((r) => `${ICON[r]}${(cost[r] ?? 0) - banked[r]}`).join(' ');
@@ -179,6 +184,49 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   campPanel.appendChild(palette);
 
   cols.appendChild(campPanel);
+
+  // Traditions panel — flat, always-visible board (jeff-ui-design: no modal/collapse).
+  const tradPanel = document.createElement('div');
+  tradPanel.className = 'panel';
+  tradPanel.innerHTML = '<h2>Traditions</h2>';
+  const tgrid = document.createElement('div');
+  tgrid.className = 'bgrid'; // reuse the building-palette grid styling
+  const civAgeIdx = AGE_ORDER.indexOf(getAge(civ));
+  for (const def of Object.values(TRADITIONS)) {
+    const rank = traditionRank(civ, def.id);
+    const maxed = rank >= def.maxRank;
+    const cost = nextRankCost(civ, def.id); // null when maxed
+    const ageLocked = def.requiresAge != null
+      && civAgeIdx < AGE_ORDER.indexOf(def.requiresAge);
+    const buyable = canBuyTradition(civ, def.id);
+
+    const card = document.createElement('div');
+    card.className = 'bcard' + (maxed ? ' done' : buyable ? ' afford' : ' locked');
+    const text = document.createElement('div');
+    const capLine = `<div class="beff">${def.blurb(Math.max(rank, 1))}</div>`;
+    const rankLine = `<div class="bnm">${def.icon} ${def.name} <span class="lvl">${rank}/${def.maxRank}</span></div>`;
+    let footer: string;
+    if (maxed) {
+      footer = '<div class="bcost">MAX</div>';
+    } else if (ageLocked) {
+      footer = `<div class="bneed">🔒 ${cap(def.requiresAge as AgeId)}</div>`;
+    } else if (cost != null) {
+      const costStr = costText({ culture: cost });
+      footer = buyable
+        ? `<div class="bcost">${costStr}</div>`
+        : `<div class="bcost">${costStr}</div><div class="bneed">need ${shortfallText(civ.banked, { culture: cost })}</div>`;
+    } else {
+      footer = '';
+    }
+    text.innerHTML = rankLine + capLine + footer;
+    card.appendChild(text);
+    if (buyable) {
+      card.onclick = () => cb.onBuyTradition(def.id);
+    }
+    tgrid.appendChild(card);
+  }
+  tradPanel.appendChild(tgrid);
+  cols.appendChild(tradPanel);
 
   wrap.appendChild(cols);
 
