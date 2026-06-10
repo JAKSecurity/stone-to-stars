@@ -43,3 +43,10 @@ opted in), with a procedural fallback if a file fails to load.
 **Deferred (now unblocked):** in-run *combat* SFX (shoot/hit/death/pickup/level-up/draft/zone-cleared)
 wire directly into RunScene/weapons — hook table in `src/audio/README.md` "Pending".
 Verified: tsc clean, 219 vitest, vite build clean, Playwright (boots clean, gesture fires SFX, no errors).
+
+## Combat SFX wired — 2026-06-10
+The deferred in-run combat SFX are now wired into `src/scenes/RunScene.ts`: shoot, enemy-hit
+(incl. armor block), enemy-death, player-hit (contact + projectile), gem-pickup (pitched by gem
+value), level-up, draft-open, draft-select, zone-cleared. Only `boss-arrival` remains (lands with
+RC-019). Verified: tsc clean, 219 vitest, build clean, Playwright (8s live run exercises every hook,
+no console errors). RC-020 acceptance fully met.

@@ -139,7 +139,12 @@ merges.
 
 This already proves the cross-screen path (civ-side `research` SFX) required by the AC.
 
-### ⏳ Pending — wire post-merge in the hot files
+### ✓ Wired post-merge — 2026-06-10 (RC-020 combat pass)
+
+The RunScene hooks below are now wired: shoot, enemy-hit (incl. armor block), enemy-death, player-hit
+(contact + projectile), gem-pickup (pitched by value via `gemValueToSemitones` in RunScene),
+level-up, draft-open, draft-select, and zone-cleared. **Only `boss-arrival` remains** — it lands
+with RC-019 (mini-boss events), since there's no mini-boss to announce yet.
 
 **`src/scenes/RunScene.ts`** — `import { playSfx } from '../audio';`
 | Where | Call |
