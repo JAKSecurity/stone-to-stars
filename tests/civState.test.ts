@@ -12,7 +12,8 @@ describe('civState', () => {
     expect(civ.buildings).toEqual([]);
     expect(civ.runs).toBe(0);
     expect(civ.banked).toEqual({ exploration: 0, science: 0, industry: 0, culture: 0 });
-    expect(civ.version).toBe(1);
+    expect(civ.version).toBe(2);
+    expect(civ.traditions).toEqual({});
   });
 
   it('applyRunResult banks collected resources and increments runs', () => {
