@@ -13,6 +13,7 @@
 // the node/Vitest path.
 
 // Era tracks (civ screen, grouped by age).
+import eraStone from './assets/era-stone.mp3';
 import eraAncient from './assets/era-ancient.mp3';
 import eraClassical from './assets/era-classical.ogg';
 import eraMedieval from './assets/era-medieval.mp3';
@@ -35,10 +36,11 @@ interface MusicTrack {
 }
 
 // ── Selection tables ───────────────────────────────────────────────────────
-// Age → era key (the civ screen). Stone/Bronze/Iron share one "ancient" bed; the rest
-// are 1:1. Adding finer granularity later = split a group + add one ERA_TRACKS entry.
+// Age → era key (the civ screen). Stone has its own bed; Bronze/Iron share "ancient";
+// the rest are 1:1. Adding finer granularity later = split a group + add one ERA_TRACKS entry.
 const AGE_ERA: Record<string, string> = {
-  stone: 'ancient', bronze: 'ancient', iron: 'ancient',
+  stone: 'stone',
+  bronze: 'ancient', iron: 'ancient',
   classical: 'classical',
   medieval: 'medieval',
   renaissance: 'renaissance',
@@ -56,9 +58,11 @@ const BIOME_MOOD: Record<string, string> = {
 };
 
 const ERA_TRACKS: Record<string, MusicTrack> = {
-  ancient: { url: eraAncient, gain: 0.7 },
+  stone: { url: eraStone, gain: 0.72 },     // "Tribal Hangout" — primal/atmospheric
+  ancient: { url: eraAncient, gain: 0.7 },  // "Tribal" — bronze/iron
   classical: { url: eraClassical, gain: 0.85 },
-  medieval: { url: eraMedieval, gain: 0.85 },
+  medieval: { url: eraMedieval, gain: 0.58 }, // Market Day masters hot — pulled down to match
+
   renaissance: { url: eraRenaissance, gain: 0.8 },
   industrial: { url: eraIndustrial, gain: 0.7 },
   modern: { url: eraModern, gain: 0.6 },

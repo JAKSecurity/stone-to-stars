@@ -40,11 +40,12 @@ provenance. All from [OpenGameArt.org](https://opengameart.org).
 
 | Era (ages) | Track | Author |
 |------------|-------|--------|
-| ancient (stone/bronze/iron) | *Tribal* | Of Far Different Nature |
+| stone | *Tribal Hangout* | Alex McCulloch |
+| ancient (bronze/iron) | *Tribal* | Of Far Different Nature |
 | classical | *Experimenting with Greek instrument samples* | Spring Spring |
 | medieval | *Medieval: Market Day* | RandomMind |
 | renaissance | *If my complaints could passions move* (Dowland, 1597) | Of Far Different Nature |
-| industrial | *Kohle und Stahl* | Spring Spring |
+| industrial | *The Gears of Progress* | section31 |
 | modern | *Hunter-class Lifeform* | Vitalezzz |
 
 **Run — mood (by biome):**
