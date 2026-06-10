@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   initChargerState, chargerStep, CHARGER_CONFIG,
+  circlerVelocity, CIRCLER_RADIUS,
+  standoffVelocity, STANDOFF_MIN, STANDOFF_MAX,
 } from '../src/run/enemyBehavior';
-import { circlerVelocity, CIRCLER_RADIUS } from '../src/run/enemyBehavior';
-import { standoffVelocity, STANDOFF_MIN, STANDOFF_MAX } from '../src/run/enemyBehavior';
 
 describe('enemyBehavior — charger', () => {
   const cfg = CHARGER_CONFIG;
@@ -47,8 +47,12 @@ describe('enemyBehavior — charger', () => {
     let r = chargerStep({ phase: 'dash', timer: 5, dashX: 1, dashY: 0 }, 100, 1, 0, 50, 16);
     expect(r.state.phase).toBe('recover');
     expect(r.state.timer).toBe(cfg.recoverMs);
-    // recover still advances at normal speed (repositioning), no re-trigger until it elapses
-    expect(r.vx).toBeCloseTo(0); // entering recover this frame yields 0; next frames chase
+    // dash→recover transition frame: the dash case returns vx:0 on exit
+    expect(r.vx).toBeCloseTo(0);
+    // mid-recover: the enemy repositions at normal chase speed while on cooldown
+    r = chargerStep({ phase: 'recover', timer: cfg.recoverMs, dashX: 0, dashY: 0 }, 200, 1, 0, 50, 16);
+    expect(r.state.phase).toBe('recover');
+    expect(r.vx).toBeCloseTo(50);
     r = chargerStep({ phase: 'recover', timer: 5, dashX: 0, dashY: 0 }, 100, 1, 0, 50, 16);
     expect(r.state.phase).toBe('chase');
     expect(r.vx).toBeCloseTo(50);
@@ -96,5 +100,10 @@ describe('enemyBehavior — standoff', () => {
   it('kites away when closer than the min band', () => {
     const v = standoffVelocity(STANDOFF_MIN - 50, 1, 0, 60);
     expect(v.vx).toBeCloseTo(-60); // away from the player
+  });
+
+  it('holds at the exact boundary distances', () => {
+    expect(standoffVelocity(STANDOFF_MAX, 1, 0, 60).vx).toBe(0);
+    expect(standoffVelocity(STANDOFF_MIN, 1, 0, 60).vx).toBe(0);
   });
 });
