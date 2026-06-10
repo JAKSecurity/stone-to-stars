@@ -142,6 +142,8 @@ export interface CivState {
   runs: number;
   lifetimeResources?: ResourceBundle; // total ever earned (collected + yields). Optional: pre-existing
                                       // v3 saves lack it and lazy-default to zero (no save-version bump).
+  startWeapon?: string;               // RC-027: chosen starting weapon id (default 'club'); persists as the default.
+  biomeBests?: Record<string, number>; // RC-027: biomeId -> best single-run total haul. Optional, lazy-defaulted.
 }
 
 export interface RunModifiers {
@@ -154,6 +156,8 @@ export interface RunModifiers {
   fireRateMult: number;     // 1.0 = no change
   draftRerolls: number;     // 0 = no rerolls
   startWeaponLevel: number; // 1 = weapons start at level 1
+  startWeapon?: string;     // RC-027: weapon id the run begins with (computeRunModifiers always sets it;
+                            // optional so callers building bare modifiers default to 'club' via initialWeapons).
 }
 
 export interface RunResult {

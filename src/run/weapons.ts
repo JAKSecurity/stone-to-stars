@@ -26,9 +26,10 @@ export interface EquippedWeapon {
   level: number;
 }
 
-/** Every run starts with the base club (melee); a ranged weapon is drafted in (see draftOptions). */
-export function initialWeapons(): EquippedWeapon[] {
-  return [{ id: 'club', level: 1 }];
+/** The run's starting loadout: just the chosen weapon at level 1 (default the base club). The other
+ *  class slot is filled by drafting during the run (see draftOptions). RC-027 starting-weapon choice. */
+export function initialWeapons(startWeapon: string = 'club'): EquippedWeapon[] {
+  return [{ id: startWeapon, level: 1 }];
 }
 
 /**

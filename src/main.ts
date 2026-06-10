@@ -88,11 +88,15 @@ function startRun() {
   expEl.classList.add('active');
   renderExpeditionScreen(expEl, civ, {
     onPick: (expedition: Expedition) => launchExpedition(expedition),
+    onSelectWeapon: (id) => { civ = { ...civ, startWeapon: id }; persist(); startRun(); }, // re-render with new pick
     onBack: () => { expEl.classList.remove('active'); showCiv(); },
   });
 }
 
+let lastBiomeId: string | undefined; // for per-biome best tracking (RC-027)
+
 function launchExpedition(expedition: Expedition) {
+  lastBiomeId = expedition.biomeId;
   expEl.classList.remove('active');
   runEl.classList.add('active');
   game.scale.resize(window.innerWidth, window.innerHeight); // fill the window now that #run is visible
@@ -113,7 +117,7 @@ function onRunComplete(result: RunResult) {
   runEndEl.classList.add('active');
   renderRunEndScreen(runEndEl, result, () => {
     runEndEl.classList.remove('active');
-    civ = applyRunResult(civ, result);
+    civ = applyRunResult(civ, result, lastBiomeId);
     persist();
     showCiv();
   });

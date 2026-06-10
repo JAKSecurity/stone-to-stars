@@ -1,12 +1,36 @@
 import { describe, it, expect } from 'vitest';
 import { AGE_ORDER } from '../src/game/types';
-import { availableExpeditions, pickEnemy } from '../src/run/expedition';
+import { availableExpeditions, pickEnemy, apexEnemyId, biomeDanger } from '../src/run/expedition';
+import { ENEMIES } from '../src/run/enemyData';
 import { ageIndexOf } from '../src/game/economy';
 import { BIOMES } from '../src/run/biomeData';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
 
 const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
+
+describe('expedition card helpers (RC-027)', () => {
+  it('apexEnemyId picks the highest-baseHp foe in a spawn table', () => {
+    const table = { beast: 1, rock_golem: 1, scholar: 1 }; // 32 / 90 / 24
+    expect(apexEnemyId(table)).toBe('rock_golem');
+    expect(ENEMIES[apexEnemyId(table)].baseHp).toBe(90);
+  });
+
+  it('biomeDanger scales 1–5 with the apex HP bracket', () => {
+    expect(biomeDanger({ beast: 1 })).toBe(1);           // 32 hp
+    expect(biomeDanger({ iron_golem: 1 })).toBe(2);      // 200 hp
+    expect(biomeDanger({ juggernaut: 1 })).toBe(5);      // 540 hp → capped at 5
+  });
+
+  it('every real biome resolves an apex enemy with a danger rating in 1..5', () => {
+    for (const b of Object.values(BIOMES)) {
+      const d = biomeDanger(b.spawnTable);
+      expect(d).toBeGreaterThanOrEqual(1);
+      expect(d).toBeLessThanOrEqual(5);
+      expect(ENEMIES[apexEnemyId(b.spawnTable)]).toBeDefined();
+    }
+  });
+});
 
 describe('age order', () => {
   it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern', () => {

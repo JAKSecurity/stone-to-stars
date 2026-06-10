@@ -13,7 +13,7 @@ describe('computeRunModifiers', () => {
     expect(m).toEqual({
       maxHp: 100, damageMult: 1.0, draftChoices: 3, weapons: ['club'],
       pickupRadius: 60, moveSpeedMult: 1.0, fireRateMult: 1.0,
-      draftRerolls: 0, startWeaponLevel: 1,
+      draftRerolls: 0, startWeaponLevel: 1, startWeapon: 'club',
     });
   });
 

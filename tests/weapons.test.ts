@@ -38,6 +38,10 @@ describe('weapons — classes & slots', () => {
     expect(initialWeapons()).toEqual([{ id: 'club', level: 1 }]);
   });
 
+  it('initialWeapons starts with the chosen weapon (RC-027 starting-weapon choice)', () => {
+    expect(initialWeapons('musket')).toEqual([{ id: 'musket', level: 1 }]);
+  });
+
   it('addWeapon fills the empty ranged slot, keeping the melee club', () => {
     const out = addWeapon(initialWeapons(), 'musket'); // ranged
     expect(out).toEqual([{ id: 'club', level: 1 }, { id: 'musket', level: 1 }]);
