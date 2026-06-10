@@ -1,22 +1,72 @@
 * { box-sizing: border-box; }
+html, body { width: 100%; max-width: 100%; min-height: 100%; overflow-x: hidden; }
 body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, sans-serif; }
-#run { display: none; }
+#run { display: none; position: fixed; inset: 0; }
 #run.active { display: block; }
+#run canvas { display: block; }
 #civ.hidden { display: none; }
 
-.civ-wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
-.resbar { display: flex; gap: 18px; font-size: 1.1rem; padding: 10px 14px; background: #161b22; border-radius: 8px; }
+#runend { display: none; position: fixed; inset: 0; background: #0d1117; z-index: 20; }
+#runend.active { display: flex; align-items: center; justify-content: center; }
+.runend-wrap { max-width: 600px; text-align: center; padding: 24px; }
+.runend-wrap h2 { font-size: 1.5rem; line-height: 1.4; margin: 0 0 8px; }
+.runend-sub { opacity: 0.8; margin-bottom: 22px; }
+.runend-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+.runend-res { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 8px; }
+.runend-res .ricon { font-size: 2rem; }
+.runend-res .rval { font-size: 1.7rem; font-weight: 700; margin-top: 4px; }
+.runend-res .rlbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; margin-top: 2px; }
+.runend-btn { padding: 14px 30px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+.runend-btn:hover { background: #2ea043; }
+
+.civ-wrap { width: 100%; margin: 0; padding: 16px 28px; }
+
+/* RC-024 age-up celebration — inline banner at the top of the civ screen. */
+.ageup { position: relative; display: flex; align-items: center; gap: 18px; margin-bottom: 14px;
+  padding: 14px 48px 14px 18px; border: 1px solid #c9a227; border-radius: 10px;
+  background: linear-gradient(90deg, #2a230c, #1b2a16); box-shadow: 0 0 0 1px #c9a22733 inset;
+  animation: ageup-in 360ms ease-out; }
+@keyframes ageup-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.ageup-heroes { display: flex; align-items: flex-end; gap: 6px; flex: none; }
+.ageup-arrow { opacity: 0.6; font-size: 1.3rem; align-self: center; }
+.ageup-text { min-width: 0; }
+.ageup-title { font-size: 1.25rem; font-weight: 700; color: #f0d878; letter-spacing: 0.02em; }
+.ageup-unlocks { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; line-height: 1.5; }
+.ageup-unlocks b { color: #7fd99a; font-weight: 600; }
+.ageup-x { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #e6edf3;
+  opacity: 0.5; font-size: 1rem; cursor: pointer; }
+.ageup-x:hover { opacity: 1; }
+
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(12px);
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 9px 16px;
+  font-size: 0.9rem; opacity: 0; transition: opacity 220ms, transform 220ms; z-index: 30; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.resbar { display: flex; gap: 22px; font-size: 1.1rem; padding: 10px 14px; background: #161b22; border-radius: 8px; align-items: center; }
+.resbar .res { display: inline-flex; align-items: center; gap: 6px; }
+.resbar .res .rname { opacity: 0.7; font-size: 0.85rem; }
 .resbar .age { margin-left: auto; opacity: 0.85; }
+.record { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.82rem; opacity: 0.75; padding: 6px 14px 0; }
+.record strong { opacity: 1; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
 .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
 .panel h2 { margin: 0 0 10px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
-.tech { display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 6px; }
+.techage { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.45; margin: 12px 0 5px; padding-bottom: 3px; border-bottom: 1px solid #30363d; }
+.techage:first-of-type { margin-top: 0; }
+.techage.reached { opacity: 0.8; color: #7fd99a; border-color: #2a4a33; }
+.tech { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 6px; }
 .tech.done { border-color: #3fb950; opacity: 0.7; }
+.techlabel { min-width: 0; }
+.techlabel .bnm { font-weight: 600; font-size: 0.85rem; line-height: 1.35; }
+.techlabel .bnm .effinline { font-weight: 400; color: #7fd99a; }
+.techlabel .bcost { font-size: 0.8rem; opacity: 0.85; margin-top: 2px; }
+.tech button { flex: none; }
 .tech button { cursor: pointer; }
 .tech button:disabled { cursor: not-allowed; opacity: 0.4; }
 .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .cell { aspect-ratio: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 1.4rem; }
-.cell .lvl { font-size: 0.7rem; opacity: 0.7; }
+.cell .lvl { font-size: 0.85rem; opacity: 0.8; text-align: center; }
+.cell.locked-tile { background: #0a0d12; border-style: dashed; border-color: #21262d; cursor: default; opacity: 0.5; }
+.cell.locked-tile .lvl { font-size: 1rem; opacity: 0.6; }
 .startrun { display: block; width: 100%; margin-top: 16px; padding: 14px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
 .cost { font-size: 0.8rem; opacity: 0.75; }
 
@@ -29,23 +79,46 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .bcard.afford:hover { background: #11161d; }
 .bcard.locked { opacity: 0.45; cursor: not-allowed; }
 .bcard canvas { flex: none; }
-.bcard .bnm { font-weight: 600; font-size: 0.8rem; }
-.bcard .bcost { font-size: 0.7rem; opacity: 0.8; margin-top: 1px; }
-.bcard .beff { font-size: 0.7rem; color: #3fb950; margin-top: 2px; }
+.bcard .bnm { font-weight: 600; font-size: 0.85rem; }
+.bcard .bcost { font-size: 0.8rem; opacity: 0.85; margin-top: 2px; }
+.bcard .beff { font-size: 0.8rem; color: #7fd99a; margin-top: 2px; }
 .bcard.locked .beff { color: #6e7681; }
-.bcard .bneed { font-size: 0.65rem; color: #d29922; margin-top: 2px; }
+.bcard .bneed { font-size: 0.75rem; color: #d29922; margin-top: 2px; }
+.bcard .lvltag { font-weight: 400; font-size: 0.75rem; opacity: 0.7; }
+.bcard .bmax { font-size: 0.78rem; color: #3fb950; opacity: 0.85; margin-top: 2px; }
+.placed .bcard.afford { cursor: pointer; }
 .cell.drop-hover { border-color: #58a6ff; box-shadow: inset 0 0 0 2px #58a6ff; }
 .cell[draggable="true"] { cursor: grab; }
 .cell:not([draggable="true"]) { cursor: default; }
 
 #expedition { display: none; }
 #expedition.active { display: block; }
-.exp-wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
+.exp-wrap { width: 100%; margin: 0; padding: 16px 28px; }
 .exp-wrap h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
-.exp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+/* RC-027 starting-weapon picker */
+.startweapon { margin-top: 12px; }
+.startweapon h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; margin: 0 0 8px; }
+.startweapon .sw-chosen { color: #3fb950; text-transform: none; letter-spacing: 0; }
+.wgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+.wcard { display: flex; gap: 8px; align-items: center; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 7px 9px; cursor: pointer; text-align: left; color: inherit; }
+.wcard:hover { background: #11161d; }
+.wcard.sel { border-color: #3fb950; background: #11201a; }
+.wcard canvas { flex: none; }
+.wcard .wnm { font-weight: 600; font-size: 0.8rem; }
+.wcard .wcls { font-weight: 400; font-size: 0.62rem; opacity: 0.5; text-transform: uppercase; }
+.wcard .wstat { font-size: 0.7rem; opacity: 0.75; margin-top: 1px; }
+
+/* RC-027 richer expedition cards */
+.exp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
 .exp-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; color: inherit; }
 .exp-card:hover { border-color: #58a6ff; }
 .exp-card .name { font-weight: 600; }
-.exp-card .meta { font-size: 0.8rem; opacity: 0.8; margin-top: 6px; line-height: 1.5; }
-.exp-card .tier { float: right; font-size: 0.75rem; opacity: 0.7; }
+.exp-head { display: flex; align-items: center; gap: 10px; }
+.exp-swatch { width: 28px; height: 28px; border-radius: 6px; flex: none; border: 1px solid #ffffff22; background: #222; }
+.exp-title { flex: 1; min-width: 0; }
+.exp-sub { font-size: 0.72rem; opacity: 0.7; margin-top: 2px; }
+.exp-danger { flex: none; color: #d2683f; letter-spacing: 1px; font-size: 0.72rem; }
+.exp-foes { display: flex; flex-wrap: wrap; gap: 4px; margin: 9px 0 7px; }
+.exp-foes canvas { flex: none; }
+.exp-meta { font-size: 0.78rem; opacity: 0.85; }
 .exp-back { margin-top: 16px; padding: 10px 16px; background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; cursor: pointer; }

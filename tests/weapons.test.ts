@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MAX_WEAPON_SLOTS, initialWeapons, addWeapon, levelWeapon,
+  MAX_WEAPON_SLOTS, weaponClass, rangeFactorForTier, initialWeapons, addWeapon, levelWeapon,
   evolutionFor, applyEvolve, weaponShot, draftOptions, rollRunDraft,
 } from '../src/run/weapons';
 import { WEAPONS } from '../src/run/weaponData';
@@ -25,24 +25,41 @@ const FIXTURE: Record<string, WeaponDef> = {
   },
 };
 
-describe('weapons — slots', () => {
+describe('weapons — classes & slots', () => {
+  it('classifies hand weapons as melee, everything else ranged', () => {
+    expect(weaponClass('club')).toBe('melee');
+    expect(weaponClass('war_hammer')).toBe('melee');
+    expect(weaponClass('musket')).toBe('ranged');
+    expect(weaponClass('flame_jet')).toBe('ranged');
+    expect(MAX_WEAPON_SLOTS).toBe(2); // one melee + one ranged
+  });
+
   it('a run starts with only the base club at level 1', () => {
     expect(initialWeapons()).toEqual([{ id: 'club', level: 1 }]);
   });
 
-  it('addWeapon appends a new weapon at level 1', () => {
-    const out = addWeapon(initialWeapons(), 'bronze_spear');
-    expect(out).toEqual([{ id: 'club', level: 1 }, { id: 'bronze_spear', level: 1 }]);
+  it('initialWeapons starts with the chosen weapon (RC-027 starting-weapon choice)', () => {
+    expect(initialWeapons('musket')).toEqual([{ id: 'musket', level: 1 }]);
   });
 
-  it('addWeapon is a no-op when the weapon is already equipped', () => {
+  it('addWeapon fills the empty ranged slot, keeping the melee club', () => {
+    const out = addWeapon(initialWeapons(), 'musket'); // ranged
+    expect(out).toEqual([{ id: 'club', level: 1 }, { id: 'musket', level: 1 }]);
+  });
+
+  it('addWeapon SWAPS the weapon of the same class (drafting a new one replaces it)', () => {
+    const out = addWeapon([{ id: 'club', level: 5 }], 'war_hammer'); // both melee
+    expect(out).toEqual([{ id: 'war_hammer', level: 1 }]);
+  });
+
+  it('addWeapon swaps only the matching class, leaving the other slot intact', () => {
+    const out = addWeapon([{ id: 'club', level: 3 }, { id: 'musket', level: 2 }], 'war_hammer');
+    expect(out).toEqual([{ id: 'musket', level: 2 }, { id: 'war_hammer', level: 1 }]);
+  });
+
+  it('addWeapon is a no-op when that exact weapon is already equipped', () => {
     const eq = [{ id: 'club', level: 3 }];
     expect(addWeapon(eq, 'club')).toEqual(eq);
-  });
-
-  it('addWeapon is a no-op when all slots are full', () => {
-    const full = Array.from({ length: MAX_WEAPON_SLOTS }, (_, i) => ({ id: `w${i}`, level: 1 }));
-    expect(addWeapon(full, 'bronze_spear')).toEqual(full);
   });
 
   it('levelWeapon raises one weapon and caps at its maxLevel', () => {
@@ -112,6 +129,19 @@ describe('weapons — weaponShot', () => {
     expect(shot.pierce).toBe(1);
     expect(shot.count).toBe(2);
   });
+
+  it('range factor cuts hard for early ages, tapering back for late', () => {
+    expect(rangeFactorForTier('stone')).toBe(0.25);     // -75%
+    expect(rangeFactorForTier('classical')).toBe(0.50); // -50%
+    expect(rangeFactorForTier('modern')).toBe(0.75);    // -25%
+  });
+
+  it('carries a tier-scaled lifetime (range) and the armor-pierce flag', () => {
+    expect(weaponShot(WEAPONS.club, 1, 1).lifeMs).toBe(300);      // stone: 1200 × 0.25
+    expect(weaponShot(WEAPONS.club, 1, 1).ignoresArmor).toBe(false);
+    expect(weaponShot(WEAPONS.sniper, 1, 1).lifeMs).toBe(900);    // modern: 1200 × 0.75
+    expect(weaponShot(WEAPONS.sniper, 1, 1).ignoresArmor).toBe(true);
+  });
 });
 
 describe('weapons — draft options', () => {
@@ -137,13 +167,16 @@ describe('weapons — draft options', () => {
     expect(opts).not.toContainEqual({ kind: 'levelWeapon', weaponId: 'club' });
   });
 
-  it('does not offer new weapons when all slots are full', () => {
-    const full = [
-      { id: 'club', level: 1 }, { id: 'bronze_spear', level: 1 },
-      { id: 'a', level: 1 }, { id: 'b', level: 1 },
-    ];
-    const opts = draftOptions({ equipped: full, ownedPerks: [], pool: ['club', 'bronze_spear', 'c'] });
-    expect(opts.some((o) => o.kind === 'newWeapon')).toBe(false);
+  it('offers a pool weapon you do not hold even with both class slots filled (it swaps in)', () => {
+    const opts = draftOptions({
+      equipped: [{ id: 'club', level: 1 }, { id: 'musket', level: 1 }],
+      ownedPerks: [],
+      pool: ['club', 'musket', 'war_hammer'],
+    });
+    expect(opts).toContainEqual({ kind: 'newWeapon', weaponId: 'war_hammer' });
+    // already-equipped weapons are never offered as NEW
+    expect(opts).not.toContainEqual({ kind: 'newWeapon', weaponId: 'club' });
+    expect(opts).not.toContainEqual({ kind: 'newWeapon', weaponId: 'musket' });
   });
 
   it('rollRunDraft returns distinct options up to the requested count', () => {

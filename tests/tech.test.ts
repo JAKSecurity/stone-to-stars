@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TECHS } from '../src/tech/techData';
-import { isResearched, canResearch, research, getAge, techUnlocksBuilding } from '../src/tech/tech';
+import { isResearched, canResearch, research, getAge, techUnlocksBuilding, techCost } from '../src/tech/tech';
 import { newCivState } from '../src/state/civState';
 
 describe('tech', () => {
@@ -43,7 +43,8 @@ describe('tech', () => {
   });
 
   it('research subtracts cost, records the tech, and is idempotent-guarded', () => {
-    const civ = { ...newCivState(), banked: { exploration: 0, science: 0, industry: 10, culture: 0 } };
+    const cost = techCost('pottery').industry ?? 0; // exact age-scaled pottery cost
+    const civ = { ...newCivState(), banked: { exploration: 0, science: 0, industry: cost, culture: 0 } };
     const after = research(civ, 'pottery');
     expect(after.researched).toContain('pottery');
     expect(after.banked.industry).toBe(0);
@@ -51,7 +52,7 @@ describe('tech', () => {
   });
 
   it('researching the gate tech advances the age', () => {
-    let civ = { ...newCivState(), banked: { exploration: 0, science: 99, industry: 99, culture: 99 } };
+    let civ = { ...newCivState(), banked: { exploration: 0, science: 99999, industry: 99999, culture: 99999 } };
     civ = research(civ, 'mining');
     expect(getAge(civ)).toBe('stone');
     civ = research(civ, 'bronze_working');

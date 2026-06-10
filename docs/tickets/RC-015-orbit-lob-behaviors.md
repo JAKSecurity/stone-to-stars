@@ -1,5 +1,5 @@
 # RC-015: Implement orbit/lob projectile behaviors
-**Status**: Open  **Priority**: P3  **Type**: Feature
+**Status**: Delivered  **Priority**: P3  **Type**: Feature
 **Created**: 2026-06-07
 **Capability**: C3 (Content & ages)
 

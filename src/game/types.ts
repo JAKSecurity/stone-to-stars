@@ -26,6 +26,7 @@ export interface WeaponDef {
   };
   evolvesTo?: string;          // weapon id of the evolved form
   evolveRequiresPerk?: string; // perk id that, owned while this weapon is maxed, enables evolution
+  pierceArmor?: boolean;       // if set, hits ignore enemy armor (e.g. the sniper rifle)
 }
 
 export interface RunBonus {
@@ -33,6 +34,29 @@ export interface RunBonus {
   damageMult?: number;  // additive fraction, 0.1 = +10%
   draftChoices?: number;// flat add
   weapons?: string[];   // weapon ids granted
+}
+
+/** The additive subset of RunModifiers that traditions (and future sources) can contribute. */
+export interface RunModifierDelta {
+  maxHp?: number;            // flat HP
+  damageMult?: number;       // additive fraction (0.03 = +3%)
+  draftChoices?: number;     // flat add
+  pickupRadius?: number;     // flat px
+  moveSpeedMult?: number;    // additive fraction
+  fireRateMult?: number;     // additive fraction
+  draftRerolls?: number;     // flat add (level-up reroll uses)
+  startWeaponLevel?: number; // flat add to the starting weapon level
+}
+
+export interface TraditionDef {
+  id: string;
+  name: string;
+  icon: string;                 // emoji shown on the card
+  base: number;                 // rank-1 culture cost
+  maxRank: number;
+  effectPerRank: RunModifierDelta; // applied min(rank,maxRank) times in computeRunModifiers
+  requiresAge?: AgeId;          // age gate (absent = cost-gated only)
+  blurb: (rank: number) => string; // effect text at a given rank, for the card
 }
 
 export interface TechNode {
@@ -48,6 +72,7 @@ export interface TechNode {
 
 export interface BuildingDef {
   id: string;
+  age: AgeId;
   name: string;
   baseCost: Partial<ResourceBundle>; // cost of level 1; level n costs baseCost * n
   yield: Partial<ResourceBundle>;    // resources granted per run, per level
@@ -65,6 +90,9 @@ export interface EnemyDef {
   drop: Resource;             // gem dropped on kill
   xp: number;                 // xp granted on kill
   displaySize: { w: number; h: number };
+  armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
+                              // pierceArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
+  attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
 }
 
 export interface BiomeDef {
@@ -78,19 +106,25 @@ export interface BiomeDef {
   spawnTable: Record<string, number>;              // enemyId -> spawn weight
   requiresTech?: string;                            // biome hidden until this tech is researched
   tint: string;                                     // run background color
+  // RC-021 — additive visual identity. Optional so existing data/tests stay undisturbed and the
+  // unmerged rc-017 RunScene keeps compiling; once both land, RunScene reads `visual` for the
+  // ground palette + themed obstacle sprites and falls back to `tint` + plain ellipses when absent.
+  visual?: BiomeVisual;
 }
 
-export interface ExpeditionScaling {
-  hpMult: number;
-  speedMult: number;
-  spawnRateMult: number;
-  dropMult: number;
+/** RC-021 — per-biome in-run look: a readable hued ground (vs the near-black `tint`), faint
+ *  grid/speck tints, and the set of themed obstacle sprite ids scattered as collidable terrain. */
+export interface BiomeVisual {
+  ground: string;       // background fill — a readable, hued ground color
+  grid: string;         // faint grid-line tint
+  speck: string;        // scattered dust-speck tint
+  obstacles: string[];  // art-registry sprite ids scattered as collidable terrain (visual only)
 }
 
 export interface Expedition {
   biomeId: string;
-  tier: number;               // difficulty; equals an AGE_ORDER index
-  scaling: ExpeditionScaling;
+  tier: number;               // = AGE_ORDER index of the biome's age; reward = incomeMult(tier).
+                              // Enemy stats are fixed per age (no continuous scaling) — RC-017.
 }
 
 export interface PlacedBuilding {
@@ -104,20 +138,33 @@ export interface CivState {
   banked: ResourceBundle;
   researched: string[];        // tech ids
   buildings: PlacedBuilding[];
+  traditions: Record<string, number>; // traditionId -> rank (absent/0 = unowned)
   runs: number;
+  lifetimeResources?: ResourceBundle; // total ever earned (collected + yields). Optional: pre-existing
+                                      // v3 saves lack it and lazy-default to zero (no save-version bump).
+  startWeapon?: string;               // RC-027: chosen starting weapon id (default 'club'); persists as the default.
+  biomeBests?: Record<string, number>; // RC-027: biomeId -> best single-run total haul. Optional, lazy-defaulted.
 }
 
 export interface RunModifiers {
   maxHp: number;
-  damageMult: number;  // total multiplier, e.g., 1.25
+  damageMult: number;
   draftChoices: number;
   weapons: string[];
+  pickupRadius: number;     // px
+  moveSpeedMult: number;    // 1.0 = no change
+  fireRateMult: number;     // 1.0 = no change
+  draftRerolls: number;     // 0 = no rerolls
+  startWeaponLevel: number; // 1 = weapons start at level 1
+  startWeapon?: string;     // RC-027: weapon id the run begins with (computeRunModifiers always sets it;
+                            // optional so callers building bare modifiers default to 'club' via initialWeapons).
 }
 
 export interface RunResult {
   collected: ResourceBundle; // resources gathered during the run
   survivedMs: number;
   died: boolean;
+  tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
 }
 
 export interface PerkEffect {
