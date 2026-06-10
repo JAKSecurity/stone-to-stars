@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource, RESOURCES, Expedition, BiomeDef } from '../game/types';
+import { RunModifiers, RunResult, Resource, RESOURCES, Expedition, BiomeDef, EnemyDef } from '../game/types';
 import { runDurationForTier } from '../game/config';
 import { initialRunStats, addXp } from '../run/runStats';
 import { applyPerk } from '../run/draft';
@@ -20,6 +20,10 @@ import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
   ORBIT_RADIUS, ORBIT_HIT_INTERVAL_MS, LOB_BLAST_RADIUS, LOB_PEAK_HEIGHT,
 } from '../run/projectileMotion';
+import {
+  ChargerState, ChargerPhase, initChargerState, chargerStep, CHARGER_CONFIG,
+  circlerVelocity, CIRCLER_RADIUS, standoffVelocity, STANDOFF_MIN, STANDOFF_MAX,
+} from '../run/enemyBehavior';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -297,7 +301,7 @@ export class RunScene extends Phaser.Scene {
     }
 
     (this.enemies.getChildren() as any[]).forEach((e) => {
-      this.physics.moveToObject(e, this.player, e.getData('speed'));
+      this.updateEnemyMovement(e, dt);
     });
     this.updateEnemyFire(dt);
 
@@ -513,8 +517,12 @@ export class RunScene extends Phaser.Scene {
     const progress = this.elapsed / this.runDurationMs;
     const table = spawnTableAt(this.biome, progress, BIOMES, ENEMIES);
     const def = ENEMIES[pickEnemy(table, () => Math.random())];
-    // RC-017: fixed per-age enemy stats — the difficulty step lives in each age's enemy set, not a
-    // continuous per-tier multiplier.
+    this.spawnEnemyAt(def, x, y);
+  }
+
+  /** Create one enemy of `def` at (x,y) with all run-state data. Shared by edge spawns and
+   *  RC-018 splitter death-spawns. */
+  private spawnEnemyAt(def: EnemyDef, x: number, y: number) {
     const enemy = this.add.image(x, y, def.sprite) as any;
     enemy.setDisplaySize(def.displaySize.w * RUN_SCALE, def.displaySize.h * RUN_SCALE);
     this.physics.add.existing(enemy);
@@ -526,10 +534,16 @@ export class RunScene extends Phaser.Scene {
     enemy.setData('contactDamage', def.contactDamage);
     enemy.setData('armor', def.armor ?? 0);
     enemy.setData('attack', def.attack);
+    // RC-018 movement archetype + per-enemy mutable state.
+    enemy.setData('behavior', def.behavior ?? 'chase');
+    enemy.setData('split', def.split);
+    if (def.behavior === 'charger') enemy.setData('chargerState', initChargerState());
+    if (def.behavior === 'circler') enemy.setData('circlerDir', Phaser.Math.Between(0, 1) === 0 ? -1 : 1);
     // Stagger first shots so spawns don't volley in unison.
     enemy.setData('fireMs', Phaser.Math.Between(800, 2600));
     // Match the hitbox to the visible mob so you don't get stuck on enemies that look clear.
     this.shrinkBody(enemy, 0.72);
+    return enemy;
   }
 
   /** Shrink a physics body to `frac` of the sprite's display size, kept centered. */
@@ -538,6 +552,64 @@ export class RunScene extends Phaser.Scene {
     const sw = obj.width, sh = obj.height; // source-frame px; footprint = sw·frac·displayScale
     body.setSize(sw * frac, sh * frac);
     body.setOffset((sw * (1 - frac)) / 2, (sh * (1 - frac)) / 2);
+  }
+
+  /** RC-018: per-frame movement by archetype. `chase`/default keeps the simple beeline; the
+   *  others call the pure enemyBehavior functions and apply the returned velocity. */
+  private updateEnemyMovement(e: any, dt: number) {
+    const behavior = (e.getData('behavior') ?? 'chase') as string;
+    const speed = e.getData('speed') as number;
+    if (behavior === 'chase') { this.physics.moveToObject(e, this.player, speed); return; }
+
+    const dx = this.player.x - e.x, dy = this.player.y - e.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const ux = dx / dist, uy = dy / dist;
+
+    if (behavior === 'charger') {
+      const cfg = { ...CHARGER_CONFIG, trigger: CHARGER_CONFIG.trigger * RUN_SCALE };
+      const prev = (e.getData('chargerState') as ChargerState) ?? initChargerState();
+      const r = chargerStep(prev, dist, ux, uy, speed, dt, cfg);
+      e.setData('chargerState', r.state);
+      e.body.setVelocity(r.vx, r.vy);
+      this.renderChargerTell(e, r.state.phase);
+    } else if (behavior === 'circler') {
+      const dir = (e.getData('circlerDir') as number) ?? 1;
+      const r = circlerVelocity(e.x, e.y, this.player.x, this.player.y, dir, speed, CIRCLER_RADIUS * RUN_SCALE);
+      e.body.setVelocity(r.vx, r.vy);
+    } else if (behavior === 'standoff') {
+      const r = standoffVelocity(dist, ux, uy, speed, STANDOFF_MIN * RUN_SCALE, STANDOFF_MAX * RUN_SCALE);
+      e.body.setVelocity(r.vx, r.vy);
+    } else {
+      this.physics.moveToObject(e, this.player, speed);
+    }
+  }
+
+  /** RC-018: charger telegraph. Renders only on phase changes — an amber scale-pulse during the
+   *  windup so the dash is readable before it lands, cleared when the dash begins. */
+  private renderChargerTell(e: any, phase: ChargerPhase) {
+    if (e.getData('chargerPhase') === phase) return;
+    e.setData('chargerPhase', phase);
+    if (phase === 'windup') {
+      e.setTint(0xffcc33);
+      e.setData('baseScaleX', e.scaleX); e.setData('baseScaleY', e.scaleY); // restore point
+      const tween = this.tweens.add({
+        targets: e, scaleX: e.scaleX * 1.25, scaleY: e.scaleY * 1.25,
+        duration: 160, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+      e.setData('tellTween', tween);
+    } else {
+      this.stopChargerTell(e);
+      e.clearTint();
+    }
+  }
+
+  /** Stop a charger's telegraph tween (if any) and restore its base scale. Safe to call before the
+   *  sprite is destroyed; do NOT call after destroy() (the data manager is gone). */
+  private stopChargerTell(e: any) {
+    const tween = e.getData('tellTween') as Phaser.Tweens.Tween | undefined;
+    if (tween) { tween.stop(); e.setData('tellTween', undefined); }
+    const bx = e.getData('baseScaleX'), by = e.getData('baseScaleY');
+    if (typeof bx === 'number' && typeof by === 'number') e.setScale(bx, by);
   }
 
   /** Per-frame: armed enemies count down and fire a slow, dodgeable projectile (global cap enforced). */
@@ -670,6 +742,16 @@ export class RunScene extends Phaser.Scene {
     const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
       const ex = enemy.x, ey = enemy.y;
+      // RC-018: stop any charger telegraph tween before the sprite is freed.
+      this.stopChargerTell(enemy);
+      // RC-018: a splitter bursts into weaker children at its death position.
+      const split = enemy.getData('split') as { into: string; count: number } | undefined;
+      if (split && ENEMIES[split.into]) {
+        for (let s = 0; s < split.count; s++) {
+          const jx = ex + Phaser.Math.Between(-14, 14), jy = ey + Phaser.Math.Between(-14, 14);
+          this.spawnEnemyAt(ENEMIES[split.into], jx, jy);
+        }
+      }
       // RC-017: one gem per kill, carrying a tier-scaled value (value, not swarm).
       this.dropGem(ex, ey, enemy.getData('drop'));
       const xpGain = enemy.getData('xp');
