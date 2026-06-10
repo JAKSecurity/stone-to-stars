@@ -26,6 +26,7 @@ export interface WeaponDef {
   };
   evolvesTo?: string;          // weapon id of the evolved form
   evolveRequiresPerk?: string; // perk id that, owned while this weapon is maxed, enables evolution
+  pierceArmor?: boolean;       // if set, hits ignore enemy armor (e.g. the sniper rifle)
 }
 
 export interface RunBonus {
@@ -48,6 +49,7 @@ export interface TechNode {
 
 export interface BuildingDef {
   id: string;
+  age: AgeId;
   name: string;
   baseCost: Partial<ResourceBundle>; // cost of level 1; level n costs baseCost * n
   yield: Partial<ResourceBundle>;    // resources granted per run, per level
@@ -65,6 +67,9 @@ export interface EnemyDef {
   drop: Resource;             // gem dropped on kill
   xp: number;                 // xp granted on kill
   displaySize: { w: number; h: number };
+  armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
+                              // pierceArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
+  attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
 }
 
 export interface BiomeDef {
@@ -93,17 +98,10 @@ export interface BiomeVisual {
   obstacles: string[];  // art-registry sprite ids scattered as collidable terrain (visual only)
 }
 
-export interface ExpeditionScaling {
-  hpMult: number;
-  speedMult: number;
-  spawnRateMult: number;
-  dropMult: number;
-}
-
 export interface Expedition {
   biomeId: string;
-  tier: number;               // difficulty; equals an AGE_ORDER index
-  scaling: ExpeditionScaling;
+  tier: number;               // = AGE_ORDER index of the biome's age; reward = incomeMult(tier).
+                              // Enemy stats are fixed per age (no continuous scaling) — RC-017.
 }
 
 export interface PlacedBuilding {
@@ -131,6 +129,7 @@ export interface RunResult {
   collected: ResourceBundle; // resources gathered during the run
   survivedMs: number;
   died: boolean;
+  tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
 }
 
 export interface PerkEffect {
