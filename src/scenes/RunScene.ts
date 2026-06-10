@@ -11,6 +11,10 @@ import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { pickEnemy } from '../run/expedition';
+import {
+  orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
+  ORBIT_RADIUS, ORBIT_HIT_INTERVAL_MS, LOB_BLAST_RADIUS, LOB_PEAK_HEIGHT,
+} from '../run/projectileMotion';
 
 interface RunInit {
   modifiers: RunModifiers;
@@ -43,6 +47,14 @@ export class RunScene extends Phaser.Scene {
   private paused = false;
   private finished = false;
   private pendingDrafts = 0;
+  private lobs: Array<{
+    img: any;
+    start: { x: number; y: number };
+    target: { x: number; y: number };
+    elapsed: number;
+    flightMs: number;
+    damage: number;
+  }> = [];
   private hud!: Phaser.GameObjects.Text;
   private heroSprite = 'hero';
 
@@ -62,6 +74,7 @@ export class RunScene extends Phaser.Scene {
     this.weaponCooldowns = {};
     this.explorationCooldown = 0; this.relicCooldown = 0;
     this.paused = false; this.finished = false; this.pendingDrafts = 0;
+    this.lobs = [];
   }
 
   create() {
@@ -115,7 +128,7 @@ export class RunScene extends Phaser.Scene {
       this.weaponCooldowns[w.id] = (this.weaponCooldowns[w.id] ?? 0) - dt;
       if (this.weaponCooldowns[w.id] <= 0) {
         const shot = weaponShot(WEAPONS[w.id], w.level, this.stats.damageMult);
-        this.fireWeapon(shot);
+        this.fireWeapon(shot, w.id);
         this.weaponCooldowns[w.id] = shot.cooldownMs / this.stats.fireRateMult;
       }
     }
@@ -152,6 +165,30 @@ export class RunScene extends Phaser.Scene {
       this.physics.moveToObject(g, this.player, d < this.stats.pickupRadius ? 340 : 150);
     });
 
+    // --- Orbit projectiles: ride a ring around the player (RC-015) ---
+    (this.bullets.getChildren() as any[]).forEach((b) => {
+      if (b.getData('behavior') !== 'orbit') return;
+      const angle = orbitAngle(b.getData('index'), b.getData('count'), this.elapsed);
+      const pos = orbitPosition(this.player.x, this.player.y, ORBIT_RADIUS, angle);
+      b.body.reset(pos.x, pos.y);
+    });
+
+    // --- Lob projectiles: arc to a target and detonate on landing (RC-015) ---
+    for (let i = this.lobs.length - 1; i >= 0; i--) {
+      const lob = this.lobs[i];
+      lob.elapsed += dt;
+      const t = lobProgress(lob.elapsed, lob.flightMs);
+      const ground = lobGroundPosition(lob.start, lob.target, t);
+      lob.img.setPosition(ground.x, ground.y - lobArcHeight(t));
+      const apex = 1 + 0.5 * (lobArcHeight(t) / LOB_PEAK_HEIGHT);
+      lob.img.setDisplaySize(14 * apex, 14 * apex);
+      if (t >= 1) {
+        this.detonate(lob.target.x, lob.target.y, lob.damage);
+        lob.img.destroy();
+        this.lobs.splice(i, 1);
+      }
+    }
+
     this.hud.setText(
       `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
@@ -161,7 +198,9 @@ export class RunScene extends Phaser.Scene {
     if (this.elapsed >= RUN_DURATION_MS) this.finish(false);
   }
 
-  private fireWeapon(shot: WeaponShot) {
+  private fireWeapon(shot: WeaponShot, weaponId: string) {
+    if (shot.behavior === 'orbit') { this.summonOrbit(shot, weaponId); return; }
+    if (shot.behavior === 'lob') { this.fireLob(shot); return; }
     const target = this.nearestEnemy() as any;
     const baseAngle = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
@@ -181,6 +220,74 @@ export class RunScene extends Phaser.Scene {
       bullet.body.setVelocity(Math.cos(angle) * shot.speed, Math.sin(angle) * shot.speed);
       this.time.delayedCall(1200, () => bullet.destroy());
     }
+  }
+
+  /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
+   *  replaces this weapon's ring so it refreshes to the current level without stacking. Orbiter
+   *  angle comes from the global run clock, so a replaced ring resumes at the same phase — seamless. */
+  private summonOrbit(shot: WeaponShot, weaponId: string) {
+    (this.bullets.getChildren() as any[])
+      .filter((b) => b.getData('behavior') === 'orbit' && b.getData('weaponKey') === weaponId)
+      .forEach((b) => b.destroy());
+
+    for (let i = 0; i < shot.count; i++) {
+      const orb = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
+      orb.setDisplaySize(14, 14);
+      this.physics.add.existing(orb);
+      this.bullets.add(orb);
+      orb.body.setVelocity(0, 0);
+      orb.setData('behavior', 'orbit');
+      orb.setData('damage', shot.damage);
+      orb.setData('index', i);
+      orb.setData('count', shot.count);
+      orb.setData('weaponKey', weaponId);
+    }
+  }
+
+  /** Lob: arc `count` projectiles to a target point and detonate on landing. Purely visual in
+   *  flight (no overlap body) — damage is a radius query at the landing point in `detonate`. */
+  private fireLob(shot: WeaponShot) {
+    const target = this.nearestEnemy() as any;
+    const aim = target
+      ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
+      : -Math.PI / 2;
+    const dist = target
+      ? Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y)
+      : 220;
+
+    for (let i = 0; i < shot.count; i++) {
+      const offset = shot.count > 1
+        ? (i - (shot.count - 1) / 2) * (shot.spread / (shot.count - 1))
+        : 0;
+      const angle = aim + offset;
+      const tx = this.player.x + Math.cos(angle) * dist;
+      const ty = this.player.y + Math.sin(angle) * dist;
+      const img = this.add.image(this.player.x, this.player.y, shot.sprite).setDepth(15) as any;
+      img.setDisplaySize(14, 14);
+      this.lobs.push({
+        img,
+        start: { x: this.player.x, y: this.player.y },
+        target: { x: tx, y: ty },
+        elapsed: 0,
+        flightMs: lobFlightMs(dist, shot.speed),
+        damage: shot.damage,
+      });
+    }
+  }
+
+  /** Resolve a lob at its landing point: shock-ring + shake, then AoE damage to enemies in range. */
+  private detonate(x: number, y: number, damage: number) {
+    const ring = this.add.circle(x, y, LOB_BLAST_RADIUS, 0xffaa33, 0.4).setDepth(24).setScale(0.15);
+    this.tweens.add({
+      targets: ring, scale: 1, alpha: 0,
+      duration: 260, ease: 'Power2', onComplete: () => ring.destroy(),
+    });
+    this.cameras.main.shake(120, 0.006);
+    (this.enemies.getChildren() as any[]).forEach((e) => {
+      if (e.active && withinRadius(x, y, e.x, e.y, LOB_BLAST_RADIUS)) {
+        this.applyDamageToEnemy(e, damage);
+      }
+    });
   }
 
   private nearestEnemy(): Phaser.GameObjects.GameObject | null {
@@ -213,6 +320,20 @@ export class RunScene extends Phaser.Scene {
 
   private hitEnemy(bullet: any, enemy: any) {
     if (!bullet.active || !enemy.active) return;
+
+    // Orbit projectiles persist and re-hit on a cadence instead of being consumed on contact.
+    // The cadence is stored ON THE ENEMY, keyed by (weapon, orbiter index), so it survives the
+    // per-cooldown ring refresh (which replaces the orbiter objects) and is freed when the enemy
+    // dies — otherwise a refresh would reset the cadence and let an orbiter re-hit early.
+    if (bullet.getData('behavior') === 'orbit') {
+      const key = `orbHit:${bullet.getData('weaponKey')}:${bullet.getData('index')}`;
+      const next = enemy.getData(key) ?? -Infinity;
+      if (this.elapsed < next) return;
+      enemy.setData(key, this.elapsed + ORBIT_HIT_INTERVAL_MS);
+      this.applyDamageToEnemy(enemy, bullet.getData('damage'));
+      return;
+    }
+
     // A piercing bullet stays alive; make sure it never hits the SAME enemy twice.
     let hitSet = bullet.getData('hitSet') as Set<any> | undefined;
     if (!hitSet) { hitSet = new Set(); bullet.setData('hitSet', hitSet); }
@@ -227,11 +348,20 @@ export class RunScene extends Phaser.Scene {
       bullet.destroy();
     }
 
+    this.applyDamageToEnemy(enemy, damage);
+  }
+
+  /**
+   * Apply `damage` to one enemy with the full juice path: hit-flash, floating number, and on
+   * death the drops / xp / particles / big-death shake. Shared by bullet hits, orbit contact,
+   * and lob detonation so the death feel is identical for every damage source.
+   */
+  private applyDamageToEnemy(enemy: any, damage: number) {
+    if (!enemy.active) return;
+
     // --- Juice: hit-flash ---
-    if (enemy.active) {
-      enemy.setTintFill(0xffffff);
-      this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
-    }
+    enemy.setTintFill(0xffffff);
+    this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
 
     // --- Juice: floating damage number ---
     const dmgText = this.add.text(enemy.x, enemy.y - 8, String(Math.round(damage)), {
