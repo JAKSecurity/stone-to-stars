@@ -23,12 +23,12 @@ enemy update; keep motion math pure/unit-testable (pattern: `src/run/projectileM
 both heavily modified on that branch.
 
 ## Acceptance Criteria
-- [ ] `EnemyDef.behavior` field with `chase` default; existing data unchanged in feel
-- [ ] At least 3 new archetypes implemented and assigned to thematically apt enemies across ages
-- [ ] Ranged enemy projectiles are dodgeable (visible, slow enough to react)
-- [ ] Charger telegraph is readable before the dash lands
-- [ ] Unit tests for pure motion/decision logic; Playwright live-verify each archetype
-- [ ] No new art required beyond reusing existing sprites/projectiles (or flag for ratification if added)
+- [x] `EnemyDef.behavior` field with `chase` default; existing data unchanged in feel
+- [x] At least 3 new archetypes implemented and assigned to thematically apt enemies across ages (4: charger, splitter, circler, standoff)
+- [x] Ranged enemy projectiles are dodgeable (visible, slow enough to react) — shipped rc-017; standoff now makes the threat positional
+- [x] Charger telegraph is readable before the dash lands (amber tint + scale-pulse during windup)
+- [x] Unit tests for pure motion/decision logic; Playwright live-verify each archetype
+- [x] No new art required beyond reusing existing sprites/projectiles (or flag for ratification if added)
 
 ## References
 - Review session 2026-06-09 (item A1)
@@ -44,3 +44,14 @@ with slow dodgeable projectiles and a 10-bullet global cap. So:
 - **REMAINING:** the movement archetypes — **charger** (telegraph + dash), **splitter** (death-split),
   **circler** (orbit) — plus optional standoff positioning for ranged. Reconcile with the proposed
   `behavior` field: `attack` (firing) and `behavior` (movement) are complementary, keep both.
+
+## Update — 2026-06-10 (Delivered)
+All four movement archetypes shipped via the pure `src/run/enemyBehavior.ts` module (mirrors
+`projectileMotion.ts`) + a `behavior` dispatch in `RunScene.updateEnemyMovement`. `attack` (firing)
+and `behavior` (movement) are kept orthogonal and compose (e.g. circler+ranged = strafing shooter).
+Assignments: charger = centaur/halftrack; splitter = rock_golem → 2× cave_dweller; circler =
+harpy/drone; standoff = scholar/musketeer/rifleman/grenadier/gunship/gargoyle/dragon. 12 unit tests
+on the pure logic + 4 enemyData integrity tests; all 4 archetypes Playwright live-verified through the
+real run loop (charger phase/dash-lock, circler orbit convergence, standoff 3-band, splitter
+death-spawn). No new art; no save bump (optional `EnemyDef` fields). Spec + plan in
+`docs/superpowers/{specs,plans}/2026-06-10-rc-018-*`.
