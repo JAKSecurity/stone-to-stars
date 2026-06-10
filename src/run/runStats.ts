@@ -5,9 +5,9 @@ export function initialRunStats(mods: RunModifiers): RunStats {
     hp: mods.maxHp,
     maxHp: mods.maxHp,
     damageMult: mods.damageMult,
-    fireRateMult: 1,
-    moveSpeedMult: 1,
-    pickupRadius: 60,
+    fireRateMult: mods.fireRateMult,
+    moveSpeedMult: mods.moveSpeedMult,
+    pickupRadius: mods.pickupRadius,
     level: 1,
     xp: 0,
   };
