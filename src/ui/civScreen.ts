@@ -1,4 +1,4 @@
-import { CivState, Resource, RESOURCES, AGE_ORDER } from '../game/types';
+import { CivState, Resource, RESOURCES, AGE_ORDER, AgeId, TechNode } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge, techCost, techEffectText, unmetRequirements } from '../tech/tech';
@@ -68,6 +68,18 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   bar.appendChild(ageSpan);
   wrap.appendChild(bar);
 
+  // Record strip (C5): expeditions run, lifetime resources earned, and age progress out of the ladder.
+  const record = document.createElement('div');
+  record.className = 'record';
+  const lt = civ.lifetimeResources ?? { exploration: 0, science: 0, industry: 0, culture: 0 };
+  const ltText = RESOURCES.map((r) => `${ICON[r]}${lt[r]}`).join(' ');
+  const ageIdx = AGE_ORDER.indexOf(getAge(civ));
+  record.innerHTML =
+    `<span>⚔️ <strong>${civ.runs}</strong> expedition${civ.runs === 1 ? '' : 's'}</span>` +
+    `<span>Lifetime earned ${ltText}</span>` +
+    `<span>Age <strong>${ageIdx + 1}</strong> of ${AGE_ORDER.length}</span>`;
+  wrap.appendChild(record);
+
   // Start Expedition lives at the top so it's always in reach without scrolling past the panels.
   const start = document.createElement('button');
   start.className = 'startrun';
@@ -78,11 +90,12 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   const cols = document.createElement('div');
   cols.className = 'cols';
 
-  // Tech panel.
+  // Tech panel — grouped by age (C2). Every tech stays visible (no tabs/collapse); the age sections
+  // imply prerequisites by position and scale to any future age automatically.
   const techPanel = document.createElement('div');
   techPanel.className = 'panel';
   techPanel.innerHTML = '<h2>Tech Tree</h2>';
-  for (const tech of Object.values(TECHS)) {
+  const renderTechRow = (tech: TechNode): HTMLElement => {
     const row = document.createElement('div');
     const done = isResearched(civ, tech.id);
     row.className = 'tech' + (done ? ' done' : '');
@@ -107,7 +120,22 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
       btn.onclick = () => cb.onResearch(tech.id);
       row.appendChild(btn);
     }
-    techPanel.appendChild(row);
+    return row;
+  };
+  const techsByAge = new Map<AgeId, TechNode[]>();
+  for (const tech of Object.values(TECHS)) {
+    const list = techsByAge.get(tech.age) ?? [];
+    list.push(tech);
+    techsByAge.set(tech.age, list);
+  }
+  for (const ageId of AGE_ORDER) {
+    const techs = techsByAge.get(ageId);
+    if (!techs?.length) continue;
+    const hdr = document.createElement('div');
+    hdr.className = 'techage' + (AGE_ORDER.indexOf(getAge(civ)) >= AGE_ORDER.indexOf(ageId) ? ' reached' : '');
+    hdr.textContent = `${ageId.charAt(0).toUpperCase()}${ageId.slice(1)} Age`;
+    techPanel.appendChild(hdr);
+    for (const tech of techs) techPanel.appendChild(renderTechRow(tech));
   }
   cols.appendChild(techPanel);
 

@@ -24,9 +24,14 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .resbar .res { display: inline-flex; align-items: center; gap: 6px; }
 .resbar .res .rname { opacity: 0.7; font-size: 0.85rem; }
 .resbar .age { margin-left: auto; opacity: 0.85; }
+.record { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.82rem; opacity: 0.75; padding: 6px 14px 0; }
+.record strong { opacity: 1; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
 .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
 .panel h2 { margin: 0 0 10px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
+.techage { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.45; margin: 12px 0 5px; padding-bottom: 3px; border-bottom: 1px solid #30363d; }
+.techage:first-of-type { margin-top: 0; }
+.techage.reached { opacity: 0.8; color: #7fd99a; border-color: #2a4a33; }
 .tech { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 6px; }
 .tech.done { border-color: #3fb950; opacity: 0.7; }
 .techlabel { min-width: 0; }

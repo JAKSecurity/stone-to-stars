@@ -11,11 +11,15 @@ export function newCivState(): CivState {
     buildings: [],
     traditions: {},
     runs: 0,
+    lifetimeResources: emptyBundle(),
   };
 }
 
 export function applyRunResult(civ: CivState, result: RunResult): CivState {
   let banked = addBundles(civ.banked, result.collected);
+  // Lifetime tally (RC-023 record strip) accumulates everything earned — in-run pickups + building
+  // yields. Lazy-default for pre-existing v3 saves that predate the field.
+  let lifetime = addBundles(civ.lifetimeResources ?? emptyBundle(), result.collected);
   for (const placed of civ.buildings) {
     const def = BUILDINGS[placed.id];
     if (!def) continue;
@@ -24,7 +28,8 @@ export function applyRunResult(civ: CivState, result: RunResult): CivState {
     const scaled = scaleBundle(def.yield, incomeMult(result.tier) * YIELD_SCALE);
     for (let i = 0; i < placed.level; i++) {
       banked = addBundles(banked, scaled);
+      lifetime = addBundles(lifetime, scaled);
     }
   }
-  return { ...civ, banked, runs: civ.runs + 1 };
+  return { ...civ, banked, lifetimeResources: lifetime, runs: civ.runs + 1 };
 }
