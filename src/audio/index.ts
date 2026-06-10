@@ -15,10 +15,11 @@
 // apart from reading the persisted mute/volume preferences.
 
 import {
-  ensureAudio, isMuted, setMuted as engineSetMuted, toggleMuted,
+  ensureAudio, isMuted, isAudioReady, setMuted as engineSetMuted, toggleMuted,
   getVolume, setVolume as engineSetVolume,
   playRecipe, startAmbientBed, stopAmbient as engineStopAmbient,
 } from './engine';
+import { playMusic, stopMusic, hasMusic } from './music';
 import { SFX, SfxName, AMBIENT, AmbientContext } from './recipes';
 
 export type { SfxName, AmbientContext } from './recipes';
@@ -40,15 +41,29 @@ export function playSfx(name: SfxName, opts: PlayOpts = {}): void {
 // AudioContext unlocks, or after unmuting.
 let desiredAmbient: AmbientContext | null = null;
 
-/** Start (or crossfade to) the looping ambient bed for a screen context. */
+/**
+ * Start the looping background for a screen context. Prefers a CC0 music track and
+ * falls back to the procedural ambient bed if the track can't be fetched/decoded.
+ * Autoplay-safe: does nothing heavy until the context is unlocked by a gesture — the
+ * unlock handler re-invokes this with the remembered context.
+ */
 export function startAmbient(context: AmbientContext): void {
   desiredAmbient = context;
-  startAmbientBed(context, AMBIENT[context]);
+  if (isMuted() || !isAudioReady()) return; // wait for unmute / the unlock gesture
+  if (hasMusic(context)) {
+    void playMusic(context).then((ok) => {
+      // If the track failed AND this is still the desired context, use the synth bed.
+      if (!ok && desiredAmbient === context) startAmbientBed(context, AMBIENT[context]);
+    });
+  } else {
+    startAmbientBed(context, AMBIENT[context]);
+  }
 }
 
-/** Stop the ambient bed (e.g. on a hard screen teardown). */
+/** Stop the background (music + procedural bed). */
 export function stopAmbient(): void {
   desiredAmbient = null;
+  stopMusic();
   engineStopAmbient();
 }
 

@@ -56,7 +56,7 @@ const DEFAULT_VOLUME = 0.7;
 /** Concurrency cap across all SFX voices — extra requests are dropped, not queued. */
 const MAX_VOICES = 24;
 
-interface AudioGuts {
+export interface AudioGuts {
   ctx: AudioContext;
   master: GainNode;
 }
@@ -106,6 +106,11 @@ function AudioCtor(): typeof AudioContext | undefined {
 /** True once an AudioContext has been created (i.e. after the first user gesture). */
 export function isAudioReady(): boolean {
   return guts !== null;
+}
+
+/** The live context + master chain if it exists, WITHOUT creating one. */
+export function peekAudio(): AudioGuts | null {
+  return guts;
 }
 
 /**

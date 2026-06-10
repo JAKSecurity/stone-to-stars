@@ -1,23 +1,38 @@
-# `src/audio/` — Procedural audio (RC-020)
+# `src/audio/` — Audio layer (RC-020)
 
-A self-contained, **asset-free** audio layer built on the Web Audio API. Every sound is
-synthesized at runtime from oscillators + filtered noise + ADSR envelopes — there are no
-`.wav`/`.mp3` files anywhere. The module stands alone; the rest of the game talks to it
-only through `src/audio/index.ts`.
+A self-contained audio layer built on the Web Audio API. **All sound effects are
+procedurally synthesized** at runtime from oscillators + filtered noise + ADSR envelopes —
+no SFX asset files. The **background music** uses two small CC0 (public-domain) tracks (see
+*Music credits* below), routed through the same master gain so the volume slider and mute
+apply to them; if a track ever fails to load, the engine falls back to a procedural ambient
+bed. The module stands alone; the rest of the game talks to it only through
+`src/audio/index.ts`.
 
 ## Files
 
 | File | Role | Web Audio? | Unit-tested |
 |------|------|:----------:|:-----------:|
 | `theory.ts`  | Pure math — `noteToFreq`, `transpose`, ADSR (`adsrValueAt`, `envSustainLevel`), `dbToGain` | no | ✅ `tests/audioTheory.test.ts` |
-| `recipes.ts` | The SFX library + ambient beds, expressed purely as data | no | ✅ `tests/audioRecipes.test.ts` |
-| `engine.ts`  | Lazy `AudioContext`, oscillator/noise voices, master gain + mute, voice cap, throttle, ambient bed | yes (lazy) | — |
-| `index.ts`   | Public API + autoplay unlock + the mute-toggle button | yes (lazy) | — |
+| `recipes.ts` | The SFX library + procedural ambient beds (fallback), expressed purely as data | no | ✅ `tests/audioRecipes.test.ts` |
+| `engine.ts`  | Lazy `AudioContext`, oscillator/noise voices, master gain + mute + volume, voice cap, throttle, ambient bed | yes (lazy) | ✅ `tests/audioEngine.test.ts` |
+| `music.ts`   | File-based looping background music (fetch → decode → loop through master); procedural fallback | yes (lazy) | — |
+| `index.ts`   | Public API + autoplay unlock + the volume/mute controls panel | yes (lazy) | — |
+| `assets/`    | The two CC0 music tracks (imported as Vite assets) | — | — |
 
 `theory.ts` and `recipes.ts` carry **zero** `AudioContext`/DOM dependency, so they run in
-Vitest's `node` environment. `engine.ts`/`index.ts` only touch an `AudioContext` lazily
-(inside functions, never at module load), so importing them anywhere is side-effect-free
-apart from reading the persisted mute flag.
+Vitest's `node` environment. `engine.ts`/`music.ts`/`index.ts` only touch an `AudioContext`
+lazily (inside functions, never at module load). `music.ts` is imported **only** by
+`index.ts` so the binary-asset imports stay out of the test path.
+
+## Music credits
+
+Both tracks are **CC0 1.0 (public domain)** — no attribution is required, but credited here
+for provenance. Sourced from [OpenGameArt.org](https://opengameart.org).
+
+| Context | Track | Author | Source |
+|---------|-------|--------|--------|
+| civ screen | *Fantasy: Rising Moon* | RandomMind | https://opengameart.org/content/fantasy-rising-moon |
+| in-run | *Ambient Relaxing Loop* | isaiah658 | https://opengameart.org/content/ambient-relaxing-loop |
 
 ## Public API
 
