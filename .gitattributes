@@ -1,0 +1,4 @@
+# Treat audio assets as binary so Git never applies text/EOL normalization.
+*.mp3 binary
+*.ogg binary
+*.wav binary

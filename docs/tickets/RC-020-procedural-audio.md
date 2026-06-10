@@ -1,5 +1,5 @@
 # RC-020: Procedural audio pass (SFX + ambient)
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-09
 
 ## Summary
@@ -31,3 +31,15 @@ mute toggle persisted to localStorage. Volumes/recipes are feel constants — ex
 
 ## References
 - Review session 2026-06-09 (item B2)
+
+## Delivered — 2026-06-10
+Self-contained `src/audio/` module (theory/engine/recipes/index): 17 procedural synth SFX + a
+context-selected CC0 music bed (era track per age on the civ screen, mood track per biome in runs),
+volume slider + persisted mute, autoplay-safe (AudioContext on first gesture). Reconciled onto main
+(only `src/main.ts` conflicted): civ SFX (research/age-up/build/upgrade), ambient by age/biome,
+run-start + run-end SFX wired. `audio-test.html` soundboard kept as the permanent test bench.
+**Departure from the "no audio assets" line:** ~37 MB of CC0/public-domain tracks were added (user
+opted in), with a procedural fallback if a file fails to load.
+**Deferred (now unblocked):** in-run *combat* SFX (shoot/hit/death/pickup/level-up/draft/zone-cleared)
+wire directly into RunScene/weapons — hook table in `src/audio/README.md` "Pending".
+Verified: tsc clean, 219 vitest, vite build clean, Playwright (boots clean, gesture fires SFX, no errors).

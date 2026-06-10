@@ -14,6 +14,10 @@ import { renderExpeditionScreen } from './ui/expeditionScreen';
 import { renderRunEndScreen } from './ui/runEndScreen';
 import { RunScene } from './scenes/RunScene';
 import { registerTextures } from './art/phaserTextures';
+// RC-020 audio: additive integration. The audio module stands alone; these are the
+// only call-sites outside the hot run/weapon files (the remaining in-run hooks are
+// documented in src/audio/README.md for post-merge wiring).
+import { playSfx, startAmbient, mountAudioControls, unlockAudioOnFirstGesture } from './audio';
 
 const civEl = document.getElementById('civ')!;
 const runEl = document.getElementById('run')!;
@@ -45,11 +49,17 @@ game.scene.add('run', RunScene, false);
 // Render all sprite-def textures once the texture manager is ready.
 game.events.once(Phaser.Core.Events.READY, () => registerTextures(game));
 
+// RC-020 audio: arm the autoplay unlock (AudioContext is created on the first user
+// gesture, per browser policy) and mount the persisted mute toggle.
+unlockAudioOnFirstGesture();
+mountAudioControls();
+
 function showCiv(celebrate?: { from: AgeId; to: AgeId }) {
   runEl.classList.remove('active');
   expEl.classList.remove('active');
   runEndEl.classList.remove('active');
   civEl.classList.remove('hidden');
+  startAmbient('civ', getAge(civ)); // RC-020: era music for the current age (no-op until first gesture)
   renderCivScreen(civEl, civ, {
     onResearch: (id) => {
       const fromAge = getAge(civ);
@@ -57,15 +67,16 @@ function showCiv(celebrate?: { from: AgeId; to: AgeId }) {
       persist();
       const toAge = getAge(civ);
       if (toAge !== fromAge) {
-        // RC-024: crossing an age — celebrate. (Age-up fanfare SFX hooks in when RC-020 lands.)
+        playSfx('age-up'); // RC-020 fanfare for the RC-024 age-up moment
         showCiv({ from: fromAge, to: toAge });
       } else {
+        playSfx('research'); // RC-020
         showCiv();
         showToast(`Researched ${TECHS[id]?.name ?? id}`);
       }
     },
-    onBuild: (id, tile) => { civ = build(civ, id, tile); persist(); showCiv(); },
-    onUpgrade: (tile) => { civ = upgradeBuilding(civ, tile); persist(); showCiv(); },
+    onBuild: (id, tile) => { civ = build(civ, id, tile); playSfx('build'); persist(); showCiv(); },
+    onUpgrade: (tile) => { civ = upgradeBuilding(civ, tile); playSfx('upgrade'); persist(); showCiv(); },
     onMoveBuilding: (from, to) => { civ = moveBuilding(civ, from, to); persist(); showCiv(); },
     onBuyTradition: (id) => { civ = buyTradition(civ, id); persist(); showCiv(); },
     onStartRun: () => startRun(),
@@ -101,6 +112,8 @@ function launchExpedition(expedition: Expedition) {
   runEl.classList.add('active');
   game.scale.resize(window.innerWidth, window.innerHeight); // fill the window now that #run is visible
   const modifiers: RunModifiers = computeRunModifiers(civ);
+  startAmbient('run', expedition.biomeId); // RC-020: mood music for the expedition's biome
+  playSfx('run-start');
   game.scene.stop('run');
   game.scene.start('run', {
     modifiers,
@@ -111,6 +124,7 @@ function launchExpedition(expedition: Expedition) {
 }
 
 function onRunComplete(result: RunResult) {
+  playSfx(result.died ? 'run-end-death' : 'run-end-cleared'); // RC-020
   game.scene.stop('run');
   runEl.classList.remove('active');
   // Show the end-of-run summary; banking happens when the player chooses to return to base.

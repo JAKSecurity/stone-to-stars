@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rogue · Civ — Audio Test Board (RC-020)</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 24px 20px 96px;
+        background: #10141f; color: #e8ecf4;
+        font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      h1 { font-size: 20px; margin: 0 0 4px; }
+      h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+           color: #8da2c0; margin: 28px 0 10px; border-bottom: 1px solid #26304a; padding-bottom: 6px; }
+      .sub { color: #8da2c0; margin: 0 0 8px; }
+      .hint { background: #1b2740; border: 1px solid #2c64b8; color: #cfe0ff;
+              padding: 10px 12px; border-radius: 8px; margin: 14px 0 4px; }
+      .grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      button.sfx {
+        appearance: none; cursor: pointer; text-align: left;
+        background: #1a2030; color: #e8ecf4; border: 1px solid #2b3754;
+        border-radius: 8px; padding: 10px 12px; font-size: 13px; transition: background .08s, transform .04s;
+      }
+      button.sfx:hover { background: #222b42; border-color: #3a4a72; }
+      button.sfx:active { transform: translateY(1px); }
+      button.sfx.flash { background: #2f6bd6; border-color: #4f8bff; }
+      button.sfx small { display: block; color: #8da2c0; margin-top: 3px; font-size: 11px; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .pill { background: #1a2030; border: 1px solid #2b3754; border-radius: 8px; padding: 8px 12px; cursor: pointer; color: #e8ecf4; }
+      .pill:hover { background: #222b42; }
+      .pill.danger { border-color: #6a2b3a; }
+      .pill.danger:hover { background: #341a22; }
+      .gem { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+             background: #1a2030; border: 1px solid #2b3754; border-radius: 8px; padding: 12px; }
+      input[type=range] { accent-color: #6cf; }
+      code { background: #0b0e16; padding: 1px 5px; border-radius: 4px; color: #b9c7e6; }
+      #status { color: #8da2c0; min-height: 18px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+    </style>
+  </head>
+  <body>
+    <h1>🔊 Rogue · Civ — Audio Test Board</h1>
+    <p class="sub">RC-020 audio. SFX are synthesized live (no asset files); background music is CC0 tracks selected by age/biome. Use the panel in the bottom-right corner for master volume / mute.</p>
+
+    <div class="hint" id="unlockHint">
+      👆 Click anywhere once to unlock audio (browser autoplay policy), then start an ambient bed below.
+    </div>
+
+    <h2>Background music (CC0) — per age &amp; per expedition</h2>
+    <p class="sub">All tracks fade in/out and loop. First play of each takes a moment to fetch+decode. Each button shows which grouped track it resolves to.</p>
+    <p class="sub" style="margin-top:10px"><b>Civ screen — by age</b> (→ era track)</p>
+    <div class="row" id="civMusic"></div>
+    <p class="sub" style="margin-top:12px"><b>Expedition — by biome</b> (→ mood track)</p>
+    <div class="row" id="runMusic"></div>
+    <div class="row" style="margin-top:10px"><button class="pill danger" id="ambientStop">■ Stop music</button></div>
+
+    <h2>Gem pickup — pitch by value</h2>
+    <div class="gem">
+      <button class="sfx" id="gemPlay" style="max-width:170px">💎 Play gem-pickup</button>
+      <label>semitones: <b id="gemVal">0</b></label>
+      <input type="range" id="gemSemis" min="0" max="24" step="1" value="0" style="width:220px" />
+      <span class="sub">higher value → higher pitch (RC-022 hook)</span>
+    </div>
+
+    <h2>Sound effects</h2>
+    <div class="grid" id="sfxGrid"></div>
+
+    <div id="status"></div>
+
+    <script type="module">
+      import { playSfx, startAmbient, stopAmbient, mountAudioControls, unlockAudioOnFirstGesture } from '/src/audio/index.ts';
+      import { SFX } from '/src/audio/recipes.ts';
+
+      // Mount the persisted volume/mute panel + arm the autoplay unlock.
+      mountAudioControls();
+      unlockAudioOnFirstGesture();
+
+      const statusEl = document.getElementById('status');
+      const hint = document.getElementById('unlockHint');
+      let played = 0;
+      const note = (msg) => { statusEl.textContent = msg; };
+
+      // Hide the unlock hint after the first gesture anywhere.
+      window.addEventListener('pointerdown', () => { hint.style.display = 'none'; }, { once: true });
+
+      // Short, human descriptions for the board (purely cosmetic labels).
+      const DESC = {
+        'shoot': 'weapon tick (throttled)', 'enemy-hit': 'damage thunk', 'enemy-death': 'death pop',
+        'player-hit': 'you got hurt', 'gem-pickup': 'pickup chime', 'level-up': 'level-up sting',
+        'draft-open': 'draft panel opens', 'draft-select': 'card confirm', 'build': 'place building',
+        'upgrade': 'upgrade building', 'research': 'research complete', 'age-up': 'age fanfare',
+        'zone-cleared': 'zone cleared', 'boss-arrival': 'mini-boss sting', 'run-start': 'run begins',
+        'run-end-cleared': 'run won', 'run-end-death': 'run lost',
+      };
+
+      const grid = document.getElementById('sfxGrid');
+      for (const name of Object.keys(SFX)) {
+        const b = document.createElement('button');
+        b.className = 'sfx';
+        b.innerHTML = `${name}<small>${DESC[name] ?? ''}</small>`;
+        b.addEventListener('click', () => {
+          playSfx(name);
+          b.classList.add('flash');
+          setTimeout(() => b.classList.remove('flash'), 120);
+          note(`▶ playSfx('${name}')   ·   ${++played} played this session`);
+        });
+        grid.appendChild(b);
+      }
+
+      // Background music — one button per age (civ) and per biome (run). Labels show the
+      // grouped era/mood track each resolves to (mirrors src/audio/music.ts).
+      const AGES = ['stone','bronze','iron','classical','medieval','renaissance','industrial','modern'];
+      const AGE_ERA = { stone:'stone', bronze:'ancient', iron:'ancient', classical:'classical',
+        medieval:'medieval', renaissance:'renaissance', industrial:'industrial', modern:'modern' };
+      const BIOMES = {
+        wilds:'The Wilds', ruins:'Ancient Ruins', frontier:'Frontier', caverns:'Deep Caverns',
+        colosseum:'Sunken Colosseum', cursed_keep:'Cursed Keep', plague_city:'Plague City',
+        foundry_wastes:'Foundry Wastes', no_mans_land:"No Man's Land",
+      };
+      const BIOME_MOOD = { wilds:'wilderness', frontier:'wilderness', ruins:'ancient-mystery',
+        caverns:'dark-dungeon', cursed_keep:'dark-dungeon', colosseum:'epic-battle',
+        plague_city:'grim-war', foundry_wastes:'grim-war', no_mans_land:'grim-war' };
+
+      const civWrap = document.getElementById('civMusic');
+      for (const age of AGES) {
+        const b = document.createElement('button');
+        b.className = 'pill';
+        b.innerHTML = `${age} <small style="color:#8da2c0">→ ${AGE_ERA[age]}</small>`;
+        b.addEventListener('click', () => { startAmbient('civ', age); note(`▶ civ · ${age} → era "${AGE_ERA[age]}"`); });
+        civWrap.appendChild(b);
+      }
+      const runWrap = document.getElementById('runMusic');
+      for (const [id, name] of Object.entries(BIOMES)) {
+        const b = document.createElement('button');
+        b.className = 'pill';
+        b.innerHTML = `${name} <small style="color:#8da2c0">→ ${BIOME_MOOD[id]}</small>`;
+        b.addEventListener('click', () => { startAmbient('run', id); note(`▶ run · ${name} → mood "${BIOME_MOOD[id]}"`); });
+        runWrap.appendChild(b);
+      }
+      document.getElementById('ambientStop').addEventListener('click', () => {
+        stopAmbient();
+        note('■ stopAmbient()');
+      });
+
+      // Gem pitch tester.
+      const semis = document.getElementById('gemSemis');
+      const gemVal = document.getElementById('gemVal');
+      semis.addEventListener('input', () => { gemVal.textContent = semis.value; });
+      document.getElementById('gemPlay').addEventListener('click', () => {
+        const s = Number(semis.value);
+        playSfx('gem-pickup', { semitones: s });
+        note(`▶ playSfx('gem-pickup', { semitones: ${s} })`);
+      });
+    </script>
+  </body>
+</html>
