@@ -93,6 +93,11 @@ export interface EnemyDef {
   armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
                               // pierceArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
   attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
+  // RC-018 — movement archetype, orthogonal to `attack` (firing). Absent ⇒ 'chase' (default).
+  // 'charger' telegraphs then dashes; 'circler' orbits/strafes; 'standoff' holds firing distance.
+  behavior?: 'chase' | 'charger' | 'splitter' | 'circler' | 'standoff';
+  // 'splitter' only: on death, spawn `count` children of enemy id `into` (e.g. rock_golem → cave_dwellers).
+  split?: { into: string; count: number };
 }
 
 export interface BiomeDef {
