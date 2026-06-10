@@ -1,6 +1,19 @@
 import { Expedition, CivState, AGE_ORDER } from '../game/types';
 import { BIOMES } from './biomeData';
+import { ENEMIES } from './enemyData';
 import { getAge, isResearched } from '../tech/tech';
+
+/** The toughest enemy in a spawn table (by base HP) — the biome's "apex" callout. */
+export function apexEnemyId(spawnTable: Record<string, number>): string {
+  return Object.keys(spawnTable).reduce((apex, id) =>
+    (ENEMIES[id]?.baseHp ?? 0) > (ENEMIES[apex]?.baseHp ?? 0) ? id : apex);
+}
+
+/** A 1–5 danger rating from the apex enemy's HP bracket, for the expedition card's threat cue. */
+export function biomeDanger(spawnTable: Record<string, number>): number {
+  const hp = ENEMIES[apexEnemyId(spawnTable)]?.baseHp ?? 0;
+  return Math.min(5, 1 + Math.floor(hp / 110));
+}
 
 /** Weighted random pick of an enemy id from a biome spawn table. Pure (rng injected). */
 export function pickEnemy(spawnTable: Record<string, number>, rng: () => number): string {

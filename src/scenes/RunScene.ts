@@ -109,7 +109,7 @@ export class RunScene extends Phaser.Scene {
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0; this.spawnCooldown = 0;
-    this.equipped = initialWeapons();
+    this.equipped = initialWeapons(this.mods.startWeapon); // RC-027: chosen starting weapon
     // Heritage tradition: start the run's weapon(s) above level 1.
     const startLvl = this.mods.startWeaponLevel;
     if (startLvl > 1) {

@@ -27,6 +27,33 @@ describe('civState', () => {
     expect(after.runs).toBe(1);
   });
 
+  it('newCivState defaults the RC-027 fields (startWeapon club, empty biomeBests)', () => {
+    const civ = newCivState();
+    expect(civ.startWeapon).toBe('club');
+    expect(civ.biomeBests).toEqual({});
+  });
+
+  it('applyRunResult records the per-biome best haul (in-run collection only), keeping the max', () => {
+    let civ = newCivState();
+    civ = applyRunResult(civ, {
+      collected: { exploration: 3, science: 4, industry: 2, culture: 1 }, // total 10
+      survivedMs: 1, died: false, tier: 0,
+    }, 'wilds');
+    expect(civ.biomeBests).toEqual({ wilds: 10 });
+    // a worse haul on the same biome does NOT lower the best
+    civ = applyRunResult(civ, {
+      collected: { exploration: 1, science: 1, industry: 1, culture: 1 }, // total 4
+      survivedMs: 1, died: false, tier: 0,
+    }, 'wilds');
+    expect(civ.biomeBests).toEqual({ wilds: 10 });
+    // a different biome tracks independently
+    civ = applyRunResult(civ, {
+      collected: { exploration: 5, science: 5, industry: 5, culture: 5 }, // total 20
+      survivedMs: 1, died: false, tier: 0,
+    }, 'ruins');
+    expect(civ.biomeBests).toEqual({ wilds: 10, ruins: 20 });
+  });
+
   it('applyRunResult accumulates lifetimeResources (collected + yields), lazy-defaulting old saves', () => {
     // Old v3 save without the optional field still accumulates from zero.
     const stale = { ...newCivState(), lifetimeResources: undefined } as any;

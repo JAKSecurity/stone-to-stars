@@ -55,8 +55,11 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     startWeaponLevel += (e.startWeaponLevel ?? 0) * rank;
   }
 
+  // RC-027: start with the player's chosen weapon if they own it, else the base club.
+  const startWeapon = civ.startWeapon && weapons.has(civ.startWeapon) ? civ.startWeapon : 'club';
+
   return {
     maxHp, damageMult, draftChoices, weapons: [...weapons],
-    pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel,
+    pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel, startWeapon,
   };
 }
