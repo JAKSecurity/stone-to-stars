@@ -1,5 +1,5 @@
 # RC-018: Enemy behavior archetypes
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: In Progress  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-09
 
 ## Summary

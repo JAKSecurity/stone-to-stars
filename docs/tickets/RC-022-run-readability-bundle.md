@@ -1,5 +1,5 @@
 # RC-022: Run readability bundle (HUD, draft cards, gems, projectiles)
-**Status**: Open  **Priority**: P2  **Type**: Enhancement
+**Status**: In Progress  **Priority**: P2  **Type**: Enhancement
 **Created**: 2026-06-09
 
 ## Summary
