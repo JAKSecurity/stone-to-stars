@@ -20,6 +20,27 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .runend-btn:hover { background: #2ea043; }
 
 .civ-wrap { width: 100%; margin: 0; padding: 16px 28px; }
+
+/* RC-024 age-up celebration — inline banner at the top of the civ screen. */
+.ageup { position: relative; display: flex; align-items: center; gap: 18px; margin-bottom: 14px;
+  padding: 14px 48px 14px 18px; border: 1px solid #c9a227; border-radius: 10px;
+  background: linear-gradient(90deg, #2a230c, #1b2a16); box-shadow: 0 0 0 1px #c9a22733 inset;
+  animation: ageup-in 360ms ease-out; }
+@keyframes ageup-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.ageup-heroes { display: flex; align-items: flex-end; gap: 6px; flex: none; }
+.ageup-arrow { opacity: 0.6; font-size: 1.3rem; align-self: center; }
+.ageup-text { min-width: 0; }
+.ageup-title { font-size: 1.25rem; font-weight: 700; color: #f0d878; letter-spacing: 0.02em; }
+.ageup-unlocks { font-size: 0.85rem; opacity: 0.9; margin-top: 4px; line-height: 1.5; }
+.ageup-unlocks b { color: #7fd99a; font-weight: 600; }
+.ageup-x { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #e6edf3;
+  opacity: 0.5; font-size: 1rem; cursor: pointer; }
+.ageup-x:hover { opacity: 1; }
+
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(12px);
+  background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 9px 16px;
+  font-size: 0.9rem; opacity: 0; transition: opacity 220ms, transform 220ms; z-index: 30; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .resbar { display: flex; gap: 22px; font-size: 1.1rem; padding: 10px 14px; background: #161b22; border-radius: 8px; align-items: center; }
 .resbar .res { display: inline-flex; align-items: center; gap: 6px; }
 .resbar .res .rname { opacity: 0.7; font-size: 0.85rem; }

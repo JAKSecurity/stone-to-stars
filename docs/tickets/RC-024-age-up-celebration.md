@@ -1,5 +1,5 @@
 # RC-024: Age-up celebration moment
-**Status**: Open  **Priority**: P2  **Type**: Enhancement
+**Status**: Delivered  **Priority**: P2  **Type**: Enhancement
 **Created**: 2026-06-09
 
 ## Summary
@@ -28,3 +28,11 @@ From the 2026-06-09 review (item C4). Shape:
 ## References
 - Review session 2026-06-09 (item C4)
 - `src/tech/tech.ts` (`getAge`/research), `src/ui/civScreen.ts`, `src/game/heroByAge.ts`
+
+## Delivered — 2026-06-10
+Inline age-up banner (no modal) prepended to the civ screen when a gating tech completes: new age
+name, hero old→new sprites, and a data-derived unlock list (biome / weapons / buildings / techs via
+the new pure `ageUnlocks(age)` helper). Dismissible; event-driven so it shows once per crossing.
+Non-gating research gets a lightweight auto-fading toast. (Age-up fanfare SFX hooks in when RC-020
+lands.) Verified: tsc clean, 189 vitest (incl. ageUnlocks tests), build clean, Playwright — Stone→Bronze
+shows the banner with Frontier/Bronze Spear/Forge/Bronze Working; non-gating Hunting shows the toast.

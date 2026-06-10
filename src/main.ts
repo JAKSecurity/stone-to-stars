@@ -1,9 +1,10 @@
 import './style.css';
 import Phaser from 'phaser';
-import { CivState, RunModifiers, RunResult, Expedition } from './game/types';
+import { CivState, RunModifiers, RunResult, Expedition, AgeId } from './game/types';
 import { newCivState, applyRunResult } from './state/civState';
 import { load, save } from './state/saveLoad';
 import { research, getAge } from './tech/tech';
+import { TECHS } from './tech/techData';
 import { heroSpriteFor } from './game/heroByAge';
 import { build, upgradeBuilding, moveBuilding } from './camp/camp';
 import { buyTradition } from './civics/traditions';
@@ -44,19 +45,41 @@ game.scene.add('run', RunScene, false);
 // Render all sprite-def textures once the texture manager is ready.
 game.events.once(Phaser.Core.Events.READY, () => registerTextures(game));
 
-function showCiv() {
+function showCiv(celebrate?: { from: AgeId; to: AgeId }) {
   runEl.classList.remove('active');
   expEl.classList.remove('active');
   runEndEl.classList.remove('active');
   civEl.classList.remove('hidden');
   renderCivScreen(civEl, civ, {
-    onResearch: (id) => { civ = research(civ, id); persist(); showCiv(); },
+    onResearch: (id) => {
+      const fromAge = getAge(civ);
+      civ = research(civ, id);
+      persist();
+      const toAge = getAge(civ);
+      if (toAge !== fromAge) {
+        // RC-024: crossing an age — celebrate. (Age-up fanfare SFX hooks in when RC-020 lands.)
+        showCiv({ from: fromAge, to: toAge });
+      } else {
+        showCiv();
+        showToast(`Researched ${TECHS[id]?.name ?? id}`);
+      }
+    },
     onBuild: (id, tile) => { civ = build(civ, id, tile); persist(); showCiv(); },
     onUpgrade: (tile) => { civ = upgradeBuilding(civ, tile); persist(); showCiv(); },
     onMoveBuilding: (from, to) => { civ = moveBuilding(civ, from, to); persist(); showCiv(); },
     onBuyTradition: (id) => { civ = buyTradition(civ, id); persist(); showCiv(); },
     onStartRun: () => startRun(),
-  });
+  }, celebrate);
+}
+
+/** Lightweight auto-fading toast for non-gating research completions. */
+function showToast(msg: string) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 1800);
 }
 
 function startRun() {
