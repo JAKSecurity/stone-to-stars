@@ -6,8 +6,31 @@ A free browser game: a Phaser survivor mini-game feeds a tech-tree + base-camp c
 PvE, free, no monetization; builds to static files for GitHub Pages. Stack: TypeScript + Vite +
 Phaser (run scene) + HTML/CSS DOM (civ screen).
 
-## Current state (2026-06-09)
-- **THREE feature branches built this session, NONE merged to `main` — awaiting Jeff's playtest +
+## Current state (2026-06-10) — everything merged to `main`
+All the feature branches below LANDED on `main` (github.com/JAKSecurity/rogue-civ). It now carries the
+full C3 content+systems stack — **23/30 items delivered, 219 Vitest green, `npm run build` clean**:
+- **Merged this arc:** rc-015 orbit/lob · rc-004 gem tiers (Jeff-ratified) · rc-017 exponential
+  economy + balance + run-scene overhaul · RC-021 biome visual identity (palettes + 18 obstacle
+  sprites) · RC-028 Culture Traditions (flat 8-node board; **save bumped to v3 — pre-v3 saves reset**) ·
+  RC-023 civ-screen density (age-grouped tech grid + lifetime record strip) · RC-024 age-up celebration
+  + research toasts · RC-027 expedition-screen upgrade + starting-weapon choice · RC-020 procedural
+  audio (synth SFX + CC0 music + full in-run combat SFX). ~37 MB CC0 audio assets in-repo (deliberate
+  departure from RC-020's "no assets" line; Jeff opted in).
+- **Economy shape (RC-017):** income grows on a gentle `INCOME_G=1.26` curve DECOUPLED from cost
+  `G=1.75` (tier-0 unchanged, tier-7 ≈ 1/10); building yields ×20 (`YIELD_SCALE`); rewards ×2.5
+  (`REWARD_MULT`); run length 1min + 1/age (`runDurationForTier`); `xpForLevel` ramps so late level-ups
+  thin to ~¼. Each is a single tuning knob.
+- **Next coding work (the handoff target):** RC-018 enemy behavior archetypes (charger/splitter/circler
+  — ranged+melee attackers already shipped) → RC-019 mini-boss arrival events. Both edit
+  `src/scenes/RunScene.ts`, now unblocked (audio merged). Boss-arrival SFX (`playSfx('boss-arrival')`)
+  lands with RC-019. Still open: RC-025 perks+healing, RC-026 in-run POI, RC-029 mutators (post-balance),
+  RC-022 readability (partial), RC-009 balance (playtest-driven).
+- **Dev server gotcha:** `npm run dev` (a fresh playtest server is on localhost:5180). Heavy git
+  branch/worktree churn can wedge Vite's HMR into serving STALE modules — start a fresh server on a
+  clean port and `curl` a known-changed module to confirm it's current before Playwright-verifying.
+
+## Historical: pre-merge branch state (2026-06-09, superseded — all merged)
+- **THREE feature branches built, NONE merged to `main` — awaiting Jeff's playtest +
   review.** `main` is still the 8-age RC-009 state (below). Branches:
   - **`rc-015-orbit-lob`** — implements the declared-but-unimplemented `orbit` (persistent player-
     tracking ring, re-hit cadence) and `lob` (arc-to-target + AoE detonation) behaviors. Pure motion
