@@ -36,6 +36,29 @@ export interface RunBonus {
   weapons?: string[];   // weapon ids granted
 }
 
+/** The additive subset of RunModifiers that traditions (and future sources) can contribute. */
+export interface RunModifierDelta {
+  maxHp?: number;            // flat HP
+  damageMult?: number;       // additive fraction (0.03 = +3%)
+  draftChoices?: number;     // flat add
+  pickupRadius?: number;     // flat px
+  moveSpeedMult?: number;    // additive fraction
+  fireRateMult?: number;     // additive fraction
+  draftRerolls?: number;     // flat add (level-up reroll uses)
+  startWeaponLevel?: number; // flat add to the starting weapon level
+}
+
+export interface TraditionDef {
+  id: string;
+  name: string;
+  icon: string;                 // emoji shown on the card
+  base: number;                 // rank-1 culture cost
+  maxRank: number;
+  effectPerRank: RunModifierDelta; // applied min(rank,maxRank) times in computeRunModifiers
+  requiresAge?: AgeId;          // age gate (absent = cost-gated only)
+  blurb: (rank: number) => string; // effect text at a given rank, for the card
+}
+
 export interface TechNode {
   id: string;
   name: string;
@@ -115,14 +138,20 @@ export interface CivState {
   banked: ResourceBundle;
   researched: string[];        // tech ids
   buildings: PlacedBuilding[];
+  traditions: Record<string, number>; // traditionId -> rank (absent/0 = unowned)
   runs: number;
 }
 
 export interface RunModifiers {
   maxHp: number;
-  damageMult: number;  // total multiplier, e.g., 1.25
+  damageMult: number;
   draftChoices: number;
   weapons: string[];
+  pickupRadius: number;     // px
+  moveSpeedMult: number;    // 1.0 = no change
+  fireRateMult: number;     // 1.0 = no change
+  draftRerolls: number;     // 0 = no rerolls
+  startWeaponLevel: number; // 1 = weapons start at level 1
 }
 
 export interface RunResult {

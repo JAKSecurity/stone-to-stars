@@ -21,7 +21,7 @@ describe('draft', () => {
   });
 
   it('applyPerk applies a damage perk multiplicatively-additively and never mutates', () => {
-    const s = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] });
+    const s = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'], pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1, draftRerolls: 0, startWeaponLevel: 1 });
     const perk = { id: 'x', name: 'X', desc: '', effect: { damageMult: 0.25 } };
     const after = applyPerk(s, perk);
     expect(after.damageMult).toBeCloseTo(1.25);
@@ -29,7 +29,7 @@ describe('draft', () => {
   });
 
   it('a maxHp perk raises both maxHp and heals current hp', () => {
-    const s = { ...initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] }), hp: 40 };
+    const s = { ...initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'], pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1, draftRerolls: 0, startWeaponLevel: 1 }), hp: 40 };
     const perk = { id: 'y', name: 'Y', desc: '', effect: { maxHp: 30 } };
     const after = applyPerk(s, perk);
     expect(after.maxHp).toBe(130);

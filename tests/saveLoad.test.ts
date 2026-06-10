@@ -47,4 +47,16 @@ describe('saveLoad', () => {
     storage.setItem(SAVE_KEY, JSON.stringify({ ...newCivState(), version: 999 }));
     expect(load(storage)).toBeNull();
   });
+
+  it('resets pre-v3 saves (RC-017 economy rescale + RC-028 traditions make them incompatible)', () => {
+    const storage = memStorage();
+    for (const stale of [1, 2]) {
+      storage.setItem(SAVE_KEY, JSON.stringify({
+        version: stale,
+        banked: { exploration: 1, science: 2, industry: 3, culture: 4 },
+        researched: ['hunting'], buildings: [], runs: 2,
+      }));
+      expect(load(storage)).toBeNull();
+    }
+  });
 });

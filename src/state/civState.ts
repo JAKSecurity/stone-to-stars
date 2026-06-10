@@ -5,10 +5,11 @@ import { BUILDINGS } from '../camp/buildingData';
 
 export function newCivState(): CivState {
   return {
-    version: 2,
+    version: 3,
     banked: emptyBundle(),
     researched: [],
     buildings: [],
+    traditions: {},
     runs: 0,
   };
 }

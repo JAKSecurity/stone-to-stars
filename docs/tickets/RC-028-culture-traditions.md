@@ -1,6 +1,17 @@
 # RC-028: Culture sink — Traditions meta-progression
-**Status**: Open  **Priority**: P3  **Type**: Feature
+**Status**: Delivered  **Priority**: P3  **Type**: Feature
 **Created**: 2026-06-09
+
+## Delivery — 2026-06-10
+Built behind the ratified design gate (spec `docs/superpowers/specs/2026-06-10-culture-traditions-design.md`)
+on branch rc-028-traditions, then reconciled onto current main (rc-015/004/017/021). Ships an
+always-visible 8-node / 40-rank Traditions board (culture-only exponential cost COST_G=1.6, hard
+per-node caps in `computeRunModifiers`, light age-gating, no income/run-duration tradition), a
+`CivState.traditions` map behind a save migration (bumped to **version 3** — pre-v3 saves reset,
+matching RC-017's rescale-resets stance), five capped RunModifiers axes, and RunScene seeding of
+`startWeaponLevel` + an Oratory draft-reroll. Merge integrated rc-028's draft refactor with rc-017's
+two-line cards. Verified: tsc clean, 185 vitest, build clean, Playwright (board renders on merged civ
+screen; buy Vigor → rank 0→1, culture 500→476, next cost 38, save persists).
 
 ## Summary
 Culture is the weakest resource: few techs want it and it has no ongoing sink. Add a "Traditions"

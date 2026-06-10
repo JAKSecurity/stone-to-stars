@@ -1,8 +1,10 @@
-import { CivState, Resource, RESOURCES } from '../game/types';
+import { CivState, Resource, RESOURCES, AGE_ORDER } from '../game/types';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge, techCost, techEffectText, unmetRequirements } from '../tech/tech';
 import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost, buildingCost, unlockedTileCount } from '../camp/camp';
+import { TRADITIONS } from '../civics/traditionData';
+import { traditionRank, nextRankCost, canBuyTradition } from '../civics/traditions';
 import { canAfford } from '../economy/resources';
 import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
@@ -19,6 +21,7 @@ export interface CivCallbacks {
   onBuild: (buildingId: string, tile: number) => void;
   onUpgrade: (tile: number) => void;
   onMoveBuilding: (fromTile: number, toTile: number) => void;
+  onBuyTradition: (traditionId: string) => void;
   onStartRun: () => void;
 }
 
@@ -261,6 +264,48 @@ export function renderCivScreen(root: HTMLElement, civ: CivState, cb: CivCallbac
   campPanel.appendChild(palette);
 
   cols.appendChild(campPanel);
+
+  // Traditions panel — flat, always-visible board (jeff-ui-design: no modal/collapse).
+  const tradPanel = document.createElement('div');
+  tradPanel.className = 'panel';
+  tradPanel.innerHTML = '<h2>Traditions</h2>';
+  const tgrid = document.createElement('div');
+  tgrid.className = 'bgrid'; // reuse the building-palette grid styling
+  const civAgeIdx = AGE_ORDER.indexOf(getAge(civ));
+  for (const def of Object.values(TRADITIONS)) {
+    const rank = traditionRank(civ, def.id);
+    const maxed = rank >= def.maxRank;
+    const cost = nextRankCost(civ, def.id); // null when maxed
+    const ageLocked = def.requiresAge != null
+      && civAgeIdx < AGE_ORDER.indexOf(def.requiresAge);
+    const buyable = canBuyTradition(civ, def.id);
+
+    const card = document.createElement('div');
+    card.className = 'bcard' + (maxed ? ' done' : buyable ? ' afford' : ' locked');
+    const text = document.createElement('div');
+    const capLine = `<div class="beff">${def.blurb(Math.max(rank, 1))}</div>`;
+    const rankLine = `<div class="bnm">${def.icon} ${def.name} <span class="lvl">${rank}/${def.maxRank}</span></div>`;
+    let footer: string;
+    if (maxed) {
+      footer = '<div class="bcost">MAX</div>';
+    } else if (ageLocked) {
+      const ageName = def.requiresAge!.charAt(0).toUpperCase() + def.requiresAge!.slice(1);
+      footer = `<div class="bneed">🔒 ${ageName} Age</div>`;
+    } else if (cost != null) {
+      // costLine inlines the shortfall ("12 Culture, need 4 more") just like the building cards.
+      footer = `<div class="bcost">${costLine(civ.banked, { culture: cost })}</div>`;
+    } else {
+      footer = '';
+    }
+    text.innerHTML = rankLine + capLine + footer;
+    card.appendChild(text);
+    if (buyable) {
+      card.onclick = () => cb.onBuyTradition(def.id);
+    }
+    tgrid.appendChild(card);
+  }
+  tradPanel.appendChild(tgrid);
+  cols.appendChild(tradPanel);
 
   wrap.appendChild(cols);
 

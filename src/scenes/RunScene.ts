@@ -53,7 +53,11 @@ interface RunInit {
 export class RunScene extends Phaser.Scene {
   private mods!: RunModifiers;
   private onComplete!: (r: RunResult) => void;
-  private stats = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'] });
+  private stats = initialRunStats({
+    maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'],
+    pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1,
+    draftRerolls: 0, startWeaponLevel: 1,
+  });
   private expedition!: Expedition;
   private biome!: BiomeDef;
 
@@ -81,6 +85,7 @@ export class RunScene extends Phaser.Scene {
   private ceremony = false;
   private ceremonyMs = 0;
   private pendingDrafts = 0;
+  private rerollsLeft = 0;
   private lobs: Array<{
     img: any;
     start: { x: number; y: number };
@@ -105,6 +110,17 @@ export class RunScene extends Phaser.Scene {
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0; this.spawnCooldown = 0;
     this.equipped = initialWeapons();
+    // Heritage tradition: start the run's weapon(s) above level 1.
+    const startLvl = this.mods.startWeaponLevel;
+    if (startLvl > 1) {
+      for (const w of this.equipped) {
+        for (let lvl = 1; lvl < startLvl; lvl++) {
+          this.equipped = levelWeapon(this.equipped, w.id);
+        }
+      }
+    }
+    // Oratory tradition: rerolls available this run.
+    this.rerollsLeft = this.mods.draftRerolls;
     this.ownedPerks = [];
     this.weaponCooldowns = {};
     this.explorationCooldown = 0; this.relicCooldown = 0; this.resourceCooldown = 0;
@@ -725,12 +741,15 @@ export class RunScene extends Phaser.Scene {
   }
 
   private openDraft() {
-    // Consume one pending draft from the queue.
     if (this.pendingDrafts <= 0) return;
     this.pendingDrafts -= 1;
-
     this.paused = true;
     this.physics.pause();
+    this.renderDraft();
+  }
+
+  /** Rolls a fresh set of options and draws the draft panel. Called on open and on reroll. */
+  private renderDraft() {
     const picks = rollRunDraft(() => Math.random(), this.mods.draftChoices, {
       equipped: this.equipped,
       ownedPerks: this.ownedPerks,
@@ -740,33 +759,49 @@ export class RunScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setDepth(20);
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
     panel.add(bg);
-    // Show queue depth so the player knows more are coming.
     const queueSuffix = this.pendingDrafts > 0 ? ` (+${this.pendingDrafts} more)` : '';
     const title = this.add.text(width / 2, height / 2 - 120, `Level up — choose one${queueSuffix}`,
       { fontSize: '20px', color: '#fff' }).setOrigin(0.5);
     panel.add(title);
+
+    const closeAndAdvance = () => {
+      panel.destroy();
+      if (this.pendingDrafts > 0) {
+        this.openDraft();
+      } else {
+        this.paused = false;
+        this.physics.resume();
+      }
+    };
+
     picks.forEach((opt, i) => {
       const y = height / 2 - 50 + i * 64;
       const card = this.add.rectangle(width / 2, y, 460, 54, 0x238636)
         .setInteractive({ useHandCursor: true });
+      // rc-017's two-line card (title + what-it-does) driving rc-028's centralized advance flow,
+      // so the Oratory reroll path stays intact.
       const label = this.add.text(width / 2, y - 9, this.draftLabel(opt),
         { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
       const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
         { fontSize: '12px', color: '#d2f0d8' }).setOrigin(0.5);
-      card.on('pointerdown', () => {
-        this.applyDraftOption(opt);
-        panel.destroy();
-        if (this.pendingDrafts > 0) {
-          // More levels queued — open the next draft immediately (stay paused).
-          this.openDraft();
-        } else {
-          // Queue empty — resume the run.
-          this.paused = false;
-          this.physics.resume();
-        }
-      });
+      card.on('pointerdown', () => { this.applyDraftOption(opt); closeAndAdvance(); });
       panel.add(card); panel.add(label); panel.add(sub);
     });
+
+    // Oratory reroll affordance: re-roll the current options without consuming the level-up.
+    if (this.rerollsLeft > 0) {
+      const ry = height / 2 - 50 + picks.length * 64 + 8;
+      const rerollBtn = this.add.rectangle(width / 2, ry, 380, 40, 0x6e40c9)
+        .setInteractive({ useHandCursor: true });
+      const rerollLabel = this.add.text(width / 2, ry, `🔄 Reroll (${this.rerollsLeft} left)`,
+        { fontSize: '14px', color: '#fff' }).setOrigin(0.5);
+      rerollBtn.on('pointerdown', () => {
+        this.rerollsLeft -= 1;
+        panel.destroy();
+        this.renderDraft(); // stay paused, same pending count, fresh options
+      });
+      panel.add(rerollBtn); panel.add(rerollLabel);
+    }
   }
 
   private draftLabel(o: DraftOption): string {
