@@ -24,7 +24,7 @@ apart from reading the persisted mute flag.
 ```ts
 import {
   playSfx, startAmbient, stopAmbient, setMuted, toggleMute, isMuted,
-  mountAudioControls, unlockAudioOnFirstGesture,
+  setVolume, getVolume, mountAudioControls, unlockAudioOnFirstGesture,
 } from './audio';
 
 playSfx('shoot');                        // one-shot SFX (throttled/voice-capped)
@@ -33,7 +33,18 @@ startAmbient('civ');                     // looping bed: 'civ' | 'run'
 stopAmbient();
 setMuted(true);                          // persisted to localStorage('rogueciv:muted')
 toggleMute();                            // returns the new muted state
+setVolume(0.5);                          // master volume 0..1, localStorage('rogueciv:volume')
+getVolume();                             // current volume (independent of mute)
 ```
+
+### On-screen controls
+
+`mountAudioControls()` appends a fixed panel (id `audio-controls`, bottom-right,
+`z-index 9999`) containing the 🔊/🔇 **mute button** (id `audio-mute-toggle`) and a
+**volume slider** (id `audio-volume`). Both reflect the persisted state on load and own
+their own DOM, so the panel stands alone. The slider doubles as a mute control at its
+extremes: dragging to 0 mutes, dragging up from 0 unmutes. Volume and mute persist
+across sessions independently.
 
 ### SFX names
 `shoot`, `enemy-hit`, `enemy-death`, `player-hit`, `gem-pickup`, `level-up`,
@@ -57,11 +68,11 @@ Browsers forbid creating/resuming an `AudioContext` outside a user gesture. So:
 and a per-name `throttleMs` (e.g. `shoot` = 60 ms), so a high-fire-rate weapon ticking
 every frame can't buzz. Tune in `recipes.ts`.
 
-## Mute toggle
+## On-screen controls
 
-`mountAudioControls()` appends a fixed-position 🔊/🔇 button (id `audio-mute-toggle`,
-bottom-right, `z-index 9999`) to `document.body`. It owns its own DOM, reflects the
-persisted state on load, and is idempotent.
+`mountAudioControls()` appends a fixed-position panel (mute button + volume slider) to
+`document.body` — see the **On-screen controls** note under *Public API* above. It owns
+its own DOM, reflects the persisted state on load, and is idempotent.
 
 ---
 

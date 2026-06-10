@@ -48,8 +48,11 @@ export interface Recipe {
 // ---------------------------------------------------------------------------
 
 const MUTE_KEY = 'rogueciv:muted';
-/** Master ceiling so the synth never clips or startles. Jeff-tunable. */
-const MASTER_GAIN = 0.6;
+const VOLUME_KEY = 'rogueciv:volume';
+/** Master ceiling so the synth never clips or startles, at volume = 1. Jeff-tunable. */
+const MASTER_CEILING = 0.6;
+/** Default user volume (0..1) on a fresh install. */
+const DEFAULT_VOLUME = 0.7;
 /** Concurrency cap across all SFX voices — extra requests are dropped, not queued. */
 const MAX_VOICES = 24;
 
@@ -60,6 +63,7 @@ interface AudioGuts {
 
 let guts: AudioGuts | null = null;
 let muted = readMutedPref();
+let volume = readVolumePref();
 let activeVoices = 0;
 const lastPlayedAt = new Map<string, number>();
 
@@ -69,6 +73,26 @@ function readMutedPref(): boolean {
   } catch {
     return false;
   }
+}
+
+function readVolumePref(): number {
+  try {
+    const raw = globalThis.localStorage?.getItem(VOLUME_KEY);
+    if (raw == null) return DEFAULT_VOLUME;
+    const v = parseFloat(raw);
+    return Number.isFinite(v) ? clampVol(v) : DEFAULT_VOLUME;
+  } catch {
+    return DEFAULT_VOLUME;
+  }
+}
+
+function clampVol(v: number): number {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
+/** Effective master-gain target: the user volume scaled to the ceiling, 0 while muted. */
+function masterTarget(): number {
+  return muted ? 0 : volume * MASTER_CEILING;
 }
 
 function AudioCtor(): typeof AudioContext | undefined {
@@ -103,7 +127,7 @@ export function ensureAudio(): AudioGuts | null {
     return null;
   }
   const master = ctx.createGain();
-  master.gain.value = muted ? 0 : MASTER_GAIN;
+  master.gain.value = masterTarget();
   master.connect(ctx.destination);
   guts = { ctx, master };
   return guts;
@@ -117,6 +141,15 @@ export function isMuted(): boolean {
   return muted;
 }
 
+/** Ramp the live master gain to the current target (short ramp avoids clicks). */
+function applyMasterGain(): void {
+  if (!guts) return;
+  const now = guts.ctx.currentTime;
+  guts.master.gain.cancelScheduledValues(now);
+  guts.master.gain.setValueAtTime(guts.master.gain.value, now);
+  guts.master.gain.linearRampToValueAtTime(masterTarget(), now + 0.02);
+}
+
 export function setMuted(next: boolean): void {
   muted = next;
   try {
@@ -124,19 +157,32 @@ export function setMuted(next: boolean): void {
   } catch {
     /* storage unavailable (private mode / SSR) — keep the in-memory value */
   }
-  if (guts) {
-    const now = guts.ctx.currentTime;
-    guts.master.gain.cancelScheduledValues(now);
-    // Short ramp avoids a click when toggling.
-    guts.master.gain.setValueAtTime(guts.master.gain.value, now);
-    guts.master.gain.linearRampToValueAtTime(next ? 0 : MASTER_GAIN, now + 0.02);
-  }
+  applyMasterGain();
   if (next) stopAmbient();
 }
 
 export function toggleMuted(): boolean {
   setMuted(!muted);
   return muted;
+}
+
+/** Current user volume in [0, 1] (independent of mute). */
+export function getVolume(): number {
+  return volume;
+}
+
+/**
+ * Set the user volume in [0, 1] (persisted). Does not change the mute flag, but a
+ * nonzero volume while muted stays silent until unmuted.
+ */
+export function setVolume(next: number): void {
+  volume = clampVol(next);
+  try {
+    globalThis.localStorage?.setItem(VOLUME_KEY, String(volume));
+  } catch {
+    /* storage unavailable — keep the in-memory value */
+  }
+  applyMasterGain();
 }
 
 // ---------------------------------------------------------------------------
