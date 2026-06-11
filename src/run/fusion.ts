@@ -66,14 +66,15 @@ export function fuseWeapons(a: FusionParent, b: FusionParent): WeaponDef {
     ? a.def : b.def; // trajectory winner donates body sprite + primary archetype
   const targetDps = (leveledDps(a.def, a.level) + leveledDps(b.def, b.level)) * FUSION_PREMIUM;
   const cooldownMs = Math.max(160, Math.round((a.def.cooldownMs + b.def.cooldownMs) / 2));
-  const count = Math.max(a.def.count, b.def.count);
-  const damage = Math.max(1, Math.round(targetDps * (cooldownMs / 1000) / count));
+  const count = Math.max(1, a.def.count, b.def.count);
+  const damage = Math.max(1, Math.ceil(targetDps * (cooldownMs / 1000) / count));
   return {
     id: hybridId(bases),
     name: fusionName(bases),
     tier: a.def.tier, // display only; range factor uses the body parent's age
     projectileSprite: body.projectileSprite,
     archetype: body.archetype ?? 'bolt',
+    // Order matters: parent A's bases lead, so an authored 2-way core name survives a third fusion (fusionName).
     bases,
     trajectory,
     onHit: unionOnHit(sa.onHit, sb.onHit),

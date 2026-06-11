@@ -70,4 +70,18 @@ describe('fusion', () => {
       expect(TRAJECTORY_PRECEDENCE[t]).toBeGreaterThan(0);
     }
   });
+
+  it('budget lower bound holds even for adversarial low-damage/high-count parents', () => {
+    const cases: Array<[Partial<WeaponDef>, Partial<WeaponDef>]> = [
+      [{ id: 'p1', damage: 1, count: 8, cooldownMs: 200 }, { id: 'p2', damage: 1, count: 8, cooldownMs: 200 }],
+      [{ id: 'p3', damage: 2, count: 5, cooldownMs: 333 }, { id: 'p4', damage: 1, count: 7, cooldownMs: 451 }],
+      [{ id: 'p5', damage: 1, count: 1, cooldownMs: 1100 }, { id: 'p6', damage: 1, count: 1, cooldownMs: 990 }],
+    ];
+    for (const [oa, ob] of cases) {
+      const a = W({ ...oa, archetype: 'bolt' }), b = W({ ...ob, archetype: 'piercer' });
+      const h = fuseWeapons({ def: a, level: 1 }, { def: b, level: 1 });
+      const hDps = h.damage * h.count * (1000 / h.cooldownMs);
+      expect(hDps).toBeGreaterThanOrEqual(leveledDps(a, 1) + leveledDps(b, 1));
+    }
+  });
 });
