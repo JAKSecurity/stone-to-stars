@@ -42,4 +42,12 @@ describe('rng — helpers', () => {
     const arr = ['a', 'b', 'c'];
     for (let i = 0; i < 50; i++) expect(arr).toContain(rngPick(rng, arr));
   });
+
+  it('rngInt returns min for an inverted range instead of exceeding max', () => {
+    expect(rngInt(mulberry32(1), 5, 4)).toBe(5);
+  });
+
+  it('seed 1234 produces a known first value (sequence-stability regression guard)', () => {
+    expect(mulberry32(1234)()).toBeCloseTo(0.07329497812315822, 10);
+  });
 });

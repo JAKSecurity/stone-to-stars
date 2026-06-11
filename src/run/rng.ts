@@ -16,10 +16,11 @@ export function mulberry32(seed: number): Rng {
 
 /** Integer in [min, max] inclusive (mirrors Phaser.Math.Between, but seeded). */
 export function rngInt(rng: Rng, min: number, max: number): number {
+  if (min > max) return min; // degenerate range: behave like Phaser.Math.Between
   return min + Math.floor(rng() * (max - min + 1));
 }
 
 /** Uniform pick from a non-empty array. */
 export function rngPick<T>(rng: Rng, arr: T[]): T {
-  return arr[Math.min(arr.length - 1, Math.floor(rng() * arr.length))];
+  return arr[Math.floor(rng() * arr.length)];
 }
