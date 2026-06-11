@@ -3,6 +3,7 @@ import {
   initChargerState, chargerStep, CHARGER_CONFIG,
   circlerVelocity, CIRCLER_RADIUS,
   standoffVelocity, STANDOFF_MIN, STANDOFF_MAX,
+  fleeVelocity,
 } from '../src/run/enemyBehavior';
 
 describe('enemyBehavior — charger', () => {
@@ -105,5 +106,23 @@ describe('enemyBehavior — standoff', () => {
   it('holds at the exact boundary distances', () => {
     expect(standoffVelocity(STANDOFF_MAX, 1, 0, 60).vx).toBe(0);
     expect(standoffVelocity(STANDOFF_MIN, 1, 0, 60).vx).toBe(0);
+  });
+});
+
+describe('enemyBehavior — flee (RC-026 courier)', () => {
+  it('runs directly away from the player at full speed', () => {
+    const v = fleeVelocity(0, 0, 100, 0, 80); // player at origin, enemy at +x
+    expect(v.vx).toBeCloseTo(80);
+    expect(v.vy).toBeCloseTo(0);
+  });
+  it('normalizes diagonals (speed preserved)', () => {
+    const v = fleeVelocity(0, 0, 30, 40, 100);
+    expect(Math.hypot(v.vx, v.vy)).toBeCloseTo(100);
+    expect(v.vx).toBeCloseTo(60);
+    expect(v.vy).toBeCloseTo(80);
+  });
+  it('degenerate overlap (zero distance) still moves (any direction, full speed)', () => {
+    const v = fleeVelocity(50, 50, 50, 50, 90);
+    expect(Math.hypot(v.vx, v.vy)).toBeCloseTo(90);
   });
 });

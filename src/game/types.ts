@@ -113,7 +113,8 @@ export interface EnemyDef {
   attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
   // RC-018 — movement archetype, orthogonal to `attack` (firing). Absent ⇒ 'chase' (default).
   // 'charger' telegraphs then dashes; 'circler' orbits/strafes; 'standoff' holds firing distance.
-  behavior?: 'chase' | 'charger' | 'splitter' | 'circler' | 'standoff';
+  // 'flee' runs away from the player (RC-026 treasure courier).
+  behavior?: 'chase' | 'charger' | 'splitter' | 'circler' | 'standoff' | 'flee';
   // 'splitter' only: on death, spawn `count` children of enemy id `into` (e.g. rock_golem → cave_dwellers).
   split?: { into: string; count: number };
 }
