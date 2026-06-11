@@ -839,6 +839,17 @@ export class RunScene extends Phaser.Scene {
       }
       // RC-017: one gem per kill, carrying a tier-scaled value (value, not swarm).
       this.dropGem(ex, ey, enemy.getData('drop'));
+      // RC-019: a mini-boss kill drops the guaranteed jackpot — a gem burst + one upgraded gem.
+      if (enemy.getData('isBoss')) {
+        const tier = gemTierForExpeditionTier(this.expedition.tier);
+        const base = rewardValueForTier(this.expedition.tier);
+        for (const g of bossJackpotGems(base, tier)) {
+          const jx = ex + Phaser.Math.Between(-44, 44), jy = ey + Phaser.Math.Between(-44, 44);
+          this.dropGem(jx, jy, this.biasedResource(), { valueOverride: g.value, tierOverride: g.tier });
+        }
+        this.destroyBossHpBar();
+        this.bossEnemy = null;
+      }
       const xpGain = enemy.getData('xp');
       enemy.destroy();
 
