@@ -109,7 +109,7 @@ export interface EnemyDef {
   xp: number;                 // xp granted on kill
   displaySize: { w: number; h: number };
   armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
-                              // pierceArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
+                              // onHit.ignoreArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
   attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
   // RC-018 — movement archetype, orthogonal to `attack` (firing). Absent ⇒ 'chase' (default).
   // 'charger' telegraphs then dashes; 'circler' orbits/strafes; 'standoff' holds firing distance.
@@ -192,21 +192,6 @@ export interface RunResult {
   survivedMs: number;
   died: boolean;
   tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
-}
-
-export interface PerkEffect {
-  damageMult?: number;    // additive fraction
-  fireRateMult?: number;  // additive fraction
-  moveSpeedMult?: number; // additive fraction
-  maxHp?: number;         // flat add (also heals by same amount)
-  pickupRadius?: number;  // flat add (pixels)
-}
-
-export interface Perk {
-  id: string;
-  name: string;
-  desc: string;
-  effect: PerkEffect;
 }
 
 // RC-031 — every passive is a sidegrade: at least one positive and one negative axis.
