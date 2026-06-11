@@ -60,8 +60,9 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
   player can plan a build before the run?
 - How do **rewards** change — are gems/XP still the currency, or do upgrades come from events/bosses
   (ties to RC-019 mini-boss jackpot, RC-026 POI events, RC-025 perk pool)?
-- Backward-compat: this likely **resets** the weapon/perk data model — plan a save-version bump and
-  migration if `CivState` weapon/tradition shape changes.
+- Backward-compat: this **resets** the weapon/perk data model — save-version bump to v4,
+  **reset on bump** per RC-017 precedent (Jeff, 2026-06-11: no migration; manual save/load
+  slots ticketed separately as RC-034).
 
 ## Acceptance Criteria (provisional — refine in spec)
 - [ ] Weapons play **mechanically distinctly**, not as stat reskins; power is sidegrade-balanced
@@ -69,7 +70,7 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
 - [ ] A run's available weapons/upgrades are shaped by the player's civ, enabling pre-run build intent
 - [ ] Rewards redesigned to deliver upgrades meaningfully (draft + events/bosses)
 - [ ] Pure logic unit-tested; Playwright live-verify the build loop end-to-end
-- [ ] Save migration if the weapon/perk data model changes
+- [ ] Save-version bump to v4 (reset on bump — no migration)
 
 ## References
 - 2026-06-10 playtest notes (#4, #7) + 2026-06-10 weapon-redesign direction

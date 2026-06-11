@@ -117,13 +117,12 @@ hybrid passive (authored small table), slot freed.
   alchemy/medicine tier, grenade volley via gunpowder). Surface in `runBonus` as `actives: [...]`.
 - **Expedition Kit screen** is the new pre-run surface (extends the RC-027 start-weapon picker):
   pick kit weapons + active; selections persist in `CivState` (`kit`, `activeItem`).
-- **Save v4 + first real migration.** Today `saveLoad.ts` RESETS on any version mismatch
-  (RC-017 stance) — no migration machinery exists. This change deviates deliberately: the v3→v4
-  delta is purely additive `CivState` fields, so the loader gains a minimal migration step
-  instead of wiping civ progress. Defaults: kit = first 4 unlocked weapons (club first), start
-  weapon = existing `startWeapon` if its id survives the catalog rebuild (else club), active =
-  best unlocked (or none). Weapon ids removed by the catalog rebuild are dropped from the
-  unlocked pool on load. Saves don't persist mid-run state, so no in-run migration needed.
+- **Save v4, reset on bump (Jeff, 2026-06-11).** House precedent holds: `saveLoad.ts` resets on
+  version mismatch (RC-017 stance) and this redesign keeps it — the catalog rebuild changes
+  weapon ids wholesale, so v3 saves reset rather than migrate. New `CivState` fields (`kit`,
+  `activeItem`) ship with sensible defaults for fresh saves (kit = first unlocked weapons,
+  club start, no active until tech-unlocked). Related: manual save/load slots are now tracked
+  separately as a backlog ticket (see RC-034).
 - Traditions' civ-level flat run bonuses (`damageMult`, `draftRerolls`, …) stay as-is — the
   *in-run* flat perks are what's replaced. Passive pool starts universal with a hook for
   tech/tradition-unlocked passives later (new home for RC-025's pool expansion).
@@ -163,7 +162,7 @@ medieval/renaissance 4, industrial/modern 5.
 
 - All new logic stays pure and Phaser-free (`src/run/`): component composition, fusion
   resolution + precedence, budget formula, draft generation, kit validation, catalyst flow,
-  save v3→v4 migration — unit-tested (fixture catalogs, fixture saves).
+  v4 reset-on-mismatch behavior — unit-tested (fixture catalogs, fixture saves).
 - End-to-end: Playwright canvas walkthrough (verify-canvas-game-playwright) covering
   kit selection → draft → level → fuse → active use → re-fuse → run end.
 
@@ -178,7 +177,7 @@ medieval/renaissance 4, industrial/modern 5.
 - [ ] ~10 base archetypes with mechanically + visually distinct verbs; same-age weapons sidegrades
 - [ ] Chain fusion works end-to-end: max parents → fuse → re-fuse, 3-behavior cap, catalysts
 - [ ] Drafts offer tradeoff sidegrades only; no strictly-weaker offers; fusion offers lead
-- [ ] Expedition Kit pre-run flow shapes the draftable pool; selections persist (save v4 + migration)
+- [ ] Expedition Kit pre-run flow shapes the draftable pool; selections persist (save v4, reset on bump)
 - [ ] Right-click active item: tech-unlocked, picked pre-run, 1 charge + recharge hooks
 - [ ] Passives: 2 slots, tradeoff stats, rare passive fusion
 - [ ] Fusion/draft/kit/migration logic pure + unit-tested; Playwright live-verifies the loop
