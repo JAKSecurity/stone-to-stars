@@ -1274,9 +1274,10 @@ export class RunScene extends Phaser.Scene {
     this.gems.add(gem);
     gem.setData('resource', resource);
     gem.setData('value', value);
-    // RC-022 B5: top-tier gems get a soft additive glow behind them, gem-tinted, gently pulsing —
-    // the boss jackpot's big gem becomes unmistakable. Cheaper than postFX; parented to follow the
-    // gem (and torn down with it) so the magnet sweep carries the glow along.
+    // RC-022 B5: value-major gems get a soft additive glow behind them, gem-tinted, gently pulsing.
+    // Not rare: the boss jackpot AND every per-kill drop at tier 6+ qualify, so dozens can glow
+    // concurrently late-game — each is one circle + one tween, cheap. Cheaper than postFX; parented
+    // to follow the gem (and torn down with it) so the magnet sweep carries the glow along.
     if (gemValueTier(value) === 'major') {
       const tint = this.gemGlowColor(resource);
       const glow = this.add.circle(x, y, sizePx * 0.85, tint, 0.3)
