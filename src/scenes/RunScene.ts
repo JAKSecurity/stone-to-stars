@@ -751,7 +751,7 @@ export class RunScene extends Phaser.Scene {
   private updateEnemyMovement(e: any, dt: number) {
     // RC-031: an onHit.slowPct hit cuts move speed until slowUntil. Scale the final speed every
     // movement branch uses by `slowed` (1 = unaffected).
-    const slowed = (e.getData('slowUntil') ?? 0) > this.elapsed ? 1 - (e.getData('slowPct') ?? 0) : 1;
+    const slowed = (e.getData('slowUntil') ?? 0) > this.elapsed ? Math.max(0, 1 - (e.getData('slowPct') ?? 0)) : 1;
     const speed = (e.getData('speed') as number) * slowed;
     const waypoint = routeAround(e.x, e.y, this.player.x, this.player.y, this.layout.barriers);
     if (waypoint.x !== this.player.x || waypoint.y !== this.player.y) {
@@ -894,6 +894,7 @@ export class RunScene extends Phaser.Scene {
     const enemyUid = enemy.getData('uid') ?? String(enemy.name || enemy.x + ',' + enemy.y);
     hitIds?.add(enemyUid);
 
+    // Reentrant: detonate -> applyDamageToEnemy can death-spawn splitters mid-overlap (same pattern as lob landing).
     if (onHit.explode) {
       this.detonate(enemy.x, enemy.y, bullet.getData('damage') * 0.6, onHit.explode * RUN_SCALE);
     }
