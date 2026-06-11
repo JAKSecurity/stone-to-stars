@@ -4,11 +4,12 @@ import {
 import {
   BASE_MAX_HP, BASE_DAMAGE_MULT, BASE_DRAFT_CHOICES, BASE_WEAPONS,
   BASE_PICKUP_RADIUS, BASE_MOVE_MULT, BASE_FIRE_MULT,
-  BASE_DRAFT_REROLLS, BASE_START_WEAPON_LEVEL,
+  BASE_DRAFT_REROLLS, BASE_START_WEAPON_LEVEL, BASE_ACTIVES,
 } from '../game/config';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { TRADITIONS } from '../civics/traditionData';
+import { resolveActiveItem } from './actives';
 
 export function computeRunModifiers(civ: CivState): RunModifiers {
   let maxHp = BASE_MAX_HP;
@@ -20,6 +21,7 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
   let draftRerolls = BASE_DRAFT_REROLLS;
   let startWeaponLevel = BASE_START_WEAPON_LEVEL;
   const weapons = new Set<string>(BASE_WEAPONS);
+  const actives = new Set<string>(BASE_ACTIVES);
 
   for (const techId of civ.researched) {
     const b = TECHS[techId]?.runBonus;
@@ -28,6 +30,7 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     damageMult += b.damageMult ?? 0;
     draftChoices += b.draftChoices ?? 0;
     (b.weapons ?? []).forEach((w) => weapons.add(w));
+    (b.actives ?? []).forEach((a) => actives.add(a));
   }
 
   for (const placed of civ.buildings) {
@@ -37,6 +40,7 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     damageMult += (b.damageMult ?? 0) * placed.level;
     draftChoices += (b.draftChoices ?? 0) * placed.level;
     (b.weapons ?? []).forEach((w) => weapons.add(w));
+    (b.actives ?? []).forEach((a) => actives.add(a));
   }
 
   // Traditions: each owned node contributes effectPerRank * clamp(rank, 0, maxRank).
@@ -58,9 +62,11 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
   // RC-027: start with the player's chosen weapon if they own it, else the base club.
   const startWeapon = civ.startWeapon && weapons.has(civ.startWeapon) ? civ.startWeapon : 'club';
 
+  const activeItem = resolveActiveItem(civ.activeItem, [...actives]);
+
   return {
     maxHp, damageMult, draftChoices, weapons: [...weapons],
     pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel, startWeapon,
-    actives: [], activeItem: undefined,
+    actives: [...actives], activeItem,
   };
 }

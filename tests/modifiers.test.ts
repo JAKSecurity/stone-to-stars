@@ -56,4 +56,11 @@ describe('computeRunModifiers', () => {
     const civ = { ...newCivState(), traditions: { vigor: 99 } }; // maxRank 5 => cap +40
     expect(computeRunModifiers(civ).maxHp).toBe(140);
   });
+
+  it('collects tech-granted actives and validates the chosen one', () => {
+    const civ = { ...newCivState(), researched: ['hunting', 'guilds'], activeItem: 'poison_gas' };
+    const mods = computeRunModifiers(civ);
+    expect(mods.actives).toEqual(expect.arrayContaining(['net', 'poison_gas']));
+    expect(mods.activeItem).toBe('poison_gas');
+  });
 });
