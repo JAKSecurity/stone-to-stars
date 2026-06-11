@@ -1,8 +1,8 @@
 import { Perk, RunStats } from '../game/types';
 
 export const PERKS: Perk[] = [
-  { id: 'sharpen',   name: 'Sharpen',    desc: '+25% damage',       effect: { damageMult: 0.25 } },
-  { id: 'rapid',     name: 'Rapid Fire', desc: '+20% fire rate',    effect: { fireRateMult: 0.20 } },
+  { id: 'sharpen',   name: 'Sharpen',    desc: '+12.5% damage',     effect: { damageMult: 0.125 } },
+  { id: 'rapid',     name: 'Rapid Fire', desc: '+10% fire rate',    effect: { fireRateMult: 0.10 } },
   { id: 'swift',     name: 'Swift',      desc: '+15% move speed',   effect: { moveSpeedMult: 0.15 } },
   { id: 'vigor',     name: 'Vigor',      desc: '+30 max HP, heal',  effect: { maxHp: 30 } },
   { id: 'magnet',    name: 'Magnet',     desc: '+40 pickup radius', effect: { pickupRadius: 40 } },
