@@ -193,6 +193,7 @@ export class RunScene extends Phaser.Scene {
     this.bossId = apexEnemyId(this.biome.spawnTable);
     this.bossSpawned = false;
     this.bossEnemy = null;
+    this.bossHp = undefined;
     this.trickleBiome = { ...this.biome, spawnTable: bossFreeTable(this.biome.spawnTable, this.bossId) };
   }
 
@@ -594,7 +595,11 @@ export class RunScene extends Phaser.Scene {
     const warn = this.add.circle(x, y, 22, 0xff3322, 0.6).setDepth(59);
     this.tweens.add({ targets: warn, scale: 1.8, alpha: 0.2, duration: 400, yoyo: true, repeat: -1 });
 
-    this.time.delayedCall(BOSS_TELEGRAPH_MS, () => { warn.destroy(); this.spawnBoss(x, y); });
+    this.time.delayedCall(BOSS_TELEGRAPH_MS, () => {
+      warn.destroy();
+      if (this.finished || this.ceremony) return; // run ended during the telegraph — don't spawn
+      this.spawnBoss(x, y);
+    });
   }
 
   /** RC-019: spawn the boss at (x,y) with 5× HP and the isBoss flag, and raise its HP bar. */
