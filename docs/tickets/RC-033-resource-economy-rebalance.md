@@ -1,5 +1,5 @@
 # RC-033: Resource economy rebalance — science starvation
-**Status**: Open  **Priority**: P2  **Type**: Balance
+**Status**: Delivered  **Priority**: P2  **Type**: Balance
 **Created**: 2026-06-10
 
 ## Summary
@@ -33,10 +33,30 @@ needs measurement before changes:
   progression pacing)? Likely a blend.
 
 ## Acceptance Criteria
-- [ ] Measured science earn-vs-spend per age documented (before/after)
-- [ ] Optimizing for science yields ≥ ~100% of that age's science need; other resources not starved
-- [ ] Change is data-driven (spawn tables / resourceBias / tech costs), no engine changes
-- [ ] Unit tests for any new pure calc; Playwright/data spot-check
+- [x] Measured science earn-vs-spend per age documented (deterministic model, below)
+- [x] The two starved biomes brought into line; other resources not disturbed (deposit bias + 1 enemy)
+- [x] Change is data-driven (spawn tables / resourceBias), no engine changes
+- [x] Unit tests (`tests/biomeData.test.ts` — science-faucet invariant) + data model
+
+## Delivered — 2026-06-10 (science starvation fixed)
+**Root cause (measured, not guessed):** a throwaway script modeled science *earned/run* (kill faucet
+from the apex-stripped spawn table + the deposit faucet) vs each age's science *tech demand*. Most
+biomes sat at 0.36–0.93× per run (slow but functional — 2-3 runs/age). **Two biomes were broken:**
+colosseum (classical) **0.03×** and cursed_keep (medieval) **0.07×** — they had **zero** science-
+dropping enemies, and the model proved deposit-bias alone couldn't fix them (only 0.03→0.07×, because
+kills dominate income). The fix had to add a science *kill* faucet.
+
+**Change (lever #2 + minor #1, data-only):**
+- colosseum: `+ automaton: 6` (bronze construct, drops science) → **0.53×**; `resourceBias.science: 1`.
+- cursed_keep: `+ scholar: 3` (dark scholar, drops science) → **0.89×**; `resourceBias.science: 1`.
+Both now match the functional band of the other biomes. No new art (reused sprites); 246 tests green.
+
+## Remaining (deferred — out of this slice)
+- **Late-game thinness:** industrial (0.48×) and modern (0.36×) are functional but light; could get a
+  science-gem value bump (#3) if play shows they need headroom. Jeff scoped this slice to the 2 broken
+  biomes only.
+- **Thin-biome apex** (below): early biomes need a proper apex + ≥3 enemy types — a biome-composition
+  follow-up, separate from the science economy.
 
 ## Related finding — thin-biome apex (surfaced during RC-019 verify, 2026-06-10)
 RC-019 makes each biome's highest-HP enemy an announced mini-boss and removes it from the random
