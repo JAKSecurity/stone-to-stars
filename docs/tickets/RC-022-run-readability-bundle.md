@@ -52,3 +52,9 @@ Writing(+1)` into more cards than fit. Fix the draft overlay layout so it never 
 cap the visible option count (extra choices convert to rerolls), or make the overlay a responsive
 scroll/grid that scales to the viewport. Lives in `RunScene` draft rendering. (RC-031's single-weapon
 change reduces weapon options, partially mitigating but not fixing the root layout issue.)
+
+## Note from RC-031 review (2026-06-11)
+- Draft-card tradeoff rows (`tradeoffSegments`, RunScene) have no overflow clamp: a 3-segment
+  fused-passive desc can exceed the 460px card width at small canvas sizes. Fold a measure-and-
+  shrink (or wrap) into this ticket's draft-card readability scope. Same for long swap stat rows
+  (`current -> offered`).
