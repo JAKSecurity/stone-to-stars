@@ -3,6 +3,11 @@ import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
   ORBIT_ANGULAR_SPEED, LOB_PEAK_HEIGHT, LOB_MIN_FLIGHT_MS, LOB_MAX_FLIGHT_MS,
 } from '../src/run/projectileMotion';
+import {
+  boomerangVelocity, BOOMERANG_OUT_MS, homingVelocity, HOMING_TURN_RAD_S,
+  chainNextTarget, CHAIN_RANGE, CHAIN_FALLOFF,
+  TRAIL_DROP_MS, TRAIL_LINGER_MS, TRAIL_RADIUS, ZONE_TICK_MS, SLOW_MS,
+} from '../src/run/projectileMotion';
 
 describe('projectileMotion — orbit', () => {
   it('spaces N orbiters evenly and advances with the run clock', () => {
@@ -56,5 +61,37 @@ describe('projectileMotion — withinRadius', () => {
     expect(withinRadius(0, 0, 3, 4, 5)).toBe(true);
     expect(withinRadius(0, 0, 2, 2, 5)).toBe(true);
     expect(withinRadius(0, 0, 6, 0, 5)).toBe(false);
+  });
+});
+
+describe('RC-031 trajectories', () => {
+  it('boomerang: flies along aim while out, then steers back to the player', () => {
+    const out = boomerangVelocity('out', 1, 0, 0, 0, 0, 100, 300);
+    expect(out.vx).toBeCloseTo(300); expect(out.vy).toBeCloseTo(0);
+    const back = boomerangVelocity('return', 1, 0, 0, 0, 100, 0, 300);
+    expect(back.vx).toBeLessThan(0); // heading back toward player at origin
+  });
+
+  it('homing: turn rate caps the heading change per tick', () => {
+    // moving +x, target straight up: with a tiny dt the new heading must rotate by ≤ turnRate*dt
+    const v = homingVelocity(300, 0, 0, 0, 0, -100, 300, 16);
+    const angle = Math.atan2(v.vy, v.vx);
+    expect(Math.abs(angle)).toBeLessThanOrEqual(HOMING_TURN_RAD_S * (16 / 1000) + 1e-6);
+    expect(Math.hypot(v.vx, v.vy)).toBeCloseTo(300, 0); // speed preserved
+  });
+
+  it('chain: picks the nearest unhit enemy in range, or null', () => {
+    const enemies = [
+      { id: 'a', x: 50, y: 0 }, { id: 'b', x: 120, y: 0 }, { id: 'c', x: 999, y: 0 },
+    ];
+    expect(chainNextTarget(enemies, 0, 0, new Set(['a']), CHAIN_RANGE)?.id).toBe('b');
+    expect(chainNextTarget(enemies, 0, 0, new Set(['a', 'b']), CHAIN_RANGE)).toBeNull();
+    expect(CHAIN_FALLOFF).toBeGreaterThan(0.5); // hops stay meaningful
+  });
+
+  it('feel constants exist and are sane', () => {
+    for (const c of [BOOMERANG_OUT_MS, TRAIL_DROP_MS, TRAIL_LINGER_MS, TRAIL_RADIUS, ZONE_TICK_MS, SLOW_MS]) {
+      expect(c).toBeGreaterThan(0);
+    }
   });
 });
