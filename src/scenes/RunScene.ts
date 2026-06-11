@@ -28,6 +28,11 @@ import {
   ChargerState, ChargerPhase, initChargerState, chargerStep, CHARGER_CONFIG,
   circlerVelocity, CIRCLER_RADIUS, standoffVelocity, STANDOFF_MIN, STANDOFF_MAX,
 } from '../run/enemyBehavior';
+import { mulberry32 } from '../run/rng';
+import {
+  generateLayout, DungeonLayout, Barrier,
+  WALL_THICKNESS, BARRIER_THICKNESS,
+} from '../run/dungeonGen';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -73,6 +78,7 @@ export class RunScene extends Phaser.Scene {
   });
   private expedition!: Expedition;
   private biome!: BiomeDef;
+  private layout!: DungeonLayout;
 
   private player!: Phaser.GameObjects.Image & { body: Phaser.Physics.Arcade.Body };
   private enemies!: Phaser.Physics.Arcade.Group;
@@ -148,12 +154,18 @@ export class RunScene extends Phaser.Scene {
   }
 
   create() {
-    const { width, height } = this.scale;
+    // RC-034: the run is a procedurally generated dungeon DUNGEON_SCREENS x the viewport. The seed
+    // is logged so any layout bug is reproducible (generateLayout is deterministic per seed).
+    const seed = (Math.random() * 0xffffffff) >>> 0;
+    console.info(`[run] dungeon seed ${seed}`);
+    this.layout = generateLayout(mulberry32(seed), this.scale.width, this.scale.height);
+    const { width, height } = this.layout;
     this.physics.world.setBounds(0, 0, width, height);
+    this.cameras.main.setBounds(0, 0, width, height);
     this.cameras.main.setBackgroundColor(this.biome.visual?.ground ?? this.biome.tint);
     this.drawBackground(width, height);
 
-    const player = this.add.image(width / 2, height / 2, this.heroSprite);
+    const player = this.add.image(this.layout.start.x, this.layout.start.y, this.heroSprite);
     player.setDisplaySize(34 * RUN_SCALE, 42 * RUN_SCALE);
     this.physics.add.existing(player);
     this.player = player as any;
@@ -162,13 +174,14 @@ export class RunScene extends Phaser.Scene {
     // you'd snag on obstacle corners with room to spare. Shrink the body to ~64% of the display,
     // centered, so collisions match what you see. (shrinkBody sizes proportionally, not in raw px.)
     this.shrinkBody(this.player, 0.64);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group();
     this.enemyBullets = this.physics.add.group();
     this.gems = this.physics.add.group();
     this.obstacles = this.physics.add.staticGroup();
-    this.scatterObstacles(width, height);
+    this.buildTerrain(this.layout);
 
     this.keys = {
       up: this.input.keyboard!.addKey('W'),
@@ -186,7 +199,7 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.obstacles);
 
     this.hud = this.add.text(12, 12, '',
-      { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10);
+      { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10).setScrollFactor(0);
 
     // RC-019: the biome's toughest enemy becomes an announced mini-boss — pull it from the random
     // spawn pool (the card threat-rating still reads it from the untouched biome.spawnTable).
@@ -209,46 +222,77 @@ export class RunScene extends Phaser.Scene {
     for (let x = 0; x <= width; x += step) grid.lineBetween(x, 0, x, height);
     for (let y = 0; y <= height; y += step) grid.lineBetween(0, y, width, y);
 
-    const specks = Math.min(600, Math.round((width * height) / 9000));
+    const specks = Math.min(1800, Math.round((width * height) / 9000));
     for (let i = 0; i < specks; i++) {
       this.add.circle(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height),
         Phaser.Math.Between(1, 2), speckColor, v ? 0.4 : 0.06).setDepth(-9);
     }
   }
 
-  /** Scatter static collidable terrain — biome-themed sprites (RC-021) — keeping the spawn area clear.
-   *  Visual only: the collision body is the same inset circle regardless of the prop's look. */
-  private scatterObstacles(width: number, height: number) {
-    const set = this.biome.visual?.obstacles ?? [];
-    const count = Math.round((width * height) / 90000) + 4;
-    const cx = width / 2, cy = height / 2;
-    for (let i = 0; i < count; i++) {
-      let x = 0, y = 0, tries = 0;
-      do {
-        x = Phaser.Math.Between(70, width - 70);
-        y = Phaser.Math.Between(70, height - 70);
-        tries++;
-      } while (Phaser.Math.Distance.Between(x, y, cx, cy) < 200 && tries < 25);
-      const r = Phaser.Math.Between(26, 46);
+  /** RC-034: materialise the generated layout — perimeter walls, chokepoint barriers (river with a
+   *  bridge deck / wall with a gateway opening), and the biome-themed obstacle props. All collision
+   *  bodies join this.obstacles, so the existing player/enemy colliders cover them. */
+  private buildTerrain(layout: DungeonLayout) {
+    const { width, height } = layout;
+    const t = WALL_THICKNESS;
+    this.addStaticRect(width / 2, t / 2, width, t, 0x000000, 0.55);            // north wall
+    this.addStaticRect(width / 2, height - t / 2, width, t, 0x000000, 0.55);  // south wall
+    this.addStaticRect(t / 2, height / 2, t, height, 0x000000, 0.55);         // west wall
+    this.addStaticRect(width - t / 2, height / 2, t, height, 0x000000, 0.55); // east wall
 
-      let obj: Phaser.GameObjects.GameObject & { body: Phaser.Physics.Arcade.Body };
-      if (set.length) {
-        const id = set[Phaser.Math.Between(0, set.length - 1)];
-        const img = this.add.image(x, y, id).setDepth(-1);
-        img.setDisplaySize(r * 2, r * 2); // match the old ellipse footprint
-        obj = img as any;
-      } else {
-        const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
-        rock.setStrokeStyle(2, 0xffffff, 0.08);
-        obj = rock as any;
-      }
-      this.physics.add.existing(obj, true);
-      // UNCHANGED collision behavior — an inset circle inside the footprint (rc-017's snag fix).
-      // Sprites are square (r*2 × r*2), so the body is centred symmetrically.
-      const cr = r * 0.8;
-      (obj.body as unknown as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, r - cr);
-      this.obstacles.add(obj);
+    for (const b of layout.barriers) this.buildBarrier(b, layout);
+    for (const o of layout.obstacles) this.addObstacleProp(o.x, o.y, o.r);
+  }
+
+  /** A filled, collidable static rectangle registered into the obstacles group. */
+  private addStaticRect(x: number, y: number, w: number, h: number, color: number, alpha: number) {
+    const rect = this.add.rectangle(x, y, w, h, color, alpha).setDepth(-1);
+    rect.setStrokeStyle(2, 0xffffff, 0.08);
+    this.physics.add.existing(rect, true);
+    this.obstacles.add(rect as any);
+  }
+
+  /** One chokepoint: two collidable band segments with the opening between them. Rivers get a
+   *  walkable bridge deck across the gap; walls read as a broken gateway (the opening itself).
+   *  v1 generation emits vertical bands only — see dungeonGen. */
+  private buildBarrier(b: Barrier, layout: DungeonLayout) {
+    const color = b.kind === 'river' ? 0x2f6f9f : 0x1a1a22;
+    const alpha = b.kind === 'river' ? 0.8 : 0.85;
+    const segments = [
+      { from: 0, to: b.gap.start },
+      { from: b.gap.end, to: layout.height },
+    ];
+    for (const s of segments) {
+      const len = s.to - s.from;
+      if (len <= 0) continue;
+      this.addStaticRect(b.pos, s.from + len / 2, BARRIER_THICKNESS, len, color, alpha);
     }
+    if (b.kind === 'river') {
+      this.add.rectangle(b.pos, (b.gap.start + b.gap.end) / 2,
+        BARRIER_THICKNESS + 24, b.gap.end - b.gap.start, 0x8a6a42, 0.9)
+        .setDepth(-2).setStrokeStyle(2, 0x000000, 0.3);
+    }
+  }
+
+  /** One biome-themed obstacle prop — sprite + the rc-017 inset-circle body (visuals unchanged
+   *  from the pre-RC-034 scatter; only the position source moved to the seeded layout). */
+  private addObstacleProp(x: number, y: number, r: number) {
+    const set = this.biome.visual?.obstacles ?? [];
+    let obj: Phaser.GameObjects.GameObject & { body: Phaser.Physics.Arcade.Body };
+    if (set.length) {
+      const id = set[Phaser.Math.Between(0, set.length - 1)];
+      const img = this.add.image(x, y, id).setDepth(-1);
+      img.setDisplaySize(r * 2, r * 2);
+      obj = img as any;
+    } else {
+      const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
+      rock.setStrokeStyle(2, 0xffffff, 0.08);
+      obj = rock as any;
+    }
+    this.physics.add.existing(obj, true);
+    const cr = r * 0.8;
+    (obj.body as unknown as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, r - cr);
+    this.obstacles.add(obj);
   }
 
   update(_t: number, deltaMs: number) {
@@ -315,7 +359,7 @@ export class RunScene extends Phaser.Scene {
     // Culture relics appear periodically as walk-over pickups (design: villages/relics give culture).
     this.relicCooldown -= dt;
     if (this.relicCooldown <= 0) {
-      const { width, height } = this.scale;
+      const { width, height } = this.layout;
       this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), 'culture');
       this.relicCooldown = 5000 / (this.biome.resourceBias.culture ?? 1);
     }
@@ -323,7 +367,7 @@ export class RunScene extends Phaser.Scene {
     // Scattered resource deposits — income you gather by exploring the field, not just from kills.
     this.resourceCooldown -= dt;
     if (this.resourceCooldown <= 0) {
-      const { width, height } = this.scale;
+      const { width, height } = this.layout;
       this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), this.biasedResource());
       this.resourceCooldown = 2600;
     }
@@ -373,11 +417,11 @@ export class RunScene extends Phaser.Scene {
    * positional and the radius (widened by the Magnet perk) actually matters. The Zone-Cleared
    * ceremony reuses this with a screen-sized radius to sweep everything in.
    */
-  private vacuumGems() {
+  private vacuumGems(speed = 340) {
     (this.gems.getChildren() as any[]).forEach((g) => {
       const d = Phaser.Math.Distance.Between(g.x, g.y, this.player.x, this.player.y);
       if (d < this.stats.pickupRadius * RUN_SCALE) {
-        this.physics.moveToObject(g, this.player, 340 * RUN_SCALE);
+        this.physics.moveToObject(g, this.player, speed * RUN_SCALE);
       } else {
         g.body.setVelocity(0, 0);
       }
@@ -404,14 +448,14 @@ export class RunScene extends Phaser.Scene {
     });
     // Freeze the hero and magnet radius out past the screen so every gem flies in.
     this.player.body.setVelocity(0, 0);
-    this.stats.pickupRadius = Math.max(this.scale.width, this.scale.height);
+    this.stats.pickupRadius = this.layout.width + this.layout.height;
 
     this.showZoneClearedBanner();
   }
 
   private updateCeremony(dt: number) {
     this.player.body.setVelocity(0, 0);
-    this.vacuumGems();
+    this.vacuumGems(2400);
     this.hud.setText(
       `${this.biome.name} Cleared!   ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}`,
@@ -425,7 +469,7 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.flash(320, 70, 200, 110); // green wash
     const txt = this.add.text(width / 2, height / 2 - 40, `${this.biome.name} Cleared!`, {
       fontSize: '48px', color: '#ffffff', fontStyle: 'bold', stroke: '#0b2', strokeThickness: 6,
-    }).setOrigin(0.5).setDepth(40).setScale(0.4).setAlpha(0);
+    }).setOrigin(0.5).setDepth(40).setScale(0.4).setAlpha(0).setScrollFactor(0);
     this.tweens.add({ targets: txt, scale: 1, alpha: 1, duration: 360, ease: 'Back.easeOut' });
     this.tweens.add({
       targets: txt, alpha: 0, delay: CEREMONY_MS - 700, duration: 650,
@@ -538,7 +582,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   private spawnEnemy() {
-    const { width, height } = this.scale;
+    const { width, height } = this.layout;
     const edge = Phaser.Math.Between(0, 3);
     const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
@@ -578,7 +622,7 @@ export class RunScene extends Phaser.Scene {
 
   /** RC-019: warning banner + edge indicator, then the boss arrives after a short telegraph. */
   private announceBoss() {
-    const { width, height } = this.scale;
+    const { width, height } = this.layout;
     const edge = Phaser.Math.Between(0, 3);
     const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
     const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
@@ -955,7 +999,7 @@ export class RunScene extends Phaser.Scene {
       pool: this.mods.weapons,
     });
     const { width, height } = this.scale;
-    const panel = this.add.container(0, 0).setDepth(20);
+    const panel = this.add.container(0, 0).setDepth(20).setScrollFactor(0);
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
     panel.add(bg);
     const queueSuffix = this.pendingDrafts > 0 ? ` (+${this.pendingDrafts} more)` : '';
