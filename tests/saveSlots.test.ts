@@ -4,6 +4,7 @@ import {
 } from '../src/state/saveSlots';
 import { SAVE_KEY } from '../src/state/saveLoad';
 import { newCivState, applyRunResult } from '../src/state/civState';
+import type { CivState } from '../src/game/types';
 
 // Minimal in-memory Storage shim (mirrors tests/saveLoad.test.ts — runs in Node, no jsdom).
 function memStorage(): Storage {
@@ -174,5 +175,109 @@ describe('saveSlots — export / import', () => {
     const imported = importSave(JSON.stringify(civ));
     expect(imported).not.toBeNull();
     expect(imported!.version).toBe(4);
+  });
+
+  // RC-036 — content-level validation tests (write first, watch fail, then fix importSave)
+
+  it('importSave rejects banked: {} (missing resource keys)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), banked: {} }))).toBeNull();
+  });
+
+  it('importSave rejects banked with a non-numeric resource value', () => {
+    expect(importSave(JSON.stringify({
+      ...newCivState(),
+      banked: { exploration: 'a', science: 0, industry: 0, culture: 0 },
+    }))).toBeNull();
+  });
+
+  it('importSave rejects banked with a non-finite resource value (Infinity)', () => {
+    // JSON.stringify drops Infinity → null; craft the string manually so the key actually survives.
+    const base = JSON.stringify(newCivState());
+    const poisoned = base.replace(/"banked":\{[^}]+\}/, '"banked":{"exploration":null,"science":0,"industry":0,"culture":0}');
+    expect(importSave(poisoned)).toBeNull();
+  });
+
+  it('importSave rejects traditions with a non-numeric rank value', () => {
+    expect(importSave(JSON.stringify({
+      ...newCivState(),
+      traditions: { oratory: 'abc' },
+    }))).toBeNull();
+  });
+
+  it('importSave rejects traditions with a non-finite rank value', () => {
+    // craft JSON with NaN directly (NaN serialises as null in JSON)
+    const raw = JSON.stringify(newCivState()).replace('"traditions":{}', '"traditions":{"oratory":null}');
+    expect(importSave(raw)).toBeNull();
+  });
+
+  it('importSave rejects kit: "notanarray" (string instead of array)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), kit: 'notanarray' }))).toBeNull();
+  });
+
+  it('importSave rejects kit: [42] (array of non-strings)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), kit: [42] }))).toBeNull();
+  });
+
+  it('importSave accepts kit: ["club"] (valid array of strings)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), kit: ['club'] }))).not.toBeNull();
+  });
+
+  it('importSave rejects researched: [42] (non-string element)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), researched: [42] }))).toBeNull();
+  });
+
+  it('importSave rejects buildings: [null] (null element)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), buildings: [null] }))).toBeNull();
+  });
+
+  it('importSave rejects buildings: ["x"] (non-object element)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), buildings: ['x'] }))).toBeNull();
+  });
+
+  it('importSave accepts activeItem: undefined (absent optional field)', () => {
+    const civ = { ...newCivState() };
+    delete (civ as Record<string, unknown>)['activeItem'];
+    expect(importSave(JSON.stringify(civ))).not.toBeNull();
+  });
+
+  it('importSave accepts activeItem: "net" (string)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), activeItem: 'net' }))).not.toBeNull();
+  });
+
+  it('importSave rejects activeItem: 42 (non-string, non-undefined)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), activeItem: 42 }))).toBeNull();
+  });
+
+  it('importSave accepts startWeapon: undefined (absent optional field)', () => {
+    const civ = { ...newCivState() };
+    delete (civ as Record<string, unknown>)['startWeapon'];
+    expect(importSave(JSON.stringify(civ))).not.toBeNull();
+  });
+
+  it('importSave accepts startWeapon: "spear" (string)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), startWeapon: 'spear' }))).not.toBeNull();
+  });
+
+  it('importSave rejects startWeapon: 0 (non-string, non-undefined)', () => {
+    expect(importSave(JSON.stringify({ ...newCivState(), startWeapon: 0 }))).toBeNull();
+  });
+
+  it('newCivState() export→import round-trip still passes (no over-tightening)', () => {
+    const civ = newCivState();
+    const reimported = importSave(exportSave(civ));
+    expect(reimported).not.toBeNull();
+    expect(reimported).toEqual(civ);
+  });
+
+  it('round-trip still passes when optional lazy-defaulted fields are absent (kit, activeItem)', () => {
+    const civ = { ...newCivState() } as Record<string, unknown>;
+    delete civ['kit'];
+    delete civ['activeItem'];
+    delete civ['startWeapon'];
+    delete civ['biomeBests'];
+    delete civ['lifetimeResources'];
+    const reimported = importSave(JSON.stringify(civ));
+    expect(reimported).not.toBeNull();
+    expect((reimported as CivState).version).toBe(4);
   });
 });

@@ -1,4 +1,4 @@
-import { CivState } from '../game/types';
+import { CivState, RESOURCES } from '../game/types';
 import { SAVE_KEY, isCurrentVersion } from './saveLoad';
 
 // RC-036 — manual save/load. Three explicit slots layered over the single implicit autosave
@@ -75,8 +75,11 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 
 /**
  * Parse an exported save back into a CivState. Enforces the same version gate as the autosave load
- * plus a minimal structural check (the fields gameplay code dereferences unconditionally). Any
+ * plus structural AND content checks (the fields gameplay code dereferences unconditionally). Any
  * failure → null so a bad paste/file can never crash or corrupt the live game.
+ *
+ * RC-036: tightened to validate field contents, not just field types, so crafted v4 files cannot
+ * NaN-poison the save (e.g. banked: {}, traditions: {x: 'abc'}, kit: 'str', researched: [42]).
  */
 export function importSave(json: string): CivState | null {
   let parsed: unknown;
@@ -87,10 +90,40 @@ export function importSave(json: string): CivState | null {
   }
   if (!isPlainObject(parsed)) return null;
   if (typeof parsed.version !== 'number') return null;
+
+  // banked: must be a plain object containing ALL FOUR resource keys, each a finite number.
   if (!isPlainObject(parsed.banked)) return null;
+  for (const r of RESOURCES) {
+    const v = (parsed.banked as Record<string, unknown>)[r];
+    if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  }
+
+  // researched: array of strings only.
   if (!Array.isArray(parsed.researched)) return null;
+  if (parsed.researched.some((el: unknown) => typeof el !== 'string')) return null;
+
+  // buildings: array of non-null objects only.
   if (!Array.isArray(parsed.buildings)) return null;
+  if (parsed.buildings.some((el: unknown) => !isPlainObject(el))) return null;
+
+  // traditions: plain object, every value a finite number.
   if (!isPlainObject(parsed.traditions)) return null;
+  for (const v of Object.values(parsed.traditions as Record<string, unknown>)) {
+    if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  }
+
+  // kit: absent (undefined/missing) OR an array of strings.
+  if (parsed['kit'] !== undefined) {
+    if (!Array.isArray(parsed['kit'])) return null;
+    if ((parsed['kit'] as unknown[]).some((el: unknown) => typeof el !== 'string')) return null;
+  }
+
+  // activeItem: absent OR a string.
+  if (parsed['activeItem'] !== undefined && typeof parsed['activeItem'] !== 'string') return null;
+
+  // startWeapon: absent OR a string.
+  if (parsed['startWeapon'] !== undefined && typeof parsed['startWeapon'] !== 'string') return null;
+
   const civ = parsed as unknown as CivState;
   if (!isCurrentVersion(civ)) return null;
   return civ;
