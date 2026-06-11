@@ -1,5 +1,5 @@
 # RC-019: Mini-boss arrival events
-**Status**: In Progress  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-09
 
 ## Summary
@@ -21,12 +21,12 @@ Pairs naturally with RC-018 (archetypes could give bosses a special move) but do
 **Sequencing:** after rc-017 merges (spawn timing and escalation live there).
 
 ## Acceptance Criteria
-- [ ] Apex enemy spawns once per run as an announced event, not as a random rare mob
-- [ ] Arrival warning + name banner + boss HP bar implemented
-- [ ] Kill grants a visibly distinct jackpot reward
-- [ ] Surviving without killing it is viable (it persists; no enrage requirement)
-- [ ] Spawn-table data updated so the apex no longer trickles in randomly
-- [ ] Unit tests for event timing logic; Playwright live-verify the full sequence
+- [x] Apex enemy spawns once per run as an announced event, not as a random rare mob
+- [x] Arrival warning + name banner + boss HP bar implemented
+- [x] Kill grants a visibly distinct jackpot reward (gem burst + upgraded bumped-tier gem at 20× value)
+- [x] Surviving without killing it is viable (it persists; `isBoss` spared by the zone-clear ceremony)
+- [x] Spawn-table data effectively updated — boss removed from the random stream (de-trickle, option A)
+- [x] Unit tests for event timing logic (`bossEvent.ts`); Playwright live-verified the full sequence
 
 ## Update — 2026-06-10 (playtest notes folded in, #10)
 Two playtest requirements fold directly into this ticket's HP-bar + jackpot scope:

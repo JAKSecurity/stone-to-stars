@@ -38,6 +38,14 @@ needs measurement before changes:
 - [ ] Change is data-driven (spawn tables / resourceBias / tech costs), no engine changes
 - [ ] Unit tests for any new pure calc; Playwright/data spot-check
 
+## Related finding — thin-biome apex (surfaced during RC-019 verify, 2026-06-10)
+RC-019 makes each biome's highest-HP enemy an announced mini-boss and removes it from the random
+spawn pool. In **thin early biomes this misfires**: `wilds` has only `beast` (32 HP) + `scholar`
+(24 HP), so the "apex" is the basic melee `beast`, and de-trickling it collapses the random pool to
+all-`scholar`. The richer biomes are fine (caverns→iron_golem, colosseum→cyclops). The fix belongs
+with this ticket's adversary-composition rebalance: give early biomes a proper apex and ≥3 enemy
+types so removing the boss still leaves variety. (Not a correctness bug — RC-019 works as designed.)
+
 ## References
 - 2026-06-10 playtest note #12
 - `src/run/enemyData.ts` (drops), `src/run/biomeData.ts` (resourceBias/spawn tables),
