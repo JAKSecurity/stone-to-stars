@@ -40,7 +40,11 @@ function openPoint(rng: Rng, layout: DungeonLayout, margin: number): { x: number
       Math.abs((b.axis === 'v' ? x : y) - b.pos) <= BARRIER_THICKNESS / 2 + margin);
     if (!inBand) return { x, y };
   }
-  return { x: layout.start.x, y: layout.start.y }; // statistically unreachable fallback
+  // Statistically unreachable at 3x3-screen scale (verified over 2000 seeds). If the world shrinks
+  // or barriers widen enough to exhaust the tries, callers accept this point AS-IS — including the
+  // enemy loop, whose safe-radius check would then silently pass a start-adjacent spawn. Re-verify
+  // this headroom before tuning DUNGEON_SCREENS_X/Y, BARRIER_THICKNESS, or the margins down/up.
+  return { x: layout.start.x, y: layout.start.y };
 }
 
 /**
