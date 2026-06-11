@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  addWeapon, swapWeapon, levelWeapon, initialWeapons, weaponShot, MAX_WEAPON_SLOTS,
+  addWeapon, swapWeapon, levelWeapon, initialWeapons, weaponShot, MAX_WEAPON_SLOTS, equipHybrid,
 } from '../src/run/weapons';
 import { WEAPONS } from '../src/run/weaponData';
 
@@ -28,5 +28,12 @@ describe('weapons v2 — slots', () => {
     const s = weaponShot(WEAPONS.bronze_spear, 1, 1);
     expect(s.trajectory).toBe('straight');
     expect(s.onHit.pierce).toBeGreaterThanOrEqual(1);
+  });
+
+  it('equipHybrid replaces both weapons with the hybrid def at level 1', () => {
+    const hybrid = { ...WEAPONS.club, id: 'hybrid:bolt+piercer', name: 'Lancer Bolt', bases: ['bolt', 'piercer'] as any[] } as any;
+    const eq = equipHybrid(hybrid);
+    expect(eq).toHaveLength(1);
+    expect(eq[0]).toEqual({ id: 'hybrid:bolt+piercer', level: 1, hybrid });
   });
 });

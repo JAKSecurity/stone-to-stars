@@ -209,6 +209,27 @@ export interface Perk {
   effect: PerkEffect;
 }
 
+// RC-031 — every passive is a sidegrade: at least one positive and one negative axis.
+export interface PassiveEffect {
+  damageMult?: number;     // additive fraction per level (may be negative)
+  fireRateMult?: number;
+  moveSpeedMult?: number;
+  maxHp?: number;          // flat per level
+  pickupRadius?: number;   // flat px per level
+  regenHps?: number;       // HP/s per level
+  xpMult?: number;         // additive fraction per level
+  activeCharges?: number;  // flat right-click charges per level
+}
+export interface PassiveDef {
+  id: string;
+  name: string;
+  icon: string;            // emoji for HUD slot + draft card
+  maxLevel: number;
+  effectPerLevel: PassiveEffect;
+  desc: string;            // per-level effect line, signs explicit ("+10% damage, −5% fire rate")
+}
+export interface EquippedPassive { id: string; level: number; hybrid?: PassiveDef }
+
 export interface RunStats {
   hp: number;
   maxHp: number;
