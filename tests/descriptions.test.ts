@@ -27,7 +27,7 @@ describe('tech effect descriptions', () => {
   });
 
   it('describes run bonuses and age advances', () => {
-    expect(techEffectText('hunting')).toBe('+10% dmg');
+    expect(techEffectText('hunting')).toBe('+10% dmg · Active: Hunting Net'); // RC-031: tooltip advertises active unlocks
     expect(techEffectText('mysticism')).toBe('+15 HP');
     expect(techEffectText('bronze_working')).toContain('Advances to Bronze Age');
   });

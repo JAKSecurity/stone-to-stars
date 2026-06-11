@@ -506,7 +506,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   /** RC-031 loadout HUD: second line — weapons + levels, passive icons + levels, the active
-   *  icon × charges (guarded on this.activeId until Task 11 wires it), and catalysts. */
+   *  icon × charges (absent when no active is equipped), and catalysts. */
   private loadoutHudLine(): string {
     const loadout = this.equipped.map((w) => `${defOf(w).name} L${w.level}`).join(' | ');
     const passiveStr = this.passives.map((p) => `${passiveDefOf(p).icon}${p.level}`).join('');
