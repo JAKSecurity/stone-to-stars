@@ -11,10 +11,14 @@ import {
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
-import { pickEnemy } from '../run/expedition';
-import { gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
+import { pickEnemy, apexEnemyId } from '../run/expedition';
+import { GemTier, gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { rewardValueForTier } from '../game/economy';
 import { spawnTableAt } from '../run/spawnEscalation';
+import {
+  shouldSpawnBoss, bossFreeTable, bossJackpotGems,
+  BOSS_HP_MULT, BOSS_TELEGRAPH_MS,
+} from '../run/bossEvent';
 import { playSfx } from '../audio';
 import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
@@ -85,6 +89,11 @@ export class RunScene extends Phaser.Scene {
   private ownedPerks: string[] = [];
   private weaponCooldowns: Record<string, number> = {};
   private spawnCooldown = 0;
+  private bossId = '';
+  private bossSpawned = false;
+  private bossEnemy: any = null;
+  private trickleBiome!: BiomeDef;          // biome.spawnTable minus the boss (the random-spawn pool)
+  private bossHp?: { bg: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text };
   private explorationCooldown = 0;
   private relicCooldown = 0;
   private resourceCooldown = 0;
@@ -178,6 +187,13 @@ export class RunScene extends Phaser.Scene {
 
     this.hud = this.add.text(12, 12, '',
       { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10);
+
+    // RC-019: the biome's toughest enemy becomes an announced mini-boss — pull it from the random
+    // spawn pool (the card threat-rating still reads it from the untouched biome.spawnTable).
+    this.bossId = apexEnemyId(this.biome.spawnTable);
+    this.bossSpawned = false;
+    this.bossEnemy = null;
+    this.trickleBiome = { ...this.biome, spawnTable: bossFreeTable(this.biome.spawnTable, this.bossId) };
   }
 
   /** Biome ground + grid + specks from the biome palette (RC-021), falling back to tint/white. */
@@ -517,7 +533,7 @@ export class RunScene extends Phaser.Scene {
 
     // RC-017: spawn mix escalates over the run — toward this age's tough enemies + next-age seeds.
     const progress = this.elapsed / this.runDurationMs;
-    const table = spawnTableAt(this.biome, progress, BIOMES, ENEMIES);
+    const table = spawnTableAt(this.trickleBiome, progress, BIOMES, ENEMIES);
     const def = ENEMIES[pickEnemy(table, () => Math.random())];
     this.spawnEnemyAt(def, x, y);
   }
@@ -799,14 +815,14 @@ export class RunScene extends Phaser.Scene {
     if (this.stats.hp <= 0) this.finish(true);
   }
 
-  private dropGem(x: number, y: number, resource: Resource) {
-    const tier = gemTierForExpeditionTier(this.expedition.tier);
+  private dropGem(x: number, y: number, resource: Resource, opts?: { valueOverride?: number; tierOverride?: GemTier }) {
+    const tier = opts?.tierOverride ?? gemTierForExpeditionTier(this.expedition.tier);
     const gem = this.add.image(x, y, gemSpriteId(resource, tier)) as any;
     gem.setDisplaySize(14 * RUN_SCALE, 14 * RUN_SCALE);
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);
-    gem.setData('value', rewardValueForTier(this.expedition.tier));
+    gem.setData('value', opts?.valueOverride ?? rewardValueForTier(this.expedition.tier));
     // --- Juice: pulsing scale yoyo so gems read as collectible ---
     this.tweens.add({
       targets: gem,
