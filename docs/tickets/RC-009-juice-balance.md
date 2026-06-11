@@ -53,6 +53,20 @@ playtesting.
   2. **Gem ergonomics / Magnet retune** (KNOWN_ISSUES #2).
   3. (Optional) tune the slice-1 juice intensities once Jeff has played them.
 
+## Playtest tuning batch — 2026-06-10 (delivered alongside RC-019)
+Four concrete playtest tweaks folded into this balance ticket and shipped on the RC-019 branch
+(small data/constant changes, each unit-tested where there's logic):
+- **#8 — Bigger damage numbers:** floating damage-number font in `RunScene.applyDamageToEnemy`
+  (`~:734`, currently `13px`) bumped up for readability.
+- **#5 — Powerup −50%:** `sharpen` (+25%→+12.5% damage) and `rapid` (+20%→+10% fire rate) perk
+  magnitudes in `src/run/draft.ts` (PERKS) halved.
+- **#9 — Tradition costs:** traditions made far more expensive — base cost ×10 and a steeper
+  per-rank curve (current `COST_G = 1.6` in `src/civics/traditionData.ts`). Exact curve TBD
+  with Jeff ("scale up 5× exponentially").
+- **#3 — Tech age move:** `writing` and `mining` moved from Stone → Bronze in
+  `src/tech/techData.ts` (verify they don't gate Stone-age progression).
+
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §6
 - KNOWN_ISSUES.md #2, #3, #4. Depends on RC-008 (content present). Decomposed from RC-005.
+- 2026-06-10 playtest notes (#3, #5, #8, #9).

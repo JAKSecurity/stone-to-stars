@@ -18,6 +18,12 @@ draft offering meaningfully different builds. Note `RunBonus` already declares
 `fireRateMult`/`moveSpeedMult`/`pickupRadius` that techs/buildings never use — consider letting
 1–2 new techs/buildings tap them for civ↔run synergy.
 
+**Piercing perk (playtest note #6, 2026-06-10).** Pierce is currently a weapon-only property
+(`WeaponDef.pierce`, resolved in `weaponShot`); make it a draftable perk that grants +1 pierce to the
+held weapon's shots (stackable, optional cap). New mechanic: `RunStats`/perk-applied pierce bonus must
+be added on top of the weapon's base pierce wherever shots are built in `RunScene`. Pairs with RC-031
+(single-weapon run) — pierce becomes a build-defining pick for your one weapon.
+
 **Healing** — a rare food/medkit drop (small % on kill, or from resource deposits), restoring a
 modest flat amount; mini-boss kill could guarantee one once RC-019 lands. Needs distinct sprite
 (art-ratification gate) or reuse of an existing gem shape recolored.
