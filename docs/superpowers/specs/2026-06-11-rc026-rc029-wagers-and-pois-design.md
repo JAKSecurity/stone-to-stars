@@ -45,7 +45,9 @@ or despawns. POIs are always opt-in: the dungeon is winnable while ignoring all 
   (new `flee` movement archetype in `enemyBehavior.ts`, steering away from the player and
   routeAround-aware at barriers) and **despawns ~20s after first aggro**. Killed before despawn →
   large **mixed-gem jackpot**. The courier is EXEMPT from the win condition (its death/despawn is
-  never required to clear) and exempt from Horde multiplication.
+  never required to clear) and exempt from Horde multiplication. Edge case, ruled intentional:
+  the RC-035 contact-kamikaze path means walking into a still-SLEEPING courier kills it on
+  contact and pays the jackpot — a stealth catch before it wakes is a legitimate reward.
 - **Fusion altar** — walk-over: grants **+1 fusion catalyst** (existing catalyst counter + HUD ⚗️
   semantics) and **wakes every sleeping enemy within ~1.5 screen radii**. Consumed on use.
 
