@@ -11,6 +11,7 @@ import { fuseWeapons, fusionName } from '../run/fusion';
 import { resolveShape } from '../run/archetypes';
 import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
 import { PASSIVES } from '../run/passiveData';
+import { ACTIVES } from '../run/activeData';
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
@@ -129,6 +130,9 @@ export class RunScene extends Phaser.Scene {
   private enemyUidCounter = 0;
   private hud!: Phaser.GameObjects.Text;
   private heroSprite = 'hero';
+  // RC-031: chosen right-click active id (wired from this.mods.activeItem in Task 11). Stays
+  // undefined until then; the loadout HUD line guards on it.
+  private activeId?: string;
 
   constructor() { super('run'); }
 
@@ -462,11 +466,22 @@ export class RunScene extends Phaser.Scene {
     this.hud.setText(
       `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
-      `☠ ${this.enemies.countActive(true)} left`,
+      `☠ ${this.enemies.countActive(true)} left\n` +
+      this.loadoutHudLine(),
     );
 
     // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
     if (this.enemies.countActive(true) === 0) this.startCeremony();
+  }
+
+  /** RC-031 loadout HUD: second line — weapons + levels, passive icons + levels, the active
+   *  icon × charges (guarded on this.activeId until Task 11 wires it), and catalysts. */
+  private loadoutHudLine(): string {
+    const loadout = this.equipped.map((w) => `${defOf(w).name} L${w.level}`).join(' | ');
+    const passiveStr = this.passives.map((p) => `${passiveDefOf(p).icon}${p.level}`).join('');
+    const activeStr = this.activeId ? `${ACTIVES[this.activeId].icon}×${this.stats.activeCharges}` : '';
+    const catalystStr = this.catalysts > 0 ? `⚗️×${this.catalysts}` : '';
+    return [loadout, passiveStr, activeStr, catalystStr].filter((s) => s).join('   ');
   }
 
   /**
@@ -1115,16 +1130,27 @@ export class RunScene extends Phaser.Scene {
 
     picks.forEach((opt, i) => {
       const y = height / 2 - 50 + i * 64;
-      const card = this.add.rectangle(width / 2, y, 460, 54, 0x238636)
+      // RC-031: fusion options read as the premium choice — gold card + gold text.
+      const isFusion = opt.kind === 'fuseWeapons' || opt.kind === 'fusePassives';
+      const cardColor = isFusion ? 0x8a6d1a : 0x238636;
+      const labelColor = isFusion ? '#ffd75e' : '#fff';
+      const card = this.add.rectangle(width / 2, y, 460, 54, cardColor)
         .setInteractive({ useHandCursor: true });
       // rc-017's two-line card (title + what-it-does) driving rc-028's centralized advance flow,
       // so the Oratory reroll path stays intact.
       const label = this.add.text(width / 2, y - 9, this.draftLabel(opt),
-        { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
-      const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
-        { fontSize: '12px', color: '#d2f0d8' }).setOrigin(0.5);
+        { fontSize: '15px', color: labelColor, fontStyle: 'bold' }).setOrigin(0.5);
       card.on('pointerdown', () => { playSfx('draft-select'); this.applyDraftOption(opt); closeAndAdvance(); });
-      panel.add(card); panel.add(label); panel.add(sub);
+      panel.add(card); panel.add(label);
+      // RC-031: passive cards show their tradeoff with each comma-segment colored by sign — green
+      // gains, red costs — laid out as a centered row. Everything else keeps the single sub line.
+      if (opt.kind === 'newPassive' || opt.kind === 'levelPassive') {
+        for (const t of this.tradeoffSegments(this.draftDescription(opt), width / 2, y + 11)) panel.add(t);
+      } else {
+        const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
+          { fontSize: '12px', color: isFusion ? '#ffe9a8' : '#d2f0d8' }).setOrigin(0.5);
+        panel.add(sub);
+      }
     });
 
     // Oratory reroll affordance: re-roll the current options without consuming the level-up.
@@ -1180,11 +1206,39 @@ export class RunScene extends Phaser.Scene {
         [...new Set([...resolveShape(defOf(this.equipped[0])).bases, ...resolveShape(defOf(this.equipped[1])).bases])],
       );
       case 'fusePassives': return 'Merge both passives into one — frees a slot';
-      case 'newWeapon': return weaponStatText(WEAPONS[o.weaponId]);
+      case 'newWeapon': if (o.replaceId) {
+        const cur = this.equipped.find((w) => w.id === o.replaceId)!;
+        return `${weaponStatText(defOf(cur))}  →  ${weaponStatText(WEAPONS[o.weaponId])}`;
+      }
+        return weaponStatText(WEAPONS[o.weaponId]);
       case 'levelWeapon': return weaponLevelGainText(defOf(this.equipped.find((w) => w.id === o.weaponId)!));
       case 'newPassive': return PASSIVES[o.passiveId].desc;
       case 'levelPassive': return passiveDefOf(this.passives.find((p) => p.id === o.passiveId)!).desc;
     }
+  }
+
+  /** RC-031: render a passive's tradeoff desc ("+10% damage, −5% fire rate") as a centered row of
+   *  per-segment texts colored by leading sign — green gains, red costs. Comma-separated; a fused
+   *  passive's 3 segments each color independently. Returns the created texts (caller adds them to
+   *  the panel so the scrollFactor(0) stamp applies). A "  ·  " separator sits between segments. */
+  private tradeoffSegments(desc: string, cx: number, cy: number): Phaser.GameObjects.Text[] {
+    const SEP = '  ·  ';
+    const segments = desc.split(', ').map((s) => s.trim());
+    // Build each segment (and the separators) as origin-(0,0) texts, measure total width, then
+    // place them left-to-right starting at the centered left edge.
+    const parts: Phaser.GameObjects.Text[] = [];
+    segments.forEach((seg, idx) => {
+      const negative = seg.startsWith('−') || seg.startsWith('-');
+      const color = negative ? '#ff9f9f' : '#9fe6a0';
+      if (idx > 0) {
+        parts.push(this.add.text(0, cy, SEP, { fontSize: '12px', color: '#88aa99' }).setOrigin(0, 0.5));
+      }
+      parts.push(this.add.text(0, cy, seg, { fontSize: '12px', color }).setOrigin(0, 0.5));
+    });
+    const total = parts.reduce((w, t) => w + t.width, 0);
+    let x = cx - total / 2;
+    for (const t of parts) { t.setX(x); x += t.width; }
+    return parts;
   }
 
   private applyDraftOption(o: DraftOption) {
@@ -1197,6 +1251,7 @@ export class RunScene extends Phaser.Scene {
         if (o.early) this.catalysts = Math.max(0, this.catalysts - 1);
         this.equipped = equipHybrid(hybrid);
         this.weaponCooldowns = {};
+        this.celebrateFusion(hybrid.name);
         break;
       }
       case 'fusePassives':
@@ -1212,6 +1267,20 @@ export class RunScene extends Phaser.Scene {
       case 'newPassive':  this.passives = addPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
       case 'levelPassive': this.passives = levelPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
     }
+  }
+
+  /** RC-031 fusion celebration (spec §5): gold camera flash + shake + reused age-up cue, then a
+   *  screen-fixed name banner that pops in (Back.easeOut) and fades after a beat. The banner MUST
+   *  carry setScrollFactor(0) — the run camera scrolls, so a world-anchored banner would drift. */
+  private celebrateFusion(name: string) {
+    this.cameras.main.flash(420, 255, 215, 90);
+    this.cameras.main.shake(180, 0.008);
+    playSfx('age-up'); // reuse the celebration cue until a bespoke 'fuse' recipe lands
+    const banner = this.add.text(this.scale.width / 2, this.scale.height * 0.3,
+      `⚒️ ${name}`, { fontSize: '40px', color: '#ffd75e', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 },
+    ).setOrigin(0.5).setDepth(60).setScrollFactor(0).setScale(0.3).setAlpha(0);
+    this.tweens.add({ targets: banner, scale: 1, alpha: 1, duration: 320, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: banner, alpha: 0, delay: 1500, duration: 600, onComplete: () => banner.destroy() });
   }
 
   /** Rebuild stats from the run's base whenever passives change (recompute model). */
