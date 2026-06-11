@@ -8,7 +8,7 @@ import { WeaponDef } from '../src/game/types';
 const W = (over: Partial<WeaponDef>): WeaponDef => ({
   id: 'w', name: 'W', tier: 'iron', projectileSprite: 'spr_w',
   cooldownMs: 500, damage: 20, count: 1, spread: 0, speed: 400,
-  behavior: 'straight', archetype: 'bolt', maxLevel: 3,
+  archetype: 'bolt', maxLevel: 3,
   levelScaling: { damage: 5 }, ...over,
 });
 

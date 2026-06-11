@@ -85,7 +85,6 @@ export function fuseWeapons(a: FusionParent, b: FusionParent): WeaponDef {
     speed: Math.max(a.def.speed, b.def.speed),
     maxLevel: Math.max(a.def.maxLevel, b.def.maxLevel) + 1,
     levelScaling: { damage: Math.max(1, Math.round(damage * 0.12)) },
-    behavior: 'straight', // legacy field, ignored by v2 paths; deleted in Task 4
   };
 }
 

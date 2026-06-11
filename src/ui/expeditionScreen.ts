@@ -5,7 +5,7 @@ import { availableExpeditions, apexEnemyId, biomeDanger } from '../run/expeditio
 import { incomeMult } from '../game/economy';
 import { computeRunModifiers } from '../run/modifiers';
 import { WEAPONS } from '../run/weaponData';
-import { weaponStatText, weaponClass } from '../run/weapons';
+import { weaponStatText } from '../run/weapons';
 import { spriteCanvas } from '../art/domSprite';
 
 const ICON: Record<Resource, string> = {
@@ -47,7 +47,7 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
     card.appendChild(spriteCanvas(def.projectileSprite, 22));
     const text = document.createElement('div');
     text.innerHTML =
-      `<div class="wnm">${def.name} <span class="wcls">${weaponClass(id)}</span></div>` +
+      `<div class="wnm">${def.name}</div>` +
       `<div class="wstat">${weaponStatText(def)}</div>`;
     card.appendChild(text);
     card.onclick = () => cb.onSelectWeapon(id);

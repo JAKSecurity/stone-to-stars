@@ -31,20 +31,16 @@ export interface WeaponDef {
   count: number;               // projectiles per volley
   spread: number;              // total fan angle (radians) across the volley when count > 1
   speed: number;               // projectile px/s
-  behavior: 'straight' | 'pierce' | 'orbit' | 'cone' | 'lob';
-  pierce?: number;             // distinct enemies a projectile passes through (behavior 'pierce')
   maxLevel: number;
   levelScaling: {              // per-level deltas applied (level - 1) times
     damage?: number;
     cooldownMs?: number;
     count?: number;
   };
-  evolvesTo?: string;          // weapon id of the evolved form
-  evolveRequiresPerk?: string; // perk id that, owned while this weapon is maxed, enables evolution
-  pierceArmor?: boolean;       // if set, hits ignore enemy armor (e.g. the sniper rifle)
-  // RC-031 transitional — set on every catalog weapon in Task 4, after which `behavior`,
-  // `pierce`, `pierceArmor`, `evolvesTo`, `evolveRequiresPerk` are deleted.
-  archetype?: ArchetypeId;
+  // RC-031 — a weapon's verb. The archetype preset (src/run/archetypes.ts) supplies the
+  // trajectory + default on-hit; `onHit` overrides per-key. Hybrids (fusion.ts) carry explicit
+  // trajectory/onHit/bases because fusion unions their parents' shapes.
+  archetype: ArchetypeId;
   onHit?: OnHit;          // overrides/extends the archetype preset's default on-hit
   trajectory?: Trajectory;// only set explicitly on hybrids (base weapons resolve via preset)
   bases?: ArchetypeId[];  // constituent archetypes — hybrids carry 2-3, base weapons 1 (implied)

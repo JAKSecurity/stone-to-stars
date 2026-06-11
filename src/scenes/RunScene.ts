@@ -3,9 +3,9 @@ import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef } fro
 import { initialRunStats, addXp } from '../run/runStats';
 import { applyPerk } from '../run/draft';
 import {
-  EquippedWeapon, initialWeapons, addWeapon, levelWeapon, applyEvolve,
+  EquippedWeapon, initialWeapons, addWeapon, levelWeapon,
   weaponShot, WeaponShot, rollRunDraft, DraftOption,
-  weaponStatText, weaponLevelGainText, weaponClass,
+  weaponStatText, weaponLevelGainText,
 } from '../run/weapons';
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
@@ -456,9 +456,11 @@ export class RunScene extends Phaser.Scene {
   }
 
   private fireWeapon(shot: WeaponShot, weaponId: string) {
-    if (shot.behavior === 'orbit') { this.summonOrbit(shot, weaponId); return; } // persistent ring — no per-refresh shot sound
-    playSfx('shoot'); // RC-020 (recipe self-throttles); lob + straight/cone fire a projectile
-    if (shot.behavior === 'lob') { this.fireLob(shot); return; }
+    if (shot.trajectory === 'orbit') { this.summonOrbit(shot, weaponId); return; } // persistent ring — no per-refresh shot sound
+    playSfx('shoot'); // RC-020 (recipe self-throttles); lob + straight fire a projectile
+    if (shot.trajectory === 'lob') { this.fireLob(shot); return; }
+    // RC-031 Task 4: trail/boomerang/homing/chain fall through to straight-fire for now —
+    // Task 9 implements their real trajectories. The game still runs; shots just go straight.
     const target = this.nearestEnemy() as any;
     const baseAngle = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
@@ -474,8 +476,8 @@ export class RunScene extends Phaser.Scene {
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
       bullet.setData('damage', shot.damage);
-      bullet.setData('pierce', shot.pierce);
-      bullet.setData('ignoresArmor', shot.ignoresArmor);
+      bullet.setData('pierce', shot.onHit.pierce ?? 0);
+      bullet.setData('ignoresArmor', shot.onHit.ignoreArmor ?? false);
       bullet.body.setVelocity(Math.cos(angle) * shot.speed * RUN_SCALE, Math.sin(angle) * shot.speed * RUN_SCALE);
       // Range = speed × life; earlier weapons get a shorter life so their shots don't cross the field.
       this.time.delayedCall(shot.lifeMs, () => bullet.destroy());
@@ -1005,18 +1007,13 @@ export class RunScene extends Phaser.Scene {
   private draftLabel(o: DraftOption): string {
     switch (o.kind) {
       case 'perk': return o.perk.name;
-      case 'newWeapon': {
-        const cls = weaponClass(o.weaponId);
-        const cur = this.equipped.find((w) => weaponClass(w.id) === cls);
-        const verb = cur ? `Swap ${cls}` : `New ${cls}`;
-        return `${verb}: ${WEAPONS[o.weaponId].name}`;
-      }
+      case 'newWeapon':
+        return `New weapon: ${WEAPONS[o.weaponId].name}`;
       case 'levelWeapon': {
         const cur = this.equipped.find((w) => w.id === o.weaponId)?.level ?? 1;
         const next = Math.min(cur + 1, WEAPONS[o.weaponId].maxLevel);
         return `Upgrade: ${WEAPONS[o.weaponId].name} (Lv ${cur}→${next})`;
       }
-      case 'evolve': return `Evolve: ${WEAPONS[o.fromId].name} → ${WEAPONS[o.toId].name}`;
     }
   }
 
@@ -1026,7 +1023,6 @@ export class RunScene extends Phaser.Scene {
       case 'perk': return o.perk.desc;
       case 'newWeapon': return weaponStatText(WEAPONS[o.weaponId]);
       case 'levelWeapon': return weaponLevelGainText(WEAPONS[o.weaponId]);
-      case 'evolve': return weaponStatText(WEAPONS[o.toId]);
     }
   }
 
@@ -1041,9 +1037,6 @@ export class RunScene extends Phaser.Scene {
         break;
       case 'levelWeapon':
         this.equipped = levelWeapon(this.equipped, o.weaponId);
-        break;
-      case 'evolve':
-        this.equipped = applyEvolve(this.equipped, o.fromId, o.toId);
         break;
     }
   }

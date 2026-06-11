@@ -105,7 +105,6 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .wcard.sel { border-color: #3fb950; background: #11201a; }
 .wcard canvas { flex: none; }
 .wcard .wnm { font-weight: 600; font-size: 0.8rem; }
-.wcard .wcls { font-weight: 400; font-size: 0.62rem; opacity: 0.5; text-transform: uppercase; }
 .wcard .wstat { font-size: 0.7rem; opacity: 0.75; margin-top: 1px; }
 
 /* RC-027 richer expedition cards */

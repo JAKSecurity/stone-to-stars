@@ -7,7 +7,7 @@ import { WeaponDef } from '../src/game/types';
 const base = (over: Partial<WeaponDef>): WeaponDef => ({
   id: 'x', name: 'X', tier: 'iron', projectileSprite: 's',
   cooldownMs: 500, damage: 10, count: 1, spread: 0, speed: 400,
-  behavior: 'straight', maxLevel: 3, levelScaling: {}, ...over,
+  archetype: 'bolt', maxLevel: 3, levelScaling: {}, ...over,
 });
 
 describe('archetypes', () => {
