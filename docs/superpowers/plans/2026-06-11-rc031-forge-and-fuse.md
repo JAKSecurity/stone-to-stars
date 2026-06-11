@@ -2013,6 +2013,8 @@ if (dropsCatalyst(() => Math.random())) {
 
 (`this.catalysts` already exists from Task 6 and already feeds `rollDraft`'s ctx and the HUD.)
 
+Note (review finding): tokens auto-collect at ceremony start — the boss usually dies last and the frozen player could never reach a walk-over token.
+
 - [ ] **Step 3: Verify + commit**
 
 `npm test && npm run build` → PASS.

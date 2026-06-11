@@ -100,6 +100,7 @@ export class RunScene extends Phaser.Scene {
   private equipped: EquippedWeapon[] = initialWeapons();
   private passives: EquippedPassive[] = [];
   private catalysts = 0;
+  private catalystTokens: any[] = [];
   private baseStats!: RunStats; // snapshot of the run's base stats (civ mods), set in create()
   private weaponCooldowns: Record<string, number> = {};
   private bossId = '';
@@ -164,6 +165,7 @@ export class RunScene extends Phaser.Scene {
     this.rerollsLeft = this.mods.draftRerolls;
     this.passives = [];
     this.catalysts = 0;
+    this.catalystTokens = [];
     this.chargesSpent = 0;
     this.weaponCooldowns = {};
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
@@ -541,6 +543,14 @@ export class RunScene extends Phaser.Scene {
       this.stopChargerTell(e);
       e.destroy();
     });
+    // Catalysts on the floor auto-collect at the ceremony — the boss usually dies last and the
+    // player is frozen here, so a walk-over token would otherwise be unreachable (RC-031 review).
+    let autocollected = 0;
+    for (const tok of this.catalystTokens) {
+      if (tok.active) { tok.destroy(); this.catalysts += 1; autocollected += 1; }
+    }
+    if (autocollected > 0) playSfx('gem-pickup', { semitones: 12 });
+    this.catalystTokens = [];
     // Freeze the hero and magnet radius out past the screen so every gem flies in.
     this.player.body.setVelocity(0, 0);
     this.stats.pickupRadius = this.layout.width + this.layout.height;
@@ -1073,10 +1083,14 @@ export class RunScene extends Phaser.Scene {
           let picked = false;
           const tok = this.add.text(ex, ey, '⚗️', { fontSize: '28px' }).setOrigin(0.5).setDepth(30) as any;
           this.physics.add.existing(tok);
+          // Stable hitbox — not font-metric-dependent (RC-031 review).
+          (tok.body as Phaser.Physics.Arcade.Body).setCircle(20, -20, -20);
+          this.catalystTokens.push(tok);
           this.physics.add.overlap(this.player, tok, () => {
             if (picked) return;
             picked = true;
             tok.destroy();
+            this.catalystTokens = this.catalystTokens.filter((t) => t !== tok);
             this.catalysts += 1;
             playSfx('gem-pickup', { semitones: 12 });
           });
