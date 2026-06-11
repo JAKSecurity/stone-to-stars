@@ -1,5 +1,5 @@
 # RC-034: Procedural dungeon expeditions — explore & clear (Diablo-scale)
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-11
 
 ## Summary
@@ -62,14 +62,33 @@ mini-boss arenas (bridge guardian) for the RC-019 system.
    war, gate-opening interaction, per-biome chokepoint flavor.
 
 ## Acceptance Criteria
-- [ ] Run map is meaningfully larger than one screen (several screens each axis) with camera following the hero
-- [ ] Hard perimeter walls — player can see and feel the dungeon edge
-- [ ] Enemies placed at generation time (biome spawn tables), idle until aggro'd; no edge trickle-spawning
-- [ ] Win condition is clearing the dungeon (timer removed or demoted to a stat); existing ceremony + reward flow preserved
-- [ ] At least two chokepoint feature types generate (e.g., river+bridge, gate), seeded and reproducible
-- [ ] Enemies do not visibly pile up against barriers (aggro gating and/or chokepoint steering)
-- [ ] HUD/draft/boss UI all render correctly under the scrolling camera
-- [ ] Existing vitest suite green; new generator logic unit-tested (seeded determinism, connectivity: every region reachable)
+- [x] Run map is meaningfully larger than one screen (several screens each axis) with camera following the hero
+- [x] Hard perimeter walls — player can see and feel the dungeon edge
+- [x] Enemies placed at generation time (biome spawn tables), idle until aggro'd; no edge trickle-spawning
+- [x] Win condition is clearing the dungeon (timer removed or demoted to a stat); existing ceremony + reward flow preserved
+- [x] At least two chokepoint feature types generate (e.g., river+bridge, gate), seeded and reproducible
+- [x] Enemies do not visibly pile up against barriers (aggro gating and/or chokepoint steering)
+- [x] HUD/draft/boss UI all render correctly under the scrolling camera
+- [x] Existing vitest suite green; new generator logic unit-tested (seeded determinism, connectivity: every region reachable)
+
+## Resolution (2026-06-11)
+Slices 1+2 delivered (core world/camera/clear-condition + generator with
+chokepoints + steering); slice 3 (minimap, fog of war, gate-opening
+interaction) remains covered by Proposed Slices above for a future pass.
+
+Implemented via plan `docs/superpowers/plans/2026-06-11-rc-034-dungeon-expeditions.md`
+(subagent-driven, two-stage review per task). New pure modules: `src/run/rng.ts`
+(seeded mulberry32), `src/run/dungeonGen.ts` (layout + routeAround steering),
+`src/run/dungeonPopulate.ts` (depth-escalated enemy roster + faucet-parity gem
+deposits). 272 vitest green (26 new tests incl. flood-fill connectivity over
+10 seeds). Live Playwright walkthrough verified camera/walls/aggro/chokepoint
+routing/draft clicks under scrolled camera/boss aggro/full-clear ceremony/
+banking and death path, and caught two real bugs fixed in `320e78b`:
+ENEMY_SAFE_RADIUS had to exceed AGGRO_RADIUS (idle player died at spawn), and
+Phaser 3.90's Container.setScrollFactor does not stamp children for input
+hit-testing (draft cards were unclickable under a scrolled camera).
+
+Follow-up spun off: RC-035 (boss contact-kill skips the jackpot).
 
 ## References
 - Architecture sweep: this ticket's Context section (RunScene.ts, spawnEscalation.ts, enemyBehavior.ts, biomeData.ts)
