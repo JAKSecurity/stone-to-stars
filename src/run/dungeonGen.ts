@@ -67,6 +67,29 @@ export function generateLayout(rng: Rng, viewW: number, viewH: number): DungeonL
   return { width, height, start, barriers, obstacles };
 }
 
+/**
+ * Where a chasing enemy should head: the player directly, or — when one or more barrier bands
+ * separate them — the opening of the band nearest the enemy (cross chokepoints in order). The
+ * returned point IS the player position when nothing blocks; callers can compare to detect routing.
+ * Pure; RunScene applies the velocity.
+ */
+export function routeAround(
+  ex: number, ey: number, px: number, py: number, barriers: Barrier[],
+): { x: number; y: number } {
+  let best: Barrier | null = null;
+  let bestDist = Infinity;
+  for (const b of barriers) {
+    const e = b.axis === 'v' ? ex : ey;
+    const p = b.axis === 'v' ? px : py;
+    if ((e < b.pos) === (p < b.pos)) continue; // same side of this band
+    const d = Math.abs(e - b.pos);
+    if (d < bestDist) { bestDist = d; best = b; }
+  }
+  if (!best) return { x: px, y: py };
+  const gapMid = (best.gap.start + best.gap.end) / 2;
+  return best.axis === 'v' ? { x: best.pos, y: gapMid } : { x: gapMid, y: best.pos };
+}
+
 /** True when an obstacle at (x,y,r) would clip into a barrier band or crowd its opening. */
 function nearBarrier(b: Barrier, x: number, y: number, r: number): boolean {
   const across = b.axis === 'v' ? x : y;

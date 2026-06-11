@@ -4,6 +4,7 @@ import {
   generateLayout, DungeonLayout,
   DUNGEON_SCREENS_X, DUNGEON_SCREENS_Y,
   WALL_THICKNESS, BARRIER_THICKNESS, GAP_WIDTH, START_CLEAR_RADIUS, GAP_CLEAR_RADIUS,
+  routeAround, Barrier,
 } from '../src/run/dungeonGen';
 
 const VIEW_W = 1280, VIEW_H = 720;
@@ -118,5 +119,31 @@ describe('dungeonGen — connectivity', () => {
       expect(stats.farReached).toBeGreaterThan(0);
       expect(stats.frac).toBeGreaterThan(0.95);
     }
+  });
+});
+
+describe('dungeonGen — routeAround', () => {
+  const v = (pos: number, gapStart: number): Barrier =>
+    ({ axis: 'v', pos, gap: { start: gapStart, end: gapStart + GAP_WIDTH }, kind: 'river' });
+
+  it('returns the player position when no barrier separates them', () => {
+    expect(routeAround(100, 100, 300, 300, [])).toEqual({ x: 300, y: 300 });
+    expect(routeAround(100, 100, 300, 300, [v(900, 400)])).toEqual({ x: 300, y: 300 }); // same side
+  });
+
+  it('targets the gap centre when a vertical barrier separates enemy and player', () => {
+    const b = v(900, 400); // gap spans y 400..660, centre 530
+    expect(routeAround(1200, 100, 300, 300, [b])).toEqual({ x: 900, y: 530 });
+  });
+
+  it('targets the barrier nearest the enemy when two bands separate them', () => {
+    const near = v(900, 400);  // enemy at x=2000 must cross x=1500 first
+    const far = v(1500, 100);  // gap centre y = 230
+    expect(routeAround(2000, 500, 300, 500, [near, far])).toEqual({ x: 1500, y: 230 });
+  });
+
+  it('handles horizontal barriers symmetrically', () => {
+    const h: Barrier = { axis: 'h', pos: 800, gap: { start: 1000, end: 1000 + GAP_WIDTH }, kind: 'wall' };
+    expect(routeAround(500, 1200, 500, 300, [h])).toEqual({ x: 1130, y: 800 });
   });
 });
