@@ -1,5 +1,5 @@
 # RC-037: Ranged mobs snipe from off-screen (unlimited fire range post-RC-034)
-**Status**: Open  **Priority**: P2  **Type**: Bug
+**Status**: Delivered  **Priority**: P2  **Type**: Bug
 **Created**: 2026-06-11
 
 ## Summary

@@ -1,5 +1,5 @@
 # RC-038: Entities escape the playable field — out-of-bounds mob soft-locks the clear
-**Status**: Open  **Priority**: P1  **Type**: Bug
+**Status**: Delivered  **Priority**: P1  **Type**: Bug
 **Created**: 2026-06-11
 
 ## Summary
