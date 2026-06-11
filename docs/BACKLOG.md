@@ -50,4 +50,4 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-030 | Polish defects: fresh-save palette message + favicon | Delivered | P3 | C3 | docs/tickets/RC-030-polish-defects.md |
 | RC-031 | In-run weapon & draft rework (single weapon, no weaker offers) | Open | P2 | C3 | docs/tickets/RC-031-weapon-draft-rework.md |
 | RC-032 | Camp scale & city growth-by-age | Open | P2 | C3 | docs/tickets/RC-032-camp-scale-city-growth.md |
-| RC-033 | Resource economy rebalance — science starvation | Open | P2 | C3 | docs/tickets/RC-033-resource-economy-rebalance.md |
+| RC-033 | Resource economy rebalance — science starvation | Delivered | P2 | C3 | docs/tickets/RC-033-resource-economy-rebalance.md |

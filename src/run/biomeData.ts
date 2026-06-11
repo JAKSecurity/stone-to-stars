@@ -38,8 +38,10 @@ export const BIOMES: Record<string, BiomeDef> = {
   // Proper mini-boss wave timing (announce, scaling, boss-room logic) is deferred to a later ticket.
   colosseum: {
     id: 'colosseum', name: 'Sunken Colosseum', minAge: 'classical',
-    resourceBias: { industry: 1, culture: 1 },
-    spawnTable: { harpy: 6, hoplite: 3, centaur: 3, cyclops: 1 },
+    // RC-033: classical had no science faucet (cyclops is now a de-trickled mini-boss). A bronze
+    // automaton (Talos-style construct) drops science, and the science bias tops up the deposit faucet.
+    resourceBias: { industry: 1, culture: 1, science: 1 },
+    spawnTable: { harpy: 6, hoplite: 3, centaur: 3, automaton: 6, cyclops: 1 },
     tint: '#171019',
     visual: { ground: '#241c28', grid: '#4c4054', speck: '#62526c', obstacles: ['obs_broken_pillar', 'obs_statue_rubble'] },
   },
@@ -47,8 +49,10 @@ export const BIOMES: Record<string, BiomeDef> = {
   // Proper mini-boss wave timing (boss room, announce, scaling) is deferred to a later ticket.
   cursed_keep: {
     id: 'cursed_keep', name: 'The Cursed Keep', minAge: 'medieval', requiresTech: 'masonry',
-    resourceBias: { industry: 1, culture: 1 },
-    spawnTable: { skeleton: 6, knight: 3, gargoyle: 3, dragon: 1 },
+    // RC-033: medieval had no science faucet (dragon is now a de-trickled mini-boss). A dark scholar
+    // (alchemist/cultist) drops science, and the science bias tops up the deposit faucet.
+    resourceBias: { industry: 1, culture: 1, science: 1 },
+    spawnTable: { skeleton: 6, knight: 3, gargoyle: 3, scholar: 3, dragon: 1 },
     tint: '#0a0c10',
     visual: { ground: '#141a20', grid: '#2e3c48', speck: '#3c4c5a', obstacles: ['obs_gravestone', 'obs_wall_rubble'] },
   },
