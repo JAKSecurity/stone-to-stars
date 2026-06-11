@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef, EquippedPassive, RunStats } from '../game/types';
+import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef, EquippedPassive, RunStats, OnHit } from '../game/types';
 import { initialRunStats, addXp } from '../run/runStats';
 import { rollDraft, DraftOption } from '../run/draft';
 import {
@@ -24,6 +24,9 @@ import { playSfx } from '../audio';
 import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
   ORBIT_RADIUS, ORBIT_HIT_INTERVAL_MS, LOB_BLAST_RADIUS, LOB_PEAK_HEIGHT,
+  boomerangVelocity, homingVelocity, chainNextTarget,
+  BOOMERANG_OUT_MS, CHAIN_RANGE, CHAIN_FALLOFF, ZONE_TICK_MS,
+  TRAIL_RADIUS, TRAIL_LINGER_MS, ZONE_RADIUS, SLOW_MS,
 } from '../run/projectileMotion';
 import {
   ChargerState, ChargerPhase, initChargerState, chargerStep, CHARGER_CONFIG,
@@ -115,7 +118,15 @@ export class RunScene extends Phaser.Scene {
     elapsed: number;
     flightMs: number;
     damage: number;
+    onHit: OnHit;
   }> = [];
+  // RC-031: lingering damage fields shared by trail (burning ground behind you) and zone (mine
+  // field at a lob landing). World-anchored visuals — no scrollFactor(0), they live in the world.
+  private patches: Array<{
+    x: number; y: number; bornMs: number; lingerMs: number; radius: number;
+    tickDamage: number; lastTick: Map<any, number>; gfx: Phaser.GameObjects.Arc; tint: number;
+  }> = [];
+  private enemyUidCounter = 0;
   private hud!: Phaser.GameObjects.Text;
   private heroSprite = 'hero';
 
@@ -148,6 +159,8 @@ export class RunScene extends Phaser.Scene {
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
     this.lobs = [];
+    this.patches = [];
+    this.enemyUidCounter = 0;
   }
 
   create() {
@@ -384,10 +397,66 @@ export class RunScene extends Phaser.Scene {
       const apex = 1 + 0.5 * (lobArcHeight(t) / LOB_PEAK_HEIGHT);
       lob.img.setDisplaySize(PROJ_SIZE * apex, PROJ_SIZE * apex);
       if (t >= 1) {
-        this.detonate(lob.target.x, lob.target.y, lob.damage);
+        const onHit = lob.onHit;
+        this.detonate(lob.target.x, lob.target.y, lob.damage, (onHit.explode ?? LOB_BLAST_RADIUS) * RUN_SCALE);
+        // RC-031 zone (dynamite): the blast also leaves a lingering ticking field.
+        if (onHit.zoneMs) {
+          this.spawnPatch(lob.target.x, lob.target.y, ZONE_RADIUS * RUN_SCALE,
+            onHit.zoneMs, lob.damage * 0.4, 0x99cc33);
+        }
         lob.img.destroy();
         this.lobs.splice(i, 1);
       }
+    }
+
+    // --- RC-031 boomerang/homing steering: bullets carry their own trajectory each frame. ---
+    (this.bullets.getChildren() as any[]).forEach((b) => {
+      const traj = b.getData('trajectory');
+      if (traj === 'boomerang') {
+        let phase = b.getData('phase');
+        if (phase === 'out' && this.elapsed - b.getData('bornMs') >= BOOMERANG_OUT_MS) {
+          phase = 'return'; b.setData('phase', phase);
+        }
+        const aim = b.getData('aim');
+        const v = boomerangVelocity(
+          phase, aim.x, aim.y, this.player.x, this.player.y, b.x, b.y,
+          b.getData('speed') ?? 300 * RUN_SCALE,
+        );
+        b.body.setVelocity(v.vx, v.vy);
+        if (phase === 'return' && Phaser.Math.Distance.Between(b.x, b.y, this.player.x, this.player.y) < 24 * RUN_SCALE) {
+          b.destroy();
+        }
+      } else if (traj === 'homing') {
+        const t = this.nearestEnemy() as any;
+        if (t) {
+          const v = homingVelocity(
+            b.body.velocity.x, b.body.velocity.y, b.x, b.y, t.x, t.y,
+            b.getData('speed') ?? 360 * RUN_SCALE, dt,
+          );
+          b.body.setVelocity(v.vx, v.vy);
+        }
+      }
+    });
+
+    // --- RC-031 lingering damage fields (trail patches + zones) tick on enemies in range. ---
+    for (let i = this.patches.length - 1; i >= 0; i--) {
+      const p = this.patches[i];
+      const age = this.elapsed - p.bornMs;
+      if (age >= p.lingerMs) { p.gfx.destroy(); this.patches.splice(i, 1); continue; }
+      p.gfx.setAlpha(0.28 * (1 - age / p.lingerMs) + 0.08);
+      (this.enemies.getChildren() as any[]).forEach((e) => {
+        if (!e.active || !withinRadius(p.x, p.y, e.x, e.y, p.radius)) return;
+        const last = p.lastTick.get(e) ?? -Infinity;
+        if (this.elapsed - last >= ZONE_TICK_MS) {
+          p.lastTick.set(e, this.elapsed);
+          this.applyDamageToEnemy(e, p.tickDamage);
+        }
+      });
+    }
+
+    // RC-031 passives: regen HP over time (capped at maxHp).
+    if (this.stats.regenHps > 0 && this.stats.hp < this.stats.maxHp) {
+      this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + this.stats.regenHps * (dt / 1000));
     }
 
     this.hud.setText(
@@ -466,11 +535,13 @@ export class RunScene extends Phaser.Scene {
   }
 
   private fireWeapon(shot: WeaponShot, weaponId: string) {
-    if (shot.trajectory === 'orbit') { this.summonOrbit(shot, weaponId); return; } // persistent ring — no per-refresh shot sound
-    playSfx('shoot'); // RC-020 (recipe self-throttles); lob + straight fire a projectile
-    if (shot.trajectory === 'lob') { this.fireLob(shot); return; }
-    // RC-031 Task 4: trail/boomerang/homing/chain fall through to straight-fire for now —
-    // Task 9 implements their real trajectories. The game still runs; shots just go straight.
+    switch (shot.trajectory) {
+      case 'orbit': this.summonOrbit(shot, weaponId); return;           // persistent ring — no per-refresh shot sound
+      case 'lob':   playSfx('shoot'); this.fireLob(shot); return;       // zone lands → spawnPatch via lob landing
+      case 'trail': this.dropTrailPatch(shot); return;                  // no projectile at all — burns the ground
+      default: break; // straight / boomerang / homing / chain fire projectiles below
+    }
+    playSfx('shoot'); // RC-020 (recipe self-throttles)
     const target = this.nearestEnemy() as any;
     const baseAngle = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
@@ -486,12 +557,36 @@ export class RunScene extends Phaser.Scene {
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
       bullet.setData('damage', shot.damage);
+      bullet.setData('onHit', shot.onHit);
       bullet.setData('pierce', shot.onHit.pierce ?? 0);
       bullet.setData('ignoresArmor', shot.onHit.ignoreArmor ?? false);
+      bullet.setData('hitIds', new Set<string>());
+      bullet.setData('trajectory', shot.trajectory);
+      bullet.setData('speed', shot.speed * RUN_SCALE); // boomerang/homing steering read this
+      if (shot.trajectory === 'boomerang') {
+        bullet.setData('phase', 'out');
+        bullet.setData('aim', { x: Math.cos(angle), y: Math.sin(angle) });
+        bullet.setData('bornMs', this.elapsed);
+      }
       bullet.body.setVelocity(Math.cos(angle) * shot.speed * RUN_SCALE, Math.sin(angle) * shot.speed * RUN_SCALE);
       // Range = speed × life; earlier weapons get a shorter life so their shots don't cross the field.
-      this.time.delayedCall(shot.lifeMs, () => bullet.destroy());
+      // Boomerangs despawn by returning to the player (in update), so they skip the lifeMs timer.
+      if (shot.trajectory !== 'boomerang') this.time.delayedCall(shot.lifeMs, () => bullet.destroy());
     }
+  }
+
+  /** Trail weapons (flame_jet/flamethrower, speed 0) burn the ground behind you — a patch at your
+   *  feet each cooldown. The weapon's cooldownMs IS the drop cadence; no extra timer needed. */
+  private dropTrailPatch(shot: WeaponShot) {
+    this.spawnPatch(this.player.x, this.player.y, TRAIL_RADIUS * RUN_SCALE,
+      TRAIL_LINGER_MS, shot.damage, 0xff7733);
+  }
+
+  /** Spawn a lingering damage field (trail patch / zone). tickDamage applies per ZONE_TICK_MS per
+   *  enemy. World-anchored — no scrollFactor(0). */
+  private spawnPatch(x: number, y: number, radius: number, lingerMs: number, tickDamage: number, tint: number) {
+    const gfx = this.add.circle(x, y, radius, tint, 0.28).setDepth(6);
+    this.patches.push({ x, y, bornMs: this.elapsed, lingerMs, radius, tickDamage, lastTick: new Map(), gfx, tint });
   }
 
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
@@ -543,20 +638,23 @@ export class RunScene extends Phaser.Scene {
         elapsed: 0,
         flightMs: lobFlightMs(dist, shot.speed * RUN_SCALE),
         damage: shot.damage,
+        onHit: shot.onHit,
       });
     }
   }
 
-  /** Resolve a lob at its landing point: shock-ring + shake, then AoE damage to enemies in range. */
-  private detonate(x: number, y: number, damage: number) {
-    const ring = this.add.circle(x, y, LOB_BLAST, 0xffaa33, 0.4).setDepth(24).setScale(0.15);
+  /** Resolve an explosion at (x,y): shock-ring + shake, then AoE damage to enemies within `radius`.
+   *  Default radius keeps plain lobbers (grenade/mortar) backward compatible; RC-031 callers pass an
+   *  onHit.explode-derived radius. */
+  private detonate(x: number, y: number, damage: number, radius = LOB_BLAST) {
+    const ring = this.add.circle(x, y, radius, 0xffaa33, 0.4).setDepth(24).setScale(0.15);
     this.tweens.add({
       targets: ring, scale: 1, alpha: 0,
       duration: 260, ease: 'Power2', onComplete: () => ring.destroy(),
     });
     this.cameras.main.shake(120, 0.006);
     (this.enemies.getChildren() as any[]).forEach((e) => {
-      if (e.active && withinRadius(x, y, e.x, e.y, LOB_BLAST)) {
+      if (e.active && withinRadius(x, y, e.x, e.y, radius)) {
         this.applyDamageToEnemy(e, damage);
       }
     });
@@ -578,6 +676,7 @@ export class RunScene extends Phaser.Scene {
     enemy.setDisplaySize(def.displaySize.w * RUN_SCALE, def.displaySize.h * RUN_SCALE);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
+    enemy.setData('uid', `e${++this.enemyUidCounter}`); // RC-031: stable id for chain hit-memory
     enemy.setData('hp', def.baseHp);
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
@@ -650,13 +749,16 @@ export class RunScene extends Phaser.Scene {
   /** RC-018: per-frame movement by archetype. `chase`/default keeps the simple beeline; the
    *  others call the pure enemyBehavior functions and apply the returned velocity. */
   private updateEnemyMovement(e: any, dt: number) {
+    // RC-031: an onHit.slowPct hit cuts move speed until slowUntil. Scale the final speed every
+    // movement branch uses by `slowed` (1 = unaffected).
+    const slowed = (e.getData('slowUntil') ?? 0) > this.elapsed ? 1 - (e.getData('slowPct') ?? 0) : 1;
+    const speed = (e.getData('speed') as number) * slowed;
     const waypoint = routeAround(e.x, e.y, this.player.x, this.player.y, this.layout.barriers);
     if (waypoint.x !== this.player.x || waypoint.y !== this.player.y) {
-      this.physics.moveTo(e, waypoint.x, waypoint.y, e.getData('speed') as number);
+      this.physics.moveTo(e, waypoint.x, waypoint.y, speed);
       return;
     }
     const behavior = (e.getData('behavior') ?? 'chase') as string;
-    const speed = e.getData('speed') as number;
     if (behavior === 'chase') { this.physics.moveToObject(e, this.player, speed); return; }
 
     const dx = this.player.x - e.x, dy = this.player.y - e.y;
@@ -782,14 +884,48 @@ export class RunScene extends Phaser.Scene {
     hitSet.add(enemy);
 
     const damage = bullet.getData('damage');
+
+    // Damage lands first (existing flow) ...
+    this.applyDamageToEnemy(enemy, damage, bullet.getData('ignoresArmor'));
+
+    // ... then the RC-031 on-hit extension (explode / slow / chain) ...
+    const onHit = (bullet.getData('onHit') ?? {}) as OnHit;
+    const hitIds = bullet.getData('hitIds') as Set<string> | undefined;
+    const enemyUid = enemy.getData('uid') ?? String(enemy.name || enemy.x + ',' + enemy.y);
+    hitIds?.add(enemyUid);
+
+    if (onHit.explode) {
+      this.detonate(enemy.x, enemy.y, bullet.getData('damage') * 0.6, onHit.explode * RUN_SCALE);
+    }
+    if (onHit.slowPct) {
+      enemy.setData('slowPct', onHit.slowPct);
+      enemy.setData('slowUntil', this.elapsed + SLOW_MS);
+    }
+    if (onHit.chain) {
+      const hops = bullet.getData('hopsLeft') ?? onHit.chain;
+      if (hops > 0) {
+        const candidates = (this.enemies.getChildren() as any[])
+          .filter((e) => e.active)
+          .map((e) => ({ id: e.getData('uid') as string, x: e.x, y: e.y }));
+        const next = chainNextTarget(candidates, enemy.x, enemy.y, hitIds ?? new Set(), CHAIN_RANGE * RUN_SCALE);
+        if (next) {
+          bullet.setData('hopsLeft', hops - 1);
+          bullet.setData('damage', bullet.getData('damage') * CHAIN_FALLOFF);
+          const ang = Phaser.Math.Angle.Between(enemy.x, enemy.y, next.x, next.y);
+          const spd = bullet.getData('speed');
+          bullet.body.setVelocity(Math.cos(ang) * spd, Math.sin(ang) * spd);
+          return; // chain hop keeps the bullet alive regardless of pierce
+        }
+      }
+    }
+
+    // ... then the existing pierce-decrement / destroy.
     const pierce = bullet.getData('pierce') ?? 0;
     if (pierce > 0) {
       bullet.setData('pierce', pierce - 1);
     } else {
       bullet.destroy();
     }
-
-    this.applyDamageToEnemy(enemy, damage, bullet.getData('ignoresArmor'));
   }
 
   /**
@@ -929,7 +1065,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   private gainXp(amount: number) {
-    const r = addXp(this.stats, amount);
+    const r = addXp(this.stats, Math.round(amount * this.stats.xpMult)); // RC-031 passives: xpMult
     this.stats = r.stats;
     if (r.levelsGained > 0) {
       playSfx('level-up'); // RC-020

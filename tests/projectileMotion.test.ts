@@ -6,7 +6,7 @@ import {
 import {
   boomerangVelocity, BOOMERANG_OUT_MS, homingVelocity, HOMING_TURN_RAD_S,
   chainNextTarget, CHAIN_RANGE, CHAIN_FALLOFF,
-  TRAIL_DROP_MS, TRAIL_LINGER_MS, TRAIL_RADIUS, ZONE_TICK_MS, SLOW_MS,
+  TRAIL_DROP_MS, TRAIL_LINGER_MS, TRAIL_RADIUS, ZONE_TICK_MS, ZONE_RADIUS, SLOW_MS,
 } from '../src/run/projectileMotion';
 
 describe('projectileMotion — orbit', () => {
@@ -90,7 +90,7 @@ describe('RC-031 trajectories', () => {
   });
 
   it('feel constants exist and are sane', () => {
-    for (const c of [BOOMERANG_OUT_MS, TRAIL_DROP_MS, TRAIL_LINGER_MS, TRAIL_RADIUS, ZONE_TICK_MS, SLOW_MS]) {
+    for (const c of [BOOMERANG_OUT_MS, TRAIL_DROP_MS, TRAIL_LINGER_MS, TRAIL_RADIUS, ZONE_TICK_MS, ZONE_RADIUS, SLOW_MS]) {
       expect(c).toBeGreaterThan(0);
     }
   });

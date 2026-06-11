@@ -66,6 +66,7 @@ export const TRAIL_RADIUS = 26;          // patch hit radius
 export const ZONE_TICK_MS = 400;         // lingering fields re-hit cadence (trail + zone)
 export const ZONE_RADIUS = 70;           // zone (mine field) radius
 export const SLOW_MS = 2000;             // onHit.slowPct duration
+export const BOOMERANG_RETURN_MULT = 1.15; // return leg flies this much faster than the outbound
 
 export type BoomerangPhase = 'out' | 'return';
 
@@ -79,7 +80,7 @@ export function boomerangVelocity(
   if (phase === 'out') return { vx: aimX * speed, vy: aimY * speed };
   const dx = px - bx, dy = py - by;
   const d = Math.hypot(dx, dy) || 1;
-  return { vx: (dx / d) * speed * 1.15, vy: (dy / d) * speed * 1.15 }; // returns slightly faster
+  return { vx: (dx / d) * speed * BOOMERANG_RETURN_MULT, vy: (dy / d) * speed * BOOMERANG_RETURN_MULT }; // returns slightly faster
 }
 
 /** Steer (vx,vy) toward (tx,ty) by at most HOMING_TURN_RAD_S·dt, preserving speed. */
