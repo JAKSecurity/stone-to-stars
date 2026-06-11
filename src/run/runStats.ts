@@ -26,6 +26,16 @@ export function xpForLevel(level: number): number {
   return Math.round(base * ramp);
 }
 
+/** RC-022: fraction (0..1) of the way from the current level to the next, for the HUD XP bar.
+ *  Reuses xpForLevel so the bar can never disagree with addXp's threshold. Clamped to [0,1]
+ *  (a freshly-leveled stat with xp 0 reads 0; a stat carrying ≥threshold xp — shouldn't happen
+ *  post-addXp, but guard anyway — reads a full bar). */
+export function xpProgress(stats: RunStats): number {
+  const need = xpForLevel(stats.level);
+  if (need <= 0) return 0;
+  return Math.max(0, Math.min(1, stats.xp / need));
+}
+
 export function addXp(stats: RunStats, amount: number): { stats: RunStats; levelsGained: number } {
   let { level, xp } = stats;
   xp += amount;

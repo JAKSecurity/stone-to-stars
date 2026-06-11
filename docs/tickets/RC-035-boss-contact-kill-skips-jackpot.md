@@ -24,3 +24,7 @@ worse once the boss became mandatory for the win condition.
 ## References
 - RC-034 (dungeon expeditions) Task 6 quality review
 - RC-019 (mini-boss events) — origin of the kamikaze contact behavior
+
+## Resolution (2026-06-11)
+
+`hitPlayer` in `src/scenes/RunScene.ts` was patched to check `isBoss` before destroying the enemy. When the player contacts the boss, the boss now deals its `contactDamage` to the player but is **not destroyed**; `wakeEnemy` is called so a sleeping boss triggers its arrival banner and HP bar naturally via the existing `onBossAggro` flow. A per-boss re-hit cooldown of 800 ms (`bossNextContactMs` stored on the enemy via Phaser data) prevents per-frame drain — contact ticks damage at most once per 800 ms. Non-boss enemies keep their original kamikaze destruction. Verified live via Playwright: player HP drops on contact, boss survives (12 jackpot gems on proper kill, boss HP bar appears on contact with a sleeping boss), and cooldown throttle is active. 288 Vitest tests green, build clean.

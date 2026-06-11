@@ -22,3 +22,24 @@ export function bumpTier(tier: GemTier): GemTier {
   if (tier === 'cut') return 'brilliant';
   return 'brilliant';
 }
+
+/** RC-022 B5 — value bracket for at-a-glance gem readability, independent of the cosmetic
+ *  expedition tier above. A run's per-kill gems are low; boss-jackpot gems are high. The brackets
+ *  are chosen so a tier-0 base value (~1) reads `minor`, a mid-run kill reads `solid`, and a boss
+ *  jackpot's big gem (10s) reads `major` — the unmistakable one that gets the glow. */
+export type GemValueTier = 'minor' | 'solid' | 'major';
+
+export function gemValueTier(value: number): GemValueTier {
+  if (value >= 10) return 'major';
+  if (value >= 4) return 'solid';
+  return 'minor';
+}
+
+/** Display-size multiplier for a gem's value tier — a jackpot reads visibly bigger than a chip. */
+export function gemDisplayScale(value: number): number {
+  switch (gemValueTier(value)) {
+    case 'major': return 1.55;
+    case 'solid': return 1.25;
+    default: return 1.0;
+  }
+}

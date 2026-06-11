@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gemTierForExpeditionTier, gemSpriteId, bumpTier } from '../src/run/gemTier';
+import { gemTierForExpeditionTier, gemSpriteId, bumpTier, gemValueTier, gemDisplayScale } from '../src/run/gemTier';
 
 describe('gemTier — bracket by expedition tier', () => {
   it('maps stone/bronze/iron (0–2) to chipped', () => {
@@ -31,5 +31,25 @@ describe('gemTier — bumpTier', () => {
     expect(bumpTier('chipped')).toBe('cut');
     expect(bumpTier('cut')).toBe('brilliant');
     expect(bumpTier('brilliant')).toBe('brilliant');
+  });
+});
+
+describe('gemTier — value tier + display scale (RC-022 B5)', () => {
+  it('brackets a value into minor/solid/major', () => {
+    expect(gemValueTier(1)).toBe('minor');
+    expect(gemValueTier(3)).toBe('minor');
+    expect(gemValueTier(4)).toBe('solid');
+    expect(gemValueTier(9)).toBe('solid');
+    expect(gemValueTier(10)).toBe('major');
+    expect(gemValueTier(50)).toBe('major');
+  });
+
+  it('display scale grows with the value tier', () => {
+    expect(gemDisplayScale(1)).toBe(1.0);
+    expect(gemDisplayScale(5)).toBe(1.25);
+    expect(gemDisplayScale(20)).toBe(1.55);
+    // monotonic non-decreasing
+    expect(gemDisplayScale(20)).toBeGreaterThan(gemDisplayScale(5));
+    expect(gemDisplayScale(5)).toBeGreaterThan(gemDisplayScale(1));
   });
 });

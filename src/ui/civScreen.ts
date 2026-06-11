@@ -10,6 +10,7 @@ import { GRID_SIZE } from '../game/config';
 import { spriteCanvas } from '../art/domSprite';
 import { heroSpriteFor } from '../game/heroByAge';
 import { ageUnlocks } from '../game/ageUnlocks';
+import { SLOTS, SlotId, slotInfo, saveToSlot, loadSlot, exportSave, importSave } from '../state/saveSlots';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
@@ -25,6 +26,9 @@ export interface CivCallbacks {
   onMoveBuilding: (fromTile: number, toTile: number) => void;
   onBuyTradition: (traditionId: string) => void;
   onStartRun: () => void;
+  // RC-036 — manual save/load. The current civ is replaced wholesale (load a slot / import a file);
+  // main.ts adopts it, persists to autosave, and re-renders. Absent in contexts that don't wire saves.
+  onCivReplaced?: (civ: CivState) => void;
 }
 
 /**
@@ -388,5 +392,139 @@ export function renderCivScreen(
 
   wrap.appendChild(cols);
 
+  // RC-036 — Save slots: three explicit slots + JSON export/import, flat and always visible
+  // (jeff-ui-design). Only wired when main.ts supplies onCivReplaced (load/import replace the civ).
+  if (cb.onCivReplaced) wrap.appendChild(saveSlotsSection(civ, cb.onCivReplaced));
+
   root.appendChild(wrap);
+}
+
+/** Friendly "saved at" label from an ISO timestamp; falls back to the raw string if unparseable. */
+function fmtSavedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+/** The Save slots panel: 3 slot cards (Save/Load each) plus Export download + Import file picker. */
+function saveSlotsSection(civ: CivState, onCivReplaced: (civ: CivState) => void): HTMLElement {
+  const panel = document.createElement('div');
+  panel.className = 'panel saveslots';
+  panel.innerHTML = '<h2>Save Slots</h2>';
+
+  const grid = document.createElement('div');
+  grid.className = 'slotgrid';
+  for (const slot of SLOTS) {
+    grid.appendChild(slotCard(slot, civ, onCivReplaced));
+  }
+  panel.appendChild(grid);
+
+  // Export / Import row.
+  const tools = document.createElement('div');
+  tools.className = 'savetools';
+
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'savebtn';
+  exportBtn.textContent = '⬇ Export to file';
+  exportBtn.onclick = () => {
+    const blob = new Blob([exportSave(civ)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rogue-civ-save-${today}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+  tools.appendChild(exportBtn);
+
+  const importLabel = document.createElement('label');
+  importLabel.className = 'savebtn importbtn';
+  importLabel.textContent = '⬆ Import from file';
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json,application/json';
+  fileInput.style.display = 'none';
+  const err = document.createElement('div');
+  err.className = 'saveerr';
+  err.style.display = 'none';
+  fileInput.onchange = () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      err.style.display = 'none';
+      const imported = importSave(String(reader.result ?? ''));
+      if (!imported) {
+        err.textContent = 'Incompatible or corrupt save';
+        err.style.display = 'block';
+      } else if (window.confirm('Import this save? It overwrites your current game.')) {
+        onCivReplaced(imported);
+      }
+      fileInput.value = ''; // allow re-importing the same file
+    };
+    reader.readAsText(file);
+  };
+  importLabel.appendChild(fileInput);
+  tools.appendChild(importLabel);
+  panel.appendChild(tools);
+  panel.appendChild(err);
+
+  return panel;
+}
+
+function slotCard(slot: SlotId, civ: CivState, onCivReplaced: (civ: CivState) => void): HTMLElement {
+  const info = slotInfo(slot);
+  const card = document.createElement('div');
+  card.className = 'slotcard' + (info ? ' filled' : '');
+
+  const head = document.createElement('div');
+  head.className = 'slothead';
+  head.textContent = `Slot ${slot}`;
+  card.appendChild(head);
+
+  const meta = document.createElement('div');
+  meta.className = 'slotmeta';
+  if (info) {
+    meta.innerHTML =
+      `<div class="slotwhen">${fmtSavedAt(info.savedAt)}</div>` +
+      `<div class="slotruns">${info.runs} expedition${info.runs === 1 ? '' : 's'}` +
+      (info.version !== civ.version ? ` · <span class="slotstale">v${info.version} (incompatible)</span>` : '') +
+      '</div>';
+  } else {
+    meta.innerHTML = '<div class="slotempty">empty</div>';
+  }
+  card.appendChild(meta);
+
+  const btns = document.createElement('div');
+  btns.className = 'slotbtns';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.onclick = () => {
+    // confirm() only when overwriting an occupied slot.
+    if (info && !window.confirm(`Overwrite Slot ${slot}? Its current save is lost.`)) return;
+    saveToSlot(civ, slot, new Date().toISOString());
+    onCivReplaced(civ); // no civ change, but triggers a re-render so the card reflects the new save
+  };
+  btns.appendChild(saveBtn);
+
+  const loadBtn = document.createElement('button');
+  loadBtn.textContent = 'Load';
+  // A stale/empty slot can't be loaded; disable rather than fail silently.
+  loadBtn.disabled = !loadSlot(slot);
+  loadBtn.onclick = () => {
+    const loaded = loadSlot(slot);
+    if (!loaded) return;
+    if (!window.confirm(`Load Slot ${slot}? This replaces your current game.`)) return;
+    onCivReplaced(loaded);
+  };
+  btns.appendChild(loadBtn);
+
+  card.appendChild(btns);
+  return card;
 }
