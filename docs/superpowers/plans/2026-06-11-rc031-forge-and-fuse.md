@@ -2274,7 +2274,9 @@ Walkthrough assertions, in order:
 5. Next draft: assert the first card is the fusion offer; pick it; assert `equipped.length === 1` and `equipped[0].hybrid` set; assert the celebration banner appeared.
 6. Right-click: assert `activeCharges` decremented and (for net) enemies gained `slowUntil`.
 7. Continue to a second fusion (third weapon drafted, leveled, fused) — assert 3 bases and no further fusion offers.
-8. Run to completion; run-end screen shows; save persists kit (reload → expedition screen still shows the kit).
+8. End the run — runs are RC-034 dungeons now (clear-the-dungeon win, no timer): either clear remaining enemies via state sampling or die deliberately; run-end screen shows; save persists kit (reload → expedition screen still shows the kit).
+
+RC-034 walkthrough gotchas (from the dungeon session's live verify): heavy worktree churn can wedge Vite HMR into serving STALE modules — start a fresh dev server on a clean port and curl a known-changed module first; the headless Phaser clock runs slow, so `time.delayedCall` fires late — drive scene methods directly or poll with generous waits; draft-card children each need scrollFactor 0 stamped (Phaser 3.90 container quirk) — relevant when Task 10 touches the overlay.
 
 - [ ] **Step 2: Run it, capture evidence**
 
