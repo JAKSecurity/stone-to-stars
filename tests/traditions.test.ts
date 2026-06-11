@@ -11,17 +11,18 @@ const RICH = { exploration: 0, science: 0, industry: 0, culture: 9999 };
 function richCiv(): CivState { return { ...newCivState(), banked: { ...RICH } }; }
 
 describe('nextRankCost', () => {
-  it('follows base * 1.6^(rank) for successive ranks of Vigor (base 24)', () => {
+  it('follows base * 5.0^(rank) for successive ranks of Vigor (base 240)', () => {
     const civ = richCiv();
-    expect(nextRankCost(civ, 'vigor')).toBe(24);            // rank 0 -> 1
+    expect(nextRankCost(civ, 'vigor')).toBe(240);           // rank 0 -> 1  round(240*5^0)
     const r1 = buyTradition(civ, 'vigor');
-    expect(nextRankCost(r1, 'vigor')).toBe(38);             // round(24*1.6)
+    expect(nextRankCost(r1, 'vigor')).toBe(1200);           // rank 1 -> 2  round(240*5^1)
     const r2 = buyTradition(r1, 'vigor');
-    expect(nextRankCost(r2, 'vigor')).toBe(61);             // round(24*1.6^2)
+    expect(nextRankCost(r2, 'vigor')).toBe(6000);           // rank 2 -> 3  round(240*5^2)
   });
 
   it('returns null when the node is at max rank', () => {
-    let civ = richCiv();
+    // vigor costs 240+1200+6000+30000+150000 = 187440 to max (new curve: base 240 * 5^rank)
+    let civ = { ...richCiv(), banked: { exploration: 0, science: 0, industry: 0, culture: 200000 } };
     for (let i = 0; i < 5; i++) civ = buyTradition(civ, 'vigor'); // maxRank 5
     expect(traditionRank(civ, 'vigor')).toBe(5);
     expect(nextRankCost(civ, 'vigor')).toBeNull();
@@ -51,10 +52,10 @@ describe('canBuyTradition', () => {
 
 describe('buyTradition', () => {
   it('increments rank and spends exactly the culture cost, untouched other resources', () => {
-    const civ = { ...newCivState(), banked: { exploration: 5, science: 5, industry: 5, culture: 100 } };
+    const civ = { ...newCivState(), banked: { exploration: 5, science: 5, industry: 5, culture: 300 } };
     const after = buyTradition(civ, 'vigor');
     expect(traditionRank(after, 'vigor')).toBe(1);
-    expect(after.banked.culture).toBe(76);   // 100 - 24
+    expect(after.banked.culture).toBe(60);   // 300 - 240 (vigor base 240, RC-009 playtest #9)
     expect(after.banked).toMatchObject({ exploration: 5, science: 5, industry: 5 });
   });
 
@@ -64,7 +65,7 @@ describe('buyTradition', () => {
   });
 
   it('nextRankCostBundle is culture-only', () => {
-    expect(nextRankCostBundle(richCiv(), 'foraging')).toEqual({ culture: 20 });
+    expect(nextRankCostBundle(richCiv(), 'foraging')).toEqual({ culture: 200 }); // foraging base 200 (RC-009 #9)
   });
 });
 
