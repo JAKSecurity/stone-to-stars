@@ -1,7 +1,6 @@
-import { AgeId, AGE_ORDER, OnHit, Perk, Trajectory, WeaponDef } from '../game/types';
+import { AgeId, AGE_ORDER, OnHit, Trajectory, WeaponDef } from '../game/types';
 import { WEAPONS } from './weaponData';
 import { resolveShape, ARCHETYPES } from './archetypes';
-import { PERKS } from './draft';
 
 // RC-031: two GENERIC weapon slots (the melee/ranged split is gone). Fusing both weapons
 // (fusion.ts) frees a slot — that's the build arc. Hybrids are runtime defs carried on the
@@ -110,52 +109,4 @@ export function weaponShot(def: WeaponDef, level: number, damageMult: number): W
     onHit: shape.onHit,
     lifeMs: Math.round(BASE_BULLET_LIFE_MS * rangeFactorForTier(def.tier)),
   };
-}
-
-// --- Transitional draft shim (Task 6 moves this to draft.ts) -----------------------------------
-// The old DraftOption/draftOptions/rollRunDraft, minus the `evolve` kind and the weaponClass split.
-// `newWeapon` options only fill an empty slot (skipped when both slots are full); RunScene still
-// uses these until the v2 draft lands.
-
-export type DraftOption =
-  | { kind: 'perk'; perk: Perk }
-  | { kind: 'newWeapon'; weaponId: string }
-  | { kind: 'levelWeapon'; weaponId: string };
-
-export interface DraftContext {
-  equipped: EquippedWeapon[];
-  ownedPerks: string[];
-  pool: string[]; // civ-unlocked weapon ids (RunModifiers.weapons)
-}
-
-/** All currently-valid draft options, in priority order. */
-export function draftOptions(ctx: DraftContext): DraftOption[] {
-  const opts: DraftOption[] = [];
-
-  // A new weapon only fits while a slot is empty (no class split anymore); skip when full.
-  if (ctx.equipped.length < MAX_WEAPON_SLOTS) {
-    for (const id of ctx.pool) {
-      if (!ctx.equipped.some((w) => w.id === id)) opts.push({ kind: 'newWeapon', weaponId: id });
-    }
-  }
-  for (const w of ctx.equipped) {
-    const def = defOf(w);
-    if (def && w.level < def.maxLevel) opts.push({ kind: 'levelWeapon', weaponId: w.id });
-  }
-  for (const p of PERKS) opts.push({ kind: 'perk', perk: p });
-
-  return opts;
-}
-
-/** Pick `count` distinct options at random (no replacement) — same shape as draft.rollDraft. */
-export function rollRunDraft(rng: () => number, count: number, ctx: DraftContext): DraftOption[] {
-  const pool = draftOptions(ctx);
-  const out: DraftOption[] = [];
-  const n = Math.min(count, pool.length);
-  for (let i = 0; i < n; i++) {
-    const idx = Math.floor(rng() * pool.length) % pool.length;
-    out.push(pool[idx]);
-    pool.splice(idx, 1);
-  }
-  return out;
 }

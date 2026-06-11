@@ -1,12 +1,16 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef } from '../game/types';
+import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef, EquippedPassive, RunStats } from '../game/types';
 import { initialRunStats, addXp } from '../run/runStats';
-import { applyPerk } from '../run/draft';
+import { rollDraft, DraftOption } from '../run/draft';
 import {
-  EquippedWeapon, initialWeapons, addWeapon, levelWeapon,
-  weaponShot, WeaponShot, rollRunDraft, DraftOption,
+  EquippedWeapon, initialWeapons, addWeapon, swapWeapon, levelWeapon, defOf,
+  weaponShot, WeaponShot, equipHybrid,
   weaponStatText, weaponLevelGainText,
 } from '../run/weapons';
+import { fuseWeapons, fusionName } from '../run/fusion';
+import { resolveShape } from '../run/archetypes';
+import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
+import { PASSIVES } from '../run/passiveData';
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
@@ -89,7 +93,9 @@ export class RunScene extends Phaser.Scene {
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
   private equipped: EquippedWeapon[] = initialWeapons();
-  private ownedPerks: string[] = [];
+  private passives: EquippedPassive[] = [];
+  private catalysts = 0;
+  private baseStats!: RunStats; // snapshot of the run's base stats (civ mods), set in create()
   private weaponCooldowns: Record<string, number> = {};
   private bossId = '';
   private bossEnemy: any = null;
@@ -136,7 +142,8 @@ export class RunScene extends Phaser.Scene {
     }
     // Oratory tradition: rerolls available this run.
     this.rerollsLeft = this.mods.draftRerolls;
-    this.ownedPerks = [];
+    this.passives = [];
+    this.catalysts = 0;
     this.weaponCooldowns = {};
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
@@ -144,6 +151,9 @@ export class RunScene extends Phaser.Scene {
   }
 
   create() {
+    // RC-031: snapshot the run's base stats (civ modifiers, set in init()) so passive changes
+    // always recompute from this base rather than accumulating incrementally.
+    this.baseStats = { ...this.stats };
     // RC-034: the run is a procedurally generated dungeon DUNGEON_SCREENS x the viewport. The seed
     // is logged so any layout bug is reproducible (generateLayout is deterministic per seed).
     const seed = (Math.random() * 0xffffffff) >>> 0;
@@ -333,7 +343,7 @@ export class RunScene extends Phaser.Scene {
     for (const w of this.equipped) {
       this.weaponCooldowns[w.id] = (this.weaponCooldowns[w.id] ?? 0) - dt;
       if (this.weaponCooldowns[w.id] <= 0) {
-        const shot = weaponShot(WEAPONS[w.id], w.level, this.stats.damageMult);
+        const shot = weaponShot(defOf(w), w.level, this.stats.damageMult);
         this.fireWeapon(shot, w.id);
         this.weaponCooldowns[w.id] = shot.cooldownMs / this.stats.fireRateMult;
       }
@@ -941,10 +951,11 @@ export class RunScene extends Phaser.Scene {
 
   /** Rolls a fresh set of options and draws the draft panel. Called on open and on reroll. */
   private renderDraft() {
-    const picks = rollRunDraft(() => Math.random(), this.mods.draftChoices, {
+    const picks = rollDraft(() => Math.random(), this.mods.draftChoices, {
       equipped: this.equipped,
-      ownedPerks: this.ownedPerks,
-      pool: this.mods.weapons,
+      passives: this.passives,
+      kitPool: this.mods.weapons,
+      catalysts: this.catalysts,
     });
     const { width, height } = this.scale;
     const panel = this.add.container(0, 0).setDepth(20);
@@ -1006,13 +1017,21 @@ export class RunScene extends Phaser.Scene {
 
   private draftLabel(o: DraftOption): string {
     switch (o.kind) {
-      case 'perk': return o.perk.name;
-      case 'newWeapon':
-        return `New weapon: ${WEAPONS[o.weaponId].name}`;
+      case 'fuseWeapons': return o.early
+        ? '⚗️ FUSE NOW (catalyst — weaker hybrid)'
+        : `⚒️ FUSE: ${defOf(this.equipped[0]).name} + ${defOf(this.equipped[1]).name}`;
+      case 'fusePassives': return '⚗️ Fuse passives';
+      case 'newWeapon': return o.replaceId
+        ? `Swap ${defOf(this.equipped.find((w) => w.id === o.replaceId)!).name} → ${WEAPONS[o.weaponId].name}`
+        : `New weapon: ${WEAPONS[o.weaponId].name}`;
       case 'levelWeapon': {
-        const cur = this.equipped.find((w) => w.id === o.weaponId)?.level ?? 1;
-        const next = Math.min(cur + 1, WEAPONS[o.weaponId].maxLevel);
-        return `Upgrade: ${WEAPONS[o.weaponId].name} (Lv ${cur}→${next})`;
+        const w = this.equipped.find((x) => x.id === o.weaponId)!;
+        return `Upgrade: ${defOf(w).name} (Lv ${w.level}→${Math.min(w.level + 1, defOf(w).maxLevel)})`;
+      }
+      case 'newPassive': return `${PASSIVES[o.passiveId].icon} ${PASSIVES[o.passiveId].name}`;
+      case 'levelPassive': {
+        const p = this.passives.find((x) => x.id === o.passiveId)!;
+        return `${passiveDefOf(p).icon} ${passiveDefOf(p).name} (Lv ${p.level}→${p.level + 1})`;
       }
     }
   }
@@ -1020,25 +1039,48 @@ export class RunScene extends Phaser.Scene {
   /** The second, smaller line on a draft card: what the option actually does. */
   private draftDescription(o: DraftOption): string {
     switch (o.kind) {
-      case 'perk': return o.perk.desc;
+      case 'fuseWeapons': return fusionName(
+        [...new Set([...resolveShape(defOf(this.equipped[0])).bases, ...resolveShape(defOf(this.equipped[1])).bases])],
+      );
+      case 'fusePassives': return 'Merge both passives into one — frees a slot';
       case 'newWeapon': return weaponStatText(WEAPONS[o.weaponId]);
-      case 'levelWeapon': return weaponLevelGainText(WEAPONS[o.weaponId]);
+      case 'levelWeapon': return weaponLevelGainText(defOf(this.equipped.find((w) => w.id === o.weaponId)!));
+      case 'newPassive': return PASSIVES[o.passiveId].desc;
+      case 'levelPassive': return passiveDefOf(this.passives.find((p) => p.id === o.passiveId)!).desc;
     }
   }
 
   private applyDraftOption(o: DraftOption) {
     switch (o.kind) {
-      case 'perk':
-        this.stats = applyPerk(this.stats, o.perk);
-        this.ownedPerks.push(o.perk.id);
+      case 'fuseWeapons': {
+        const [a, b] = this.equipped;
+        const hybrid = fuseWeapons(
+          { def: defOf(a), level: a.level }, { def: defOf(b), level: b.level },
+        );
+        if (o.early) this.catalysts = Math.max(0, this.catalysts - 1);
+        this.equipped = equipHybrid(hybrid);
+        this.weaponCooldowns = {};
+        break;
+      }
+      case 'fusePassives':
+        this.passives = fusePassives(this.passives) ?? this.passives;
+        this.refreshStatsFromPassives();
         break;
       case 'newWeapon':
-        this.equipped = addWeapon(this.equipped, o.weaponId);
+        this.equipped = o.replaceId
+          ? swapWeapon(this.equipped, o.replaceId, o.weaponId)
+          : addWeapon(this.equipped, o.weaponId);
         break;
-      case 'levelWeapon':
-        this.equipped = levelWeapon(this.equipped, o.weaponId);
-        break;
+      case 'levelWeapon': this.equipped = levelWeapon(this.equipped, o.weaponId); break;
+      case 'newPassive':  this.passives = addPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
+      case 'levelPassive': this.passives = levelPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
     }
+  }
+
+  /** Rebuild stats from the run's base whenever passives change (recompute model). */
+  private refreshStatsFromPassives() {
+    const ratio = this.stats.hp / this.stats.maxHp;
+    this.stats = recomputeStats(this.baseStats, this.passives, ratio);
   }
 
   private finish(died: boolean) {

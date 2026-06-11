@@ -54,7 +54,7 @@ export function recomputeStats(
     ...base,
     damageMult: clamp(damageMult), fireRateMult: clamp(fireRateMult),
     moveSpeedMult: clamp(moveSpeedMult), pickupRadius: Math.max(10, pickupRadius),
-    maxHp, hp: Math.max(1, Math.round(maxHp * hpRatio)),
+    maxHp, hp: Math.max(1, Math.min(maxHp, Math.round(maxHp * hpRatio))),
     regenHps: Math.max(0, regenHps), xpMult: clamp(xpMult),
     activeCharges: Math.max(0, Math.round(activeCharges)),
   };

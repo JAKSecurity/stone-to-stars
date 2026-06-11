@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PASSIVES, PASSIVE_FUSIONS } from '../src/run/passiveData';
 import {
-  addPassive, fusePassives, recomputeStats, passiveDefOf, MAX_PASSIVE_SLOTS,
+  addPassive, levelPassive, fusePassives, recomputeStats, passiveDefOf, MAX_PASSIVE_SLOTS,
 } from '../src/run/passives';
 import { RunStats } from '../src/game/types';
 
@@ -46,6 +46,13 @@ describe('passives', () => {
     expect(fused).toHaveLength(1);
     expect(fused[0].hybrid).toBeDefined();
     expect(passiveDefOf(fused[0]).name).toBe(PASSIVE_FUSIONS['rapid_levers+whetstone'].name);
+  });
+
+  it('levelPassive raises a level and caps at maxLevel', () => {
+    let eq = [{ id: 'powder_bandolier', level: 1 }];
+    eq = levelPassive(eq, 'powder_bandolier');
+    eq = levelPassive(eq, 'powder_bandolier');
+    expect(eq[0].level).toBe(2); // maxLevel 2
   });
 
   it('fusePassives returns null for unauthored pairs', () => {
