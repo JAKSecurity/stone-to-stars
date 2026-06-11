@@ -5,7 +5,12 @@ export const SAVE_KEY = 'rogue-civ-save-v1';
 // (old-scale banked resources / missing traditions), so any pre-v3 save resets — load → null —
 // rather than migrate. This matches RC-017's "rescale resets saves" stance.
 // v4 = RC-031 Forge & Fuse (kit/activeItem + catalog rebuild). Reset on bump — no migration (Jeff 2026-06-11).
-const CURRENT_VERSION = 4;
+export const CURRENT_VERSION = 4;
+
+/** The shared version gate: a parsed civ is loadable only if it matches the current save version. */
+export function isCurrentVersion(civ: CivState): boolean {
+  return civ.version === CURRENT_VERSION;
+}
 
 export function serialize(civ: CivState): string {
   return JSON.stringify(civ);
@@ -24,7 +29,7 @@ export function load(storage: Storage = localStorage): CivState | null {
   if (raw === null) return null;
   try {
     const parsed = deserialize(raw);
-    if (parsed.version !== CURRENT_VERSION) return null; // stale/unknown version → reset
+    if (!isCurrentVersion(parsed)) return null; // stale/unknown version → reset
     return parsed;
   } catch {
     return null;

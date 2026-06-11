@@ -80,6 +80,8 @@ function showCiv(celebrate?: { from: AgeId; to: AgeId }) {
     onMoveBuilding: (from, to) => { civ = moveBuilding(civ, from, to); persist(); showCiv(); },
     onBuyTradition: (id) => { civ = buyTradition(civ, id); persist(); showCiv(); },
     onStartRun: () => startRun(),
+    // RC-036 — a slot load / file import (or a slot save's re-render) hands back the civ to adopt.
+    onCivReplaced: (next) => { civ = next; persist(); showCiv(); },
   }, celebrate);
 }
 
