@@ -20,12 +20,20 @@ describe('enemyData', () => {
     for (const def of Object.values(ENEMIES)) {
       expect(def.baseHp).toBeGreaterThan(0);
       expect(def.speed).toBeGreaterThan(0);
-      expect(def.contactDamage).toBeGreaterThan(0);
+      // RC-026: the treasure courier is a non-combatant (contactDamage 0 — it never harms you).
+      if (def.id !== 'treasure_courier') expect(def.contactDamage).toBeGreaterThan(0);
       expect(def.xp).toBeGreaterThan(0);
       expect(RESOURCES).toContain(def.drop);
       expect(def.displaySize.w).toBeGreaterThan(0);
       expect(def.displaySize.h).toBeGreaterThan(0);
     }
+  });
+
+  it('treasure courier: flee behavior, no attack, modest HP', () => {
+    const c = ENEMIES.treasure_courier;
+    expect(c.behavior).toBe('flee');
+    expect(c.attack).toBeUndefined();
+    expect(c.baseHp).toBeGreaterThan(0);
   });
 
   it('every enemy has a non-empty display name', () => {
@@ -37,7 +45,7 @@ describe('enemyData', () => {
 });
 
 describe('enemyData — RC-018 behavior archetypes', () => {
-  const ALLOWED = new Set(['chase', 'charger', 'splitter', 'circler', 'standoff', undefined]);
+  const ALLOWED = new Set(['chase', 'charger', 'splitter', 'circler', 'standoff', 'flee', undefined]);
 
   it('every behavior is a known archetype (or absent ⇒ chase)', () => {
     for (const def of Object.values(ENEMIES)) {

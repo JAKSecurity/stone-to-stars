@@ -43,8 +43,9 @@ import {
 import { enemyPlacements, gemPlacements, pickBiasedResource, openPoint } from '../run/dungeonPopulate';
 import { combineMutators, applyHaulMult } from '../run/mutators';
 import { MUTATORS } from '../run/mutatorData';
-import { POIS, PoiDef, PoiId, ALTAR_WAKE_SCREENS } from '../run/poiData';
-import { rollPois, shrineWave, shrineJackpot } from '../run/poi';
+import { POIS, PoiDef, PoiId, ALTAR_WAKE_SCREENS, COURIER_SPEED_MULT, COURIER_DESPAWN_MS } from '../run/poiData';
+import { rollPois, shrineWave, shrineJackpot, courierJackpot } from '../run/poi';
+import { fleeVelocity } from '../run/enemyBehavior';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -353,13 +354,16 @@ export class RunScene extends Phaser.Scene {
     this.pois.push({ def, x, y, obj, consumed: false });
   }
 
-  /** RC-026 Task 7 stand-in for the treasure courier: a static placeholder structure so a courier
-   *  roll still renders + gets an edge indicator. Task 8 replaces this body with the real flee enemy
-   *  (spawnEnemyAt + poiCourier tag + despawn/jackpot lifecycle); the call site in placePoi is stable. */
+  /** RC-026: spawn the treasure courier as a sleeping flee enemy at the POI point. Tagged poiCourier
+   *  so it is win-exempt and pays its jackpot (not its `drop`) on catch. Its speed is set from the
+   *  PLAYER's base speed (180 × RUN_SCALE) × COURIER_SPEED_MULT — catchable with routing regardless of
+   *  the player's passives/mutators. The despawn timer starts on first wake (see wakeEnemy). */
   private spawnCourierAt(x: number, y: number): any {
-    const obj = this.add.image(x, y, POIS.courier.sprite).setDepth(8);
-    obj.setDisplaySize(34 * RUN_SCALE, 34 * RUN_SCALE);
-    return obj;
+    const e = this.spawnEnemyAt(ENEMIES.treasure_courier, x, y);
+    e.setData('asleep', true);
+    e.setData('poiCourier', true);
+    e.setData('speed', 180 * RUN_SCALE * COURIER_SPEED_MULT);
+    return e;
   }
 
   /** Best-of-N sample for a far-quadrant, obstacle-safe POI point. Mirrors the boss-lair sampler but
@@ -382,11 +386,23 @@ export class RunScene extends Phaser.Scene {
   private updatePois() {
     const reach = 60 * RUN_SCALE;
     for (const poi of this.pois) {
-      if (poi.consumed || poi.def.id === 'courier') continue;
+      if (poi.consumed) continue;
+      if (poi.def.id === 'courier') { this.updateCourierDespawn(poi); continue; }
       if (!withinRadius(this.player.x, this.player.y, poi.x, poi.y, reach)) continue;
       if (poi.def.id === 'shrine') this.activateShrine(poi);
       else if (poi.def.id === 'altar') this.activateAltar(poi);
     }
+  }
+
+  /** RC-026: a live courier past its despawnAt fades out and is destroyed WITHOUT jackpot or kill
+   *  credit — it escaped. Marks the POI consumed so its edge indicator dies with it. */
+  private updateCourierDespawn(poi: { obj: any; consumed: boolean }) {
+    const e = poi.obj;
+    if (!e?.active || poi.consumed) return;
+    const despawnAt = e.getData('despawnAt');
+    if (despawnAt === undefined || this.elapsed < despawnAt) return;
+    poi.consumed = true; // stops the indicator + re-entry; the catch path also checks getData
+    this.tweens.add({ targets: e, alpha: 0, duration: 300, onComplete: () => { if (e.active) e.destroy(); } });
   }
 
   /** Shrine: consume the structure, then spawn the tier-scaled guardian wave awake + aggroed around
@@ -409,6 +425,10 @@ export class RunScene extends Phaser.Scene {
     }
     this.shrinePending = { x: poi.x, y: poi.y };
     playSfx('boss-arrival');
+    // Defensive: if the biome table somehow yielded no spawnable guardians, pay immediately so the
+    // shrine never silently swallows its reward (shrineWaveIds empty + shrinePending set otherwise
+    // strands the jackpot). Real biome tables always spawn a wave, so this is belt-and-suspenders.
+    if (this.shrineWaveIds.size === 0) this.payShrineJackpot();
   }
 
   /** Altar: consume → +1 catalyst (free fusion material) + a wake sweep over ~1.5 screens, so the
@@ -430,13 +450,29 @@ export class RunScene extends Phaser.Scene {
   private onShrineWaveDeath(uid: string) {
     if (!this.shrineWaveIds.has(uid)) return;
     this.shrineWaveIds.delete(uid);
-    if (this.shrineWaveIds.size > 0 || !this.shrinePending) return;
+    if (this.shrineWaveIds.size === 0) this.payShrineJackpot();
+  }
+
+  /** Burst the shrine's culture jackpot at the pending shrine point, then clear it. No-op if no
+   *  shrine is pending. */
+  private payShrineJackpot() {
     const at = this.shrinePending;
+    if (!at) return;
     for (const g of shrineJackpot(this.expedition.tier)) {
       const ang = Math.random() * Math.PI * 2, rr = 30 + Math.random() * 60;
       this.dropGem(at.x + Math.cos(ang) * rr, at.y + Math.sin(ang) * rr, g.resource, { valueOverride: g.value });
     }
     this.shrinePending = null;
+    playSfx('gem-pickup', { semitones: 12 });
+  }
+
+  /** RC-026: burst the courier's big MIXED jackpot around (x, y). Shared by the damage-kill death
+   *  branch and the contact-catch path in hitPlayer (stealth catch). Composition uses dungeonRng. */
+  private payCourierJackpot(x: number, y: number) {
+    for (const g of courierJackpot(this.dungeonRng, this.expedition.tier)) {
+      const ang = Math.random() * Math.PI * 2, rr = 30 + Math.random() * 60;
+      this.dropGem(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr, g.resource, { valueOverride: g.value });
+    }
     playSfx('gem-pickup', { semitones: 12 });
   }
 
@@ -706,7 +742,10 @@ export class RunScene extends Phaser.Scene {
     this.xpBarFill.width = this.xpBarBg.width * xpProgress(this.stats);
 
     // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
-    if (this.enemies.countActive(true) === 0) this.startCeremony();
+    // RC-026: the treasure courier is exempt — you can clear the dungeon while it's still fleeing.
+    const remaining = (this.enemies.getChildren() as any[])
+      .filter((e) => e.active && !e.getData('poiCourier')).length;
+    if (remaining === 0) this.startCeremony();
   }
 
   /** RC-031 loadout HUD: second line — weapons + levels, passive icons + levels, the active
@@ -1072,6 +1111,10 @@ export class RunScene extends Phaser.Scene {
     if (!e.getData('asleep')) return;
     e.setData('asleep', false);
     if (e.getData('isBoss')) this.onBossAggro();
+    // RC-026: the courier's flee window starts the instant it first wakes — catch it before it escapes.
+    if (e.getData('poiCourier') && e.getData('despawnAt') === undefined) {
+      e.setData('despawnAt', this.elapsed + COURIER_DESPAWN_MS);
+    }
   }
 
   private onBossAggro() {
@@ -1123,6 +1166,14 @@ export class RunScene extends Phaser.Scene {
     // movement branch uses by `slowed` (1 = unaffected).
     const slowed = (e.getData('slowUntil') ?? 0) > this.elapsed ? Math.max(0, 1 - (e.getData('slowPct') ?? 0)) : 1;
     const speed = (e.getData('speed') as number) * slowed;
+    // RC-026 flee (treasure courier): steer directly AWAY from the player. routeAround targets the
+    // player, so it would route a fleeing courier THROUGH a gap toward you — wrong. Skip it; the
+    // obstacle/barrier colliders already make the courier slide along walls instead of pinning.
+    if ((e.getData('behavior') ?? 'chase') === 'flee') {
+      const v = fleeVelocity(this.player.x, this.player.y, e.x, e.y, speed);
+      e.body.setVelocity(v.vx, v.vy);
+      return;
+    }
     const waypoint = routeAround(e.x, e.y, this.player.x, this.player.y, this.layout.barriers);
     if (waypoint.x !== this.player.x || waypoint.y !== this.player.y) {
       this.physics.moveTo(e, waypoint.x, waypoint.y, speed);
@@ -1356,6 +1407,9 @@ export class RunScene extends Phaser.Scene {
       this.kills += 1; // RC-022 B3: a damage-kill increments the HUD counter (ceremony wipe doesn't)
       // RC-026: if this was a shrine guardian, retire it from the wave set — the last one pays out.
       this.onShrineWaveDeath(enemy.getData('uid'));
+      // RC-026: catching the courier (by damage) bursts its mixed jackpot at the death point. The
+      // contact-catch path in hitPlayer pays the same way before its destroy().
+      if (enemy.getData('poiCourier')) this.payCourierJackpot(ex, ey);
       // RC-018: stop any charger telegraph tween before the sprite is freed.
       this.stopChargerTell(enemy);
       // RC-018: a splitter bursts into weaker children at its death position.
@@ -1428,6 +1482,16 @@ export class RunScene extends Phaser.Scene {
   }
 
   private hitPlayer(enemy: any) {
+    // RC-026: touching the courier IS the catch (incl. the stealth-catch of a still-sleeping one).
+    // Pay its jackpot then destroy BEFORE the generic non-boss kamikaze destroy below. contactDamage
+    // is 0 so this never harms the player; no player-hit feedback — it's a reward, not a hit.
+    if (enemy.getData('poiCourier')) {
+      const ex = enemy.x, ey = enemy.y;
+      this.stopChargerTell(enemy);
+      enemy.destroy();
+      this.payCourierJackpot(ex, ey);
+      return;
+    }
     // RC-035: read contactDamage BEFORE any branch so destroy() can't null the DataManager first.
     const contactDamage = (enemy.getData('contactDamage') as number | undefined) ?? 0;
     // The boss is exempt from kamikaze destruction — it deals contact damage and stays alive.

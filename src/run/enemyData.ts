@@ -80,4 +80,12 @@ export const ENEMIES: Record<string, EnemyDef> = {
     baseHp: 95, speed: 130, contactDamage: 16, drop: 'science', xp: 10, displaySize: { w: 40, h: 28 }, attack: 'ranged', behavior: 'standoff' },
   juggernaut: { id: 'juggernaut', name: 'Juggernaut', sprite: 'juggernaut',
     baseHp: 540, speed: 36, contactDamage: 38, drop: 'industry', xp: 55, displaySize: { w: 62, h: 62 }, armor: 3 },
+  // RC-026 treasure courier: a non-combatant that runs FROM the player. contactDamage 0 (never
+  // harms you); the big mixed jackpot is paid by poi.ts on catch, not by `drop`. (sprite = Task 9 art id)
+  treasure_courier: {
+    id: 'treasure_courier', name: 'Treasure Courier', sprite: 'enemy_courier',
+    baseHp: 40, speed: 95, contactDamage: 0, drop: 'culture', xp: 5,
+    displaySize: { w: 34, h: 34 },
+    behavior: 'flee', // RC-026: runs from the player; jackpot on catch (poi.ts pays, not `drop`)
+  },
 };
