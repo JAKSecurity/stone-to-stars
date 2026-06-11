@@ -517,7 +517,7 @@ export class RunScene extends Phaser.Scene {
 
   /**
    * Gems are vacuumed in only within pickupRadius — outside it they stay put, so collection is
-   * positional and the radius (widened by the Magnet perk) actually matters. The Zone-Cleared
+   * positional and the radius (widened by the Lodestone passive) actually matters. The Zone-Cleared
    * ceremony reuses this with a world-sized radius (and a higher speed) to sweep everything in.
    */
   private vacuumGems(speed = 340) {
