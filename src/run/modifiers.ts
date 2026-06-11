@@ -13,6 +13,7 @@ import { resolveActiveItem } from './actives';
 import { validateKit } from './kit';
 
 /** Collect all tech- and building-unlocked weapon ids for a civ (the full pool, ignoring the kit). */
+// Weapon-collection logic mirrored in computeRunModifiers' inline `weapons` Set — keep in sync.
 export function unlockedWeapons(civ: CivState): string[] {
   const weapons = new Set<string>(BASE_WEAPONS);
   for (const techId of civ.researched) {
@@ -35,6 +36,7 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
   let fireRateMult = BASE_FIRE_MULT;
   let draftRerolls = BASE_DRAFT_REROLLS;
   let startWeaponLevel = BASE_START_WEAPON_LEVEL;
+  // Weapon-collection logic mirrored in unlockedWeapons — keep in sync.
   const weapons = new Set<string>(BASE_WEAPONS);
   const actives = new Set<string>(BASE_ACTIVES);
 

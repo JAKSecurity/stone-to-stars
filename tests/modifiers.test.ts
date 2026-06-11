@@ -36,6 +36,9 @@ describe('computeRunModifiers', () => {
     civ = research(civ, 'mining');
     civ = research(civ, 'bronze_working');
     civ = build(civ, 'forge', 1);
+    // RC-031: the run pool is the chosen kit, not the full unlocked pool — opt the new
+    // weapon into the kit (a deliberately small kit is no longer padded from unlocked).
+    civ = { ...civ, kit: ['club', 'bronze_spear'] };
     const m = computeRunModifiers(civ);
     expect(m.maxHp).toBe(125);
     expect(m.damageMult).toBeCloseTo(1.10);

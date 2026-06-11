@@ -107,6 +107,25 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .wcard .wnm { font-weight: 600; font-size: 0.8rem; }
 .wcard .wstat { font-size: 0.7rem; opacity: 0.75; margin-top: 1px; }
 
+/* RC-031 expedition kit picker */
+.startweapon .kit-hint { font-size: 0.65rem; text-transform: none; letter-spacing: 0; opacity: 0.55; font-weight: 400; }
+.kit-card { display: flex; gap: 6px; padding: 0; cursor: default; overflow: hidden; }
+.kit-card .kit-pick { display: flex; gap: 8px; align-items: center; flex: 1; min-width: 0; background: none; border: none; color: inherit; text-align: left; cursor: pointer; padding: 7px 9px; }
+.kit-card .kit-pick:hover { background: #11161d; }
+.kit-badge { margin-left: auto; flex: none; font-size: 0.62rem; color: #3fb950; font-weight: 600; }
+.kit-star { flex: none; align-self: stretch; border: none; border-left: 1px solid #30363d; background: #0d1117; color: #6e7681; font-size: 0.62rem; padding: 0 8px; cursor: pointer; }
+.kit-star:hover { background: #11161d; color: #c9d1d9; }
+.kit-star.on { color: #e3b341; }
+.kit-shake { animation: kit-shake 0.32s ease; }
+@keyframes kit-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+.active-row { margin-top: 12px; }
+.active-row h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; margin: 0 0 8px; }
+.active-card .active-icon { flex: none; font-size: 1.2rem; line-height: 1; }
+
 /* RC-027 richer expedition cards */
 .exp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
 .exp-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; cursor: pointer; text-align: left; color: inherit; }
