@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   shouldSpawnBoss, bossFreeTable, bossJackpotGems,
   BOSS_ARRIVAL_PROGRESS, BOSS_GEM_COUNT, BOSS_GEM_VALUE_MULT, BOSS_BIG_GEM_VALUE_MULT,
+  dropsCatalyst, CATALYST_DROP_CHANCE,
 } from '../src/run/bossEvent';
 
 describe('bossEvent — shouldSpawnBoss', () => {
@@ -36,4 +37,9 @@ describe('bossEvent — bossJackpotGems', () => {
     expect(big.value).toBe(5 * BOSS_BIG_GEM_VALUE_MULT);
     expect(big.tier).toBe('brilliant'); // bumpTier('cut')
   });
+});
+
+it('catalyst drops are a pure rng threshold', () => {
+  expect(dropsCatalyst(() => CATALYST_DROP_CHANCE - 0.01)).toBe(true);
+  expect(dropsCatalyst(() => CATALYST_DROP_CHANCE + 0.01)).toBe(false);
 });

@@ -4,6 +4,12 @@
 import { GemTier, bumpTier } from './gemTier';
 
 export const BOSS_ARRIVAL_PROGRESS = 0.7;   // fraction of run elapsed at which the boss arrives
+export const CATALYST_DROP_CHANCE = 0.35;   // RC-031: mini-boss jackpot sometimes adds a catalyst
+
+/** RC-031 — whether this boss kill also drops a fusion catalyst (early-fuse token). */
+export function dropsCatalyst(rng: () => number): boolean {
+  return rng() < CATALYST_DROP_CHANCE;
+}
 export const BOSS_TELEGRAPH_MS = 1200;      // delay between the warning/banner and the boss appearing
 export const BOSS_HP_MULT = 5;              // boss spawns with baseHp × this
 export const BOSS_GEM_COUNT = 10;           // gems in the kill burst

@@ -20,7 +20,7 @@ import { apexEnemyId } from '../run/expedition';
 import { GemTier, gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { rewardValueForTier } from '../game/economy';
 import {
-  bossFreeTable, bossJackpotGems, BOSS_HP_MULT,
+  bossFreeTable, bossJackpotGems, BOSS_HP_MULT, dropsCatalyst,
 } from '../run/bossEvent';
 import { playSfx } from '../audio';
 import {
@@ -1067,6 +1067,19 @@ export class RunScene extends Phaser.Scene {
         for (const g of bossJackpotGems(base, tier)) {
           const jx = ex + Phaser.Math.Between(-44, 44), jy = ey + Phaser.Math.Between(-44, 44);
           this.dropGem(jx, jy, this.biasedResource(), { valueOverride: g.value, tierOverride: g.tier });
+        }
+        // RC-031: 35% chance to also drop a fusion catalyst token at the boss position.
+        if (dropsCatalyst(() => Math.random())) {
+          let picked = false;
+          const tok = this.add.text(ex, ey, '⚗️', { fontSize: '28px' }).setOrigin(0.5).setDepth(30) as any;
+          this.physics.add.existing(tok);
+          this.physics.add.overlap(this.player, tok, () => {
+            if (picked) return;
+            picked = true;
+            tok.destroy();
+            this.catalysts += 1;
+            playSfx('gem-pickup', { semitones: 12 });
+          });
         }
         this.destroyBossHpBar();
         this.bossEnemy = null;
