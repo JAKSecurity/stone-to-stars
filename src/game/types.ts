@@ -192,6 +192,8 @@ export interface RunResult {
   survivedMs: number;
   died: boolean;
   tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
+  mutators?: string[];   // RC-029: active mutator ids this run (empty/absent = none)
+  rewardMult?: number;   // RC-029: the additive-stack multiplier applied to `collected`
 }
 
 // RC-031 — every passive is a sidegrade: at least one positive and one negative axis.

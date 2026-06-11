@@ -60,9 +60,10 @@ export function enemyPlacements(
   rng: Rng, layout: DungeonLayout, tier: number,
   trickleBiome: BiomeDef, bossId: string,
   biomes: Record<string, BiomeDef>, enemies: Record<string, EnemyDef>,
+  countMult = 1, // RC-029 Horde: scales the placed roster only (POI waves/courier exempt). 1 = unchanged.
 ): EnemyPlacement[] {
   const out: EnemyPlacement[] = [];
-  const total = BASE_ENEMY_COUNT + ENEMIES_PER_TIER * tier;
+  const total = Math.round((BASE_ENEMY_COUNT + ENEMIES_PER_TIER * tier) * countMult);
   const depthScale = Math.hypot(layout.width, layout.height) * 0.75;
   for (let i = 0; i < total; i++) {
     let x = 0, y = 0;

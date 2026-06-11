@@ -16,6 +16,7 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .runend-res .ricon { font-size: 2rem; }
 .runend-res .rval { font-size: 1.7rem; font-weight: 700; margin-top: 4px; }
 .runend-res .rlbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; margin-top: 2px; }
+.mutline { font-size: 0.95rem; color: #e0b341; opacity: 0.9; margin: -10px 0 24px; }
 .runend-btn { padding: 14px 30px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
 .runend-btn:hover { background: #2ea043; }
 

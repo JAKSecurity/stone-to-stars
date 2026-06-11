@@ -41,6 +41,8 @@ import {
   WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS,
 } from '../run/dungeonGen';
 import { enemyPlacements, gemPlacements, pickBiasedResource } from '../run/dungeonPopulate';
+import { combineMutators, applyHaulMult } from '../run/mutators';
+import { MUTATORS } from '../run/mutatorData';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -74,6 +76,7 @@ interface RunInit {
   expedition: Expedition;
   onComplete: (result: RunResult) => void;
   heroSprite?: string;
+  mutators?: string[]; // RC-029: ephemeral per-launch wager ids
 }
 
 export class RunScene extends Phaser.Scene {
@@ -103,6 +106,9 @@ export class RunScene extends Phaser.Scene {
   private catalysts = 0;
   private catalystTokens: any[] = [];
   private baseStats!: RunStats; // snapshot of the run's base stats (civ mods), set in create()
+  // RC-029: ephemeral per-launch mutators. Field initializers keep restarts safe; init() reassigns both.
+  private mutatorIds: string[] = [];
+  private mutFx = combineMutators([]);
   private weaponCooldowns: Record<string, number> = {};
   private bossId = '';
   private bossEnemy: any = null;
@@ -158,6 +164,14 @@ export class RunScene extends Phaser.Scene {
     this.biome = BIOMES[data.expedition.biomeId];
     this.heroSprite = data.heroSprite ?? 'hero';
     this.stats = initialRunStats(this.mods);
+    // RC-029: ephemeral per-launch mutators. Frail applies to maxHp HERE, before create()'s
+    // baseStats snapshot, so the passive recompute model treats it as part of the run's base.
+    this.mutatorIds = data.mutators ?? [];
+    this.mutFx = combineMutators(this.mutatorIds);
+    if (this.mutFx.effects.maxHpMult !== 1) {
+      this.stats.maxHp = Math.max(1, Math.round(this.stats.maxHp * this.mutFx.effects.maxHpMult));
+      this.stats.hp = this.stats.maxHp;
+    }
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0;
     this.equipped = initialWeapons(this.mods.startWeapon); // RC-027: chosen starting weapon
@@ -274,7 +288,7 @@ export class RunScene extends Phaser.Scene {
     // the apex mini-boss is pre-placed at the far end with its RC-019 stats, announced on aggro.
     const placeRng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
     for (const p of enemyPlacements(placeRng, this.layout, this.expedition.tier,
-      this.trickleBiome, this.bossId, BIOMES, ENEMIES)) {
+      this.trickleBiome, this.bossId, BIOMES, ENEMIES, this.mutFx.effects.enemyCountMult)) {
       const e = this.spawnEnemyAt(ENEMIES[p.id], p.x, p.y);
       e.setData('asleep', true);
       if (p.isBoss) {
@@ -530,7 +544,11 @@ export class RunScene extends Phaser.Scene {
     const passiveStr = this.passives.map((p) => `${passiveDefOf(p).icon}${p.level}`).join('');
     const activeStr = this.activeId ? `${ACTIVES[this.activeId].icon}×${this.stats.activeCharges}` : '';
     const catalystStr = this.catalysts > 0 ? `⚗️×${this.catalysts}` : '';
-    return [loadout, passiveStr, activeStr, catalystStr].filter((s) => s).join('   ');
+    // RC-029: echo active wagers + the haul multiplier they earn.
+    const mutStr = this.mutatorIds.length
+      ? this.mutatorIds.map((id) => MUTATORS[id]?.icon ?? '?').join('') + `×${this.mutFx.rewardMult.toFixed(2)}`
+      : '';
+    return [loadout, passiveStr, activeStr, catalystStr, mutStr].filter((s) => s).join('   ');
   }
 
   /**
@@ -860,9 +878,9 @@ export class RunScene extends Phaser.Scene {
     enemy.setData('hp', def.baseHp);
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
-    enemy.setData('speed', def.speed * RUN_SCALE);
+    enemy.setData('speed', def.speed * RUN_SCALE * this.mutFx.effects.enemySpeedMult);
     enemy.setData('contactDamage', def.contactDamage);
-    enemy.setData('armor', def.armor ?? 0);
+    enemy.setData('armor', (def.armor ?? 0) + this.mutFx.effects.enemyArmorAdd);
     enemy.setData('attack', def.attack);
     // RC-018 movement archetype + per-enemy mutable state.
     enemy.setData('behavior', def.behavior ?? 'chase');
@@ -1582,10 +1600,12 @@ export class RunScene extends Phaser.Scene {
     // crashes Phaser as it keeps iterating colliders over freed groups. So defer the hand-off to the
     // top of the next update(), after the physics step has fully unwound.
     this.pendingComplete = {
-      collected: { ...this.collected },
+      collected: applyHaulMult({ ...this.collected }, this.mutFx.rewardMult),
       survivedMs: this.elapsed,
       died,
       tier: this.expedition.tier,
+      mutators: [...this.mutatorIds],
+      rewardMult: this.mutFx.rewardMult,
     };
   }
 }
