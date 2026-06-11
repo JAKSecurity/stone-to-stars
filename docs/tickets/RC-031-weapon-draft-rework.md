@@ -1,5 +1,5 @@
 # RC-031: Weapon system redesign — meaningful build choices
-**Status**: Open  **Priority**: P1  **Type**: Feature (design-heavy)
+**Status**: Delivered  **Priority**: P1  **Type**: Feature (design-heavy)
 **Created**: 2026-06-10  **Scope expanded**: 2026-06-10
 
 ## Summary
@@ -79,3 +79,17 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
   RC-026 (POI events), RC-015 (orbit/lob behaviors as a behavior-diversity precedent)
 - Inspirations: Slay the Spire, Vampire Survivors, Ball x Pit (ball-fusion breakout-roguelite),
   Megabonk (weapon visual/verb differentiation)
+
+## Resolution (2026-06-11)
+Delivered as the **Forge & Fuse** system, merged to main (a50d2cf). Spec:
+`docs/superpowers/specs/2026-06-11-rc-031-weapon-fusion-design.md`; plan (17 tasks, all executed
+subagent-driven with two-stage review): `docs/superpowers/plans/2026-06-11-rc031-forge-and-fuse.md`.
+Shipped: 10 verb archetypes over a component engine (trajectory/onHit), chain weapon fusion
+(2 slots, 3-base cap, mini-boss catalysts, 55 authored hybrid names), tradeoff-only passives
+(2 slots + 4 authored rare fusions), Expedition Kit pre-run picker (kit = the run's draft pool),
+tech-unlocked right-click actives (net/poison gas/grenade volley), per-archetype VFX kits + hit
+juice, save v4 (reset on bump). 288 vitest green; Playwright E2E verified the full
+kit -> draft -> fuse -> active -> re-fuse -> clear loop. Folded playtest #4 (no weaker offers,
+by construction) and #7 (slot commitment via fusion); #6 pierce dissolved into the component
+model (RC-025 scope note). Deferred: damage-number pooling (perf, if profiling warrants),
+draft tradeoff-row overflow clamp (noted on RC-022), soft passive tradeoffs balance note (RC-009).
