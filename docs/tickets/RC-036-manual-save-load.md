@@ -1,5 +1,5 @@
 # RC-036: Manual save/load — save slots + export/import
-**Status**: Open  **Priority**: P3  **Type**: Feature
+**Status**: Delivered  **Priority**: P3  **Type**: Feature
 **Created**: 2026-06-11
 
 ## Summary

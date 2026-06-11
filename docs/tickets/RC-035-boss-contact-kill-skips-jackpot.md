@@ -1,5 +1,5 @@
 # RC-035: Boss contact-kill skips the jackpot (climax can be no-sold)
-**Status**: Open  **Priority**: P3  **Type**: Bug
+**Status**: Delivered  **Priority**: P3  **Type**: Bug
 **Created**: 2026-06-11
 
 ## Summary
