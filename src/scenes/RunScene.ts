@@ -40,9 +40,11 @@ import {
   generateLayout, DungeonLayout, Barrier,
   WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS,
 } from '../run/dungeonGen';
-import { enemyPlacements, gemPlacements, pickBiasedResource } from '../run/dungeonPopulate';
+import { enemyPlacements, gemPlacements, pickBiasedResource, openPoint } from '../run/dungeonPopulate';
 import { combineMutators, applyHaulMult } from '../run/mutators';
 import { MUTATORS } from '../run/mutatorData';
+import { POIS, PoiDef, PoiId, ALTAR_WAKE_SCREENS } from '../run/poiData';
+import { rollPois, shrineWave, shrineJackpot } from '../run/poi';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -138,6 +140,13 @@ export class RunScene extends Phaser.Scene {
     tickDamage: number; lastTick: Map<any, number>; gfx: Phaser.GameObjects.Arc; tint: number;
   }> = [];
   private enemyUidCounter = 0;
+  // RC-026 POIs: the seeded dungeon rng (kept from create() for POI rolls/placement/wave/jackpot),
+  // the placed POIs, and the shrine-wave tracking. Indicators are one reused screen-fixed text per
+  // POI. All reset in init().
+  private dungeonRng: () => number = mulberry32(0);
+  private pois: Array<{ def: PoiDef; x: number; y: number; obj: any; consumed: boolean; indicator?: Phaser.GameObjects.Text }> = [];
+  private shrineWaveIds: Set<string> = new Set();
+  private shrinePending: { x: number; y: number } | null = null;
   private hud!: Phaser.GameObjects.Text;
   // RC-022 B3 HUD strip: a thin XP-progress bar under the HUD text, and a kill counter.
   private xpBarBg!: Phaser.GameObjects.Rectangle;
@@ -199,6 +208,13 @@ export class RunScene extends Phaser.Scene {
     this.enemyUidCounter = 0;
     this.kills = 0;            // RC-022 B3: reset the per-run kill counter
     this.lastFlashMs = -Infinity; // RC-022 B6: reset the muzzle-flash throttle
+    // RC-026: reset all POI scene state. Destroy any stale indicator objects from a prior run
+    // before clearing the array, and re-seed the dungeon rng reference (create() reassigns it).
+    for (const p of this.pois) p.indicator?.destroy();
+    this.pois = [];
+    this.shrineWaveIds = new Set();
+    this.shrinePending = null;
+    this.dungeonRng = mulberry32(0);
   }
 
   create() {
@@ -301,6 +317,158 @@ export class RunScene extends Phaser.Scene {
     }
     for (const g of gemPlacements(placeRng, this.layout, this.expedition.tier, this.biome)) {
       this.dropGem(g.x, g.y, g.resource);
+    }
+
+    // RC-026: roll + place this dungeon's 2 opt-in POIs with a seed-derived rng kept on the scene
+    // (shrine-wave composition and jackpot rolls reuse it, so a seed reproduces its POIs end-to-end).
+    this.dungeonRng = mulberry32((seed ^ 0x85ebca6b) >>> 0);
+    this.placePois();
+  }
+
+  /** RC-026: place each rolled POI in a far quadrant (best-of-N farthest open point ≥ 1.2 screen
+   *  widths from start), obstacle-safe via dungeonPopulate's openPoint sampler. Shrine/altar are
+   *  physics-less structures; the courier (Task 8) is spawned here as an enemy with poiCourier data. */
+  private placePois() {
+    const minDist = this.scale.width * 1.2;
+    for (const id of rollPois(this.dungeonRng)) {
+      const def = POIS[id as PoiId];
+      const { x, y } = this.farPoiPoint(minDist);
+      this.placePoi(def, x, y);
+    }
+  }
+
+  /** Materialise one POI. Shrine/altar are physics-less structures rendered here; the courier is an
+   *  enemy whose spawn + flee/despawn/jackpot lifecycle is wired in Task 8 via spawnCourierAt(). The
+   *  `pois` entry's obj is the structure image (or the courier sprite); indicators key off the stored
+   *  x/y, which all POIs carry. */
+  private placePoi(def: PoiDef, x: number, y: number) {
+    if (def.id === 'courier') {
+      const e = this.spawnCourierAt(x, y);
+      this.pois.push({ def, x, y, obj: e, consumed: false });
+      return;
+    }
+    const size = (def.id === 'shrine' || def.id === 'altar') ? 48 : 34;
+    const obj = this.add.image(x, y, def.sprite).setDepth(8);
+    obj.setDisplaySize(size * RUN_SCALE, size * RUN_SCALE);
+    this.pois.push({ def, x, y, obj, consumed: false });
+  }
+
+  /** RC-026 Task 7 stand-in for the treasure courier: a static placeholder structure so a courier
+   *  roll still renders + gets an edge indicator. Task 8 replaces this body with the real flee enemy
+   *  (spawnEnemyAt + poiCourier tag + despawn/jackpot lifecycle); the call site in placePoi is stable. */
+  private spawnCourierAt(x: number, y: number): any {
+    const obj = this.add.image(x, y, POIS.courier.sprite).setDepth(8);
+    obj.setDisplaySize(34 * RUN_SCALE, 34 * RUN_SCALE);
+    return obj;
+  }
+
+  /** Best-of-N sample for a far-quadrant, obstacle-safe POI point. Mirrors the boss-lair sampler but
+   *  prefers the first candidate clearing `minDist` from start; falls back to the farthest seen. */
+  private farPoiPoint(minDist: number): { x: number; y: number } {
+    let best = openPoint(this.dungeonRng, this.layout, 80);
+    let bestD = Math.hypot(best.x - this.layout.start.x, best.y - this.layout.start.y);
+    for (let i = 0; i < 24; i++) {
+      const p = openPoint(this.dungeonRng, this.layout, 80);
+      const d = Math.hypot(p.x - this.layout.start.x, p.y - this.layout.start.y);
+      if (d > bestD) { bestD = d; best = p; }
+      if (bestD >= minDist) break;
+    }
+    return best;
+  }
+
+  /** RC-026: per-frame POI activation. Walking onto an unconsumed shrine summons its guardian wave
+   *  (awake + aggroed — the wager); walking onto an altar grants a free catalyst and wakes the area.
+   *  The courier is an enemy, so it has no walk-over activation here. */
+  private updatePois() {
+    const reach = 60 * RUN_SCALE;
+    for (const poi of this.pois) {
+      if (poi.consumed || poi.def.id === 'courier') continue;
+      if (!withinRadius(this.player.x, this.player.y, poi.x, poi.y, reach)) continue;
+      if (poi.def.id === 'shrine') this.activateShrine(poi);
+      else if (poi.def.id === 'altar') this.activateAltar(poi);
+    }
+  }
+
+  /** Shrine: consume the structure, then spawn the tier-scaled guardian wave awake + aggroed around
+   *  it. The wave's uids are tracked; when the last falls (applyDamageToEnemy), the culture jackpot
+   *  bursts at the shrine. Wave COMPOSITION uses the seeded dungeonRng (reproducible); only spawn
+   *  jitter uses Math.random. */
+  private activateShrine(poi: { def: PoiDef; x: number; y: number; obj: any; consumed: boolean }) {
+    poi.consumed = true;
+    poi.obj?.setTint?.(0x444444); // dark the awakened structure
+    const wave = shrineWave(this.dungeonRng, this.biome.spawnTable, this.expedition.tier);
+    this.shrineWaveIds = new Set<string>();
+    for (const id of wave) {
+      if (!ENEMIES[id]) continue;
+      const ang = Math.random() * Math.PI * 2;
+      const r = (140 + Math.random() * 120) * RUN_SCALE;
+      const e = this.spawnEnemyAt(ENEMIES[id], poi.x + Math.cos(ang) * r, poi.y + Math.sin(ang) * r);
+      e.setData('asleep', true);
+      this.wakeEnemy(e); // awake + aggroed — the wager
+      this.shrineWaveIds.add(e.getData('uid'));
+    }
+    this.shrinePending = { x: poi.x, y: poi.y };
+    playSfx('boss-arrival');
+  }
+
+  /** Altar: consume → +1 catalyst (free fusion material) + a wake sweep over ~1.5 screens, so the
+   *  reward is paid for by a sudden surge of awakened defenders. */
+  private activateAltar(poi: { def: PoiDef; x: number; y: number; obj: any; consumed: boolean }) {
+    poi.consumed = true;
+    poi.obj?.setTint?.(0x444444);
+    this.catalysts += 1;
+    playSfx('gem-pickup', { semitones: 12 });
+    const wakeR = this.scale.width * ALTAR_WAKE_SCREENS;
+    (this.enemies.getChildren() as any[]).forEach((e) => {
+      if (e.active && withinRadius(poi.x, poi.y, e.x, e.y, wakeR)) this.wakeEnemy(e);
+    });
+    this.cameras.main.shake(140, 0.006);
+  }
+
+  /** RC-026: when a shrine-wave enemy dies, drop it from the tracking set; on the last kill, burst
+   *  the culture jackpot at the shrine. Called from applyDamageToEnemy's death branch by uid. */
+  private onShrineWaveDeath(uid: string) {
+    if (!this.shrineWaveIds.has(uid)) return;
+    this.shrineWaveIds.delete(uid);
+    if (this.shrineWaveIds.size > 0 || !this.shrinePending) return;
+    const at = this.shrinePending;
+    for (const g of shrineJackpot(this.expedition.tier)) {
+      const ang = Math.random() * Math.PI * 2, rr = 30 + Math.random() * 60;
+      this.dropGem(at.x + Math.cos(ang) * rr, at.y + Math.sin(ang) * rr, g.resource, { valueOverride: g.value });
+    }
+    this.shrinePending = null;
+    playSfx('gem-pickup', { semitones: 12 });
+  }
+
+  /** RC-026: one reused screen-fixed icon per off-camera POI, clamped to the screen edge toward the
+   *  POI's world position. Hidden when the POI is on-camera, consumed, or its object is gone
+   *  (courier despawn, Task 8). Depth 58 sits above the HUD strip but below banners. */
+  private updatePoiIndicators() {
+    const cam = this.cameras.main;
+    const view = cam.worldView;
+    const { width, height } = this.scale;
+    const pad = 22;
+    for (const poi of this.pois) {
+      const gone = poi.consumed || (poi.obj && poi.obj.active === false);
+      const onScreen = !gone &&
+        poi.x >= view.x && poi.x <= view.x + view.width &&
+        poi.y >= view.y && poi.y <= view.y + view.height;
+      if (gone || onScreen) {
+        poi.indicator?.setVisible(false);
+        continue;
+      }
+      if (!poi.indicator) {
+        poi.indicator = this.add.text(0, 0, poi.def.icon, { fontSize: '24px', stroke: '#000', strokeThickness: 4 })
+          .setOrigin(0.5).setScrollFactor(0).setDepth(58);
+      }
+      // Screen-space vector from screen center toward the POI, scaled out to the padded edge so the
+      // icon sits on whichever edge (vertical or horizontal) the direction hits first.
+      const sx = poi.x - cam.scrollX, sy = poi.y - cam.scrollY;
+      const cx = width / 2, cy = height / 2;
+      const dx = sx - cx, dy = sy - cy;
+      const maxX = (width / 2) - pad, maxY = (height / 2) - pad;
+      const scale = Math.min(maxX / Math.max(Math.abs(dx), 1e-6), maxY / Math.max(Math.abs(dy), 1e-6));
+      poi.indicator.setVisible(true).setPosition(cx + dx * scale, cy + dy * scale);
     }
   }
 
@@ -439,6 +607,10 @@ export class RunScene extends Phaser.Scene {
       this.updateEnemyMovement(e, dt);
     });
     this.updateEnemyFire(dt);
+
+    // RC-026: POI proximity activation (shrine wave / altar wake) + off-screen edge indicators.
+    this.updatePois();
+    this.updatePoiIndicators();
 
     this.vacuumGems();
 
@@ -1182,6 +1354,8 @@ export class RunScene extends Phaser.Scene {
     if (hp <= 0) {
       const ex = enemy.x, ey = enemy.y;
       this.kills += 1; // RC-022 B3: a damage-kill increments the HUD counter (ceremony wipe doesn't)
+      // RC-026: if this was a shrine guardian, retire it from the wave set — the last one pays out.
+      this.onShrineWaveDeath(enemy.getData('uid'));
       // RC-018: stop any charger telegraph tween before the sprite is freed.
       this.stopChargerTell(enemy);
       // RC-018: a splitter bursts into weaker children at its death position.

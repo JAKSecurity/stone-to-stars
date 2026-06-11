@@ -33,8 +33,9 @@ export function pickBiasedResource(rng: Rng, bias: Partial<Record<Resource, numb
   return RESOURCES[RESOURCES.length - 1];
 }
 
-/** A random point inside the walls and outside every barrier band (margin-padded). */
-function openPoint(rng: Rng, layout: DungeonLayout, margin: number): { x: number; y: number } {
+/** A random point inside the walls and outside every barrier band (margin-padded). Exported so
+ *  RC-026 POI placement can sample obstacle-safe far-quadrant points with the same seeded rng. */
+export function openPoint(rng: Rng, layout: DungeonLayout, margin: number): { x: number; y: number } {
   for (let tries = 0; tries < 60; tries++) {
     const x = rngInt(rng, WALL_THICKNESS + margin, layout.width - WALL_THICKNESS - margin);
     const y = rngInt(rng, WALL_THICKNESS + margin, layout.height - WALL_THICKNESS - margin);
