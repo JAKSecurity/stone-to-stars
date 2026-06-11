@@ -15,3 +15,10 @@ export function gemTierForExpeditionTier(tier: number): GemTier {
 export function gemSpriteId(resource: Resource, tier: GemTier): string {
   return tier === 'cut' ? `gem_${resource}` : `gem_${resource}_${tier}`;
 }
+
+/** Next cosmetic tier up, clamped at the top — used for the RC-019 boss jackpot's upgraded gem. */
+export function bumpTier(tier: GemTier): GemTier {
+  if (tier === 'chipped') return 'cut';
+  if (tier === 'cut') return 'brilliant';
+  return 'brilliant';
+}
