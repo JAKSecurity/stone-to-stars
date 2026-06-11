@@ -821,7 +821,7 @@ export class RunScene extends Phaser.Scene {
 
     // --- Juice: floating damage number ---
     const dmgText = this.add.text(enemy.x, enemy.y - 8, String(Math.round(damage)), {
-      fontSize: '13px', color: '#ffee44', stroke: '#000', strokeThickness: 2,
+      fontSize: '20px', color: '#ffee44', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(30);
     this.tweens.add({
       targets: dmgText, y: dmgText.y - 22, alpha: 0,
