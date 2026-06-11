@@ -999,7 +999,7 @@ export class RunScene extends Phaser.Scene {
       pool: this.mods.weapons,
     });
     const { width, height } = this.scale;
-    const panel = this.add.container(0, 0).setDepth(20).setScrollFactor(0);
+    const panel = this.add.container(0, 0).setDepth(20);
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
     panel.add(bg);
     const queueSuffix = this.pendingDrafts > 0 ? ` (+${this.pendingDrafts} more)` : '';
@@ -1045,6 +1045,11 @@ export class RunScene extends Phaser.Scene {
       });
       panel.add(rerollBtn); panel.add(rerollLabel);
     }
+
+    // Phaser containers do not propagate scrollFactor to children for input hit-testing — each
+    // child must carry scrollFactor 0 itself or the cards render screen-fixed yet hit-test at
+    // world coords (unclickable once the camera scrolls). updateChildren=true stamps them all.
+    panel.setScrollFactor(0, 0, true);
   }
 
   private draftLabel(o: DraftOption): string {
