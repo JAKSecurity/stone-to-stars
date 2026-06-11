@@ -288,7 +288,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
   gatling: {
     id: 'gatling', name: 'Gatling Gun', tier: 'industrial',
     projectileSprite: 'shot_bullet',
-    cooldownMs: 180, damage: 16, count: 1, spread: 0, speed: 700,
+    cooldownMs: 360, damage: 16, count: 1, spread: 0, speed: 700,
     behavior: 'straight',
     maxLevel: 5,
     levelScaling: { damage: 5, cooldownMs: -15 },

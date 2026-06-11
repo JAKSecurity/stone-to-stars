@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { gemTierForExpeditionTier, gemSpriteId } from '../src/run/gemTier';
+import { gemTierForExpeditionTier, gemSpriteId, bumpTier } from '../src/run/gemTier';
 
 describe('gemTier — bracket by expedition tier', () => {
   it('maps stone/bronze/iron (0–2) to chipped', () => {
@@ -23,5 +23,13 @@ describe('gemTier — sprite id', () => {
   it('suffixes the other tiers', () => {
     expect(gemSpriteId('science', 'chipped')).toBe('gem_science_chipped');
     expect(gemSpriteId('culture', 'brilliant')).toBe('gem_culture_brilliant');
+  });
+});
+
+describe('gemTier — bumpTier', () => {
+  it('steps chipped→cut→brilliant and clamps at brilliant', () => {
+    expect(bumpTier('chipped')).toBe('cut');
+    expect(bumpTier('cut')).toBe('brilliant');
+    expect(bumpTier('brilliant')).toBe('brilliant');
   });
 });

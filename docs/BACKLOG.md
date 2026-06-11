@@ -36,7 +36,7 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-016 | Modern age content (mechanized warfare) + hero face/eye fixes | Delivered | P2 | C3 | docs/tickets/RC-016-modern-age.md |
 | RC-017 | Exponential per-age progression (economy G=1.75 + fixed-per-age difficulty + run-scene overhaul + early-game balance) | Delivered | P2 | C3 | docs/superpowers/specs/2026-06-08-exponential-economy-design.md |
 | RC-018 | Enemy behavior archetypes (ranged/charger/splitter/circler) | Delivered | P2 | C3 | docs/tickets/RC-018-enemy-behavior-archetypes.md |
-| RC-019 | Mini-boss arrival events (announce, HP bar, jackpot) | Open | P2 | C3 | docs/tickets/RC-019-mini-boss-events.md |
+| RC-019 | Mini-boss arrival events (announce, HP bar, jackpot) | Delivered | P2 | C3 | docs/tickets/RC-019-mini-boss-events.md |
 | RC-020 | Procedural audio pass (WebAudio SFX + ambient) | Delivered | P2 | C3 | docs/tickets/RC-020-procedural-audio.md |
 | RC-021 | Biome visual identity (palettes + themed obstacles) | Delivered | P2 | C3 | docs/tickets/RC-021-biome-visual-identity.md |
 | RC-022 | Run readability bundle (HUD XP bar/loadout, draft cards, gem value, projectiles) | In Progress | P2 | C3 | docs/tickets/RC-022-run-readability-bundle.md |
@@ -48,3 +48,6 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-028 | Culture sink — Traditions meta-progression | Delivered | P3 | C3 | docs/tickets/RC-028-culture-traditions.md |
 | RC-029 | Expedition mutators (risk/reward modifiers) | Open | P3 | C3 | docs/tickets/RC-029-expedition-mutators.md |
 | RC-030 | Polish defects: fresh-save palette message + favicon | Delivered | P3 | C3 | docs/tickets/RC-030-polish-defects.md |
+| RC-031 | In-run weapon & draft rework (single weapon, no weaker offers) | Open | P2 | C3 | docs/tickets/RC-031-weapon-draft-rework.md |
+| RC-032 | Camp scale & city growth-by-age | Open | P2 | C3 | docs/tickets/RC-032-camp-scale-city-growth.md |
+| RC-033 | Resource economy rebalance — science starvation | Open | P2 | C3 | docs/tickets/RC-033-resource-economy-rebalance.md |

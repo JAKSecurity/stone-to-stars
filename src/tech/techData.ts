@@ -14,11 +14,11 @@ export const TECHS: Record<string, TechNode> = {
     cost: { culture: 10 }, requires: [], runBonus: { maxHp: 15 },
   },
   mining: {
-    id: 'mining', name: 'Mining', age: 'stone',
+    id: 'mining', name: 'Mining', age: 'bronze',
     cost: { industry: 15, science: 5 }, requires: [], unlocksBuilding: 'mine',
   },
   writing: {
-    id: 'writing', name: 'Writing', age: 'stone',
+    id: 'writing', name: 'Writing', age: 'bronze',
     cost: { science: 12 }, requires: [], runBonus: { draftChoices: 1 },
   },
   bronze_working: {

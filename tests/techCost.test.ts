@@ -16,8 +16,9 @@ describe('techCost — derived flat base × G^age', () => {
 
   it('an unlock tech with two resources keeps both, primary = the larger current one', () => {
     // mining current {industry:15, science:5} → industry primary, science secondary
+    // RC-009 #3: mining moved to bronze age, so cost scales with m('bronze')
     expect(techCost('mining')).toEqual({
-      industry: Math.round(11 * m('stone')), science: Math.round(6 * m('stone')),
+      industry: Math.round(11 * m('bronze')), science: Math.round(6 * m('bronze')),
     });
   });
 
