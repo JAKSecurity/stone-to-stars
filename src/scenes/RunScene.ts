@@ -295,6 +295,16 @@ export class RunScene extends Phaser.Scene {
       this.spawnCooldown = Math.max(150, 2000 / ramp);
     }
 
+    // RC-019: announce the mini-boss once the run is ~70% through.
+    if (shouldSpawnBoss(this.elapsed, this.runDurationMs, this.bossSpawned)) {
+      this.bossSpawned = true;
+      this.announceBoss();
+    }
+    if (this.bossHp) {
+      if (this.bossEnemy?.active) this.updateBossHpBar();
+      else this.destroyBossHpBar();
+    }
+
     this.explorationCooldown -= dt;
     if (this.explorationCooldown <= 0) {
       this.collected.exploration += rewardValueForTier(this.expedition.tier);
@@ -382,6 +392,7 @@ export class RunScene extends Phaser.Scene {
     if (this.ceremony || this.finished) return;
     this.ceremony = true;
     this.ceremonyMs = CEREMONY_MS;
+    this.destroyBossHpBar();
     playSfx('zone-cleared'); // RC-020
 
     (this.enemies.getChildren() as any[]).slice().forEach((e) => {
@@ -562,6 +573,63 @@ export class RunScene extends Phaser.Scene {
     // Match the hitbox to the visible mob so you don't get stuck on enemies that look clear.
     this.shrinkBody(enemy, 0.72);
     return enemy;
+  }
+
+  /** RC-019: warning banner + edge indicator, then the boss arrives after a short telegraph. */
+  private announceBoss() {
+    const { width, height } = this.scale;
+    const edge = Phaser.Math.Between(0, 3);
+    const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
+    const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
+
+    playSfx('boss-arrival'); // RC-020 (first wiring of this cue)
+
+    const name = ENEMIES[this.bossId]?.name ?? 'Boss';
+    const banner = this.add.text(width / 2, height * 0.22, `⚔ ${name} approaches`, {
+      fontSize: '34px', color: '#ffdd55', stroke: '#000', strokeThickness: 5, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(60).setScrollFactor(0);
+    this.tweens.add({ targets: banner, alpha: 0, y: banner.y - 20, delay: 1600, duration: 700, onComplete: () => banner.destroy() });
+
+    // Pulsing warning marker at the entry point, cleared when the boss appears.
+    const warn = this.add.circle(x, y, 22, 0xff3322, 0.6).setDepth(59);
+    this.tweens.add({ targets: warn, scale: 1.8, alpha: 0.2, duration: 400, yoyo: true, repeat: -1 });
+
+    this.time.delayedCall(BOSS_TELEGRAPH_MS, () => { warn.destroy(); this.spawnBoss(x, y); });
+  }
+
+  /** RC-019: spawn the boss at (x,y) with 5× HP and the isBoss flag, and raise its HP bar. */
+  private spawnBoss(x: number, y: number) {
+    const def = ENEMIES[this.bossId];
+    const e = this.spawnEnemyAt(def, x, y);
+    const maxHp = def.baseHp * BOSS_HP_MULT;
+    e.setData('hp', maxHp);
+    e.setData('maxHp', maxHp);
+    e.setData('isBoss', true);
+    this.bossEnemy = e;
+    this.createBossHpBar();
+  }
+
+  private createBossHpBar() {
+    const { width } = this.scale;
+    const w = Math.min(520, width * 0.6), h = 16, x = (width - w) / 2, y = 18;
+    const bg = this.add.rectangle(x, y, w, h, 0x220000, 0.85).setOrigin(0, 0).setDepth(60).setScrollFactor(0).setStrokeStyle(2, 0x000000);
+    const fill = this.add.rectangle(x, y, w, h, 0xff3322, 1).setOrigin(0, 0).setDepth(61).setScrollFactor(0);
+    const label = this.add.text(width / 2, y + h + 2, ENEMIES[this.bossId]?.name ?? 'Boss', {
+      fontSize: '15px', color: '#ffdddd', stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5, 0).setDepth(61).setScrollFactor(0);
+    this.bossHp = { bg, fill, label };
+  }
+
+  private updateBossHpBar() {
+    if (!this.bossHp || !this.bossEnemy) return;
+    const frac = Math.max(0, Math.min(1, this.bossEnemy.getData('hp') / this.bossEnemy.getData('maxHp')));
+    this.bossHp.fill.width = this.bossHp.bg.width * frac;
+  }
+
+  private destroyBossHpBar() {
+    if (!this.bossHp) return;
+    this.bossHp.bg.destroy(); this.bossHp.fill.destroy(); this.bossHp.label.destroy();
+    this.bossHp = undefined;
   }
 
   /** Shrink a physics body to `frac` of the sprite's display size, kept centered. */
@@ -968,6 +1036,7 @@ export class RunScene extends Phaser.Scene {
   private finish(died: boolean) {
     if (this.finished) return;
     this.finished = true;
+    this.destroyBossHpBar();
     // finish() can be called from inside a physics collision callback (e.g. death via hitPlayer).
     // onComplete stops this scene, which destroys the physics groups — doing that mid-collision-step
     // crashes Phaser as it keeps iterating colliders over freed groups. So defer the hand-off to the
