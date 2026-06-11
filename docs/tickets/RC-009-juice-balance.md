@@ -65,6 +65,11 @@ Four concrete playtest tweaks folded into this balance ticket and shipped on the
   with Jeff ("scale up 5× exponentially").
 - **#3 — Tech age move:** `writing` and `mining` moved from Stone → Bronze in
   `src/tech/techData.ts` (verify they don't gate Stone-age progression).
+- **#11 — Gatling fire-rate nerf:** the Gatling Gun's base fire rate cut ~50% (raise its
+  `cooldownMs` ~2× in `src/run/weaponData.ts:288`) — it over-performs at base.
+
+Note: a separate, bigger balance problem — **science-token starvation** (playtest #12) — is tracked
+as its own ticket **RC-033** (needs faucet-vs-sink measurement, not a quick tweak).
 
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §6

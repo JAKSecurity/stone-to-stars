@@ -44,3 +44,11 @@ once, no hidden information.
 - **B6 projectiles — PARTIAL:** *enemy* projectiles are now distinct (red/orange circles). Remaining:
   *player* projectile polish (bigger, per-class color/trail, muzzle flash).
 - **B3 HUD — REMAINING in full:** XP progress bar, weapon-slot icons w/ level pips, kill counter.
+
+## Update — 2026-06-10 (playtest note #13: draft overflow)
+The level-up draft overlay overflows the bottom of the screen when `draftChoices` is high — a
+culture/Writing/building-maximized build stacks `BASE_DRAFT_CHOICES + buildings + tradition ranks +
+Writing(+1)` into more cards than fit. Fix the draft overlay layout so it never runs off-screen:
+cap the visible option count (extra choices convert to rerolls), or make the overlay a responsive
+scroll/grid that scales to the viewport. Lives in `RunScene` draft rendering. (RC-031's single-weapon
+change reduces weapon options, partially mitigating but not fixing the root layout issue.)
