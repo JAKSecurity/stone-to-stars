@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { initialRunStats, xpForLevel, addXp } from '../src/run/runStats';
+import { initialRunStats, xpForLevel, addXp, xpProgress } from '../src/run/runStats';
 import { RunModifiers } from '../src/game/types';
 
 const FULL_MODS: RunModifiers = {
@@ -72,6 +72,30 @@ describe('runStats', () => {
     expect(r2.levelsGained).toBe(1);
     expect(r2.stats.level).toBe(2);
     expect(r2.stats.xp).toBe(0);
+  });
+});
+
+describe('xpProgress (RC-022 HUD bar)', () => {
+  const base = initialRunStats({ maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'], pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1, draftRerolls: 0, startWeaponLevel: 1, actives: [] });
+
+  it('reads 0 for a freshly-leveled stat (xp 0)', () => {
+    expect(xpProgress(base)).toBe(0);
+  });
+
+  it('reads the partial fraction toward the next level', () => {
+    // xpForLevel(1) = 24; 12 xp is exactly half.
+    expect(xpProgress({ ...base, xp: 12 })).toBeCloseTo(0.5, 5);
+    expect(xpProgress({ ...base, xp: 6 })).toBeCloseTo(0.25, 5);
+  });
+
+  it('uses the current level threshold, not a fixed one', () => {
+    // xpForLevel(2) = 36; 18 at level 2 is half.
+    expect(xpProgress({ ...base, level: 2, xp: 18 })).toBeCloseTo(0.5, 5);
+  });
+
+  it('clamps to [0,1]', () => {
+    expect(xpProgress({ ...base, xp: -5 })).toBe(0);
+    expect(xpProgress({ ...base, xp: 9999 })).toBe(1);
   });
 });
 

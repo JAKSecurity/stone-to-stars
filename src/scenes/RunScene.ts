@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef, EquippedPassive, RunStats, OnHit } from '../game/types';
-import { initialRunStats, addXp } from '../run/runStats';
-import { rollDraft, DraftOption } from '../run/draft';
+import { initialRunStats, addXp, xpProgress } from '../run/runStats';
+import { rollDraft, DraftOption, draftLayout } from '../run/draft';
 import {
   EquippedWeapon, initialWeapons, addWeapon, swapWeapon, levelWeapon, defOf,
   weaponShot, WeaponShot, equipHybrid,
@@ -18,7 +18,7 @@ import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { apexEnemyId } from '../run/expedition';
-import { GemTier, gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
+import { GemTier, gemTierForExpeditionTier, gemSpriteId, gemDisplayScale, gemValueTier } from '../run/gemTier';
 import { rewardValueForTier } from '../game/economy';
 import {
   bossFreeTable, bossJackpotGems, BOSS_HP_MULT, dropsCatalyst,
@@ -133,6 +133,12 @@ export class RunScene extends Phaser.Scene {
   }> = [];
   private enemyUidCounter = 0;
   private hud!: Phaser.GameObjects.Text;
+  // RC-022 B3 HUD strip: a thin XP-progress bar under the HUD text, and a kill counter.
+  private xpBarBg!: Phaser.GameObjects.Rectangle;
+  private xpBarFill!: Phaser.GameObjects.Rectangle;
+  private kills = 0;
+  // RC-022 B6: throttle muzzle flashes — min gap between flashes (rapid-fire spam guard).
+  private lastFlashMs = -Infinity;
   private heroSprite = 'hero';
   // RC-031: chosen right-click active id (wired from this.mods.activeItem in Task 11). Stays
   // undefined until then; the loadout HUD line guards on it.
@@ -177,6 +183,8 @@ export class RunScene extends Phaser.Scene {
     this.lobs = [];
     this.patches = [];
     this.enemyUidCounter = 0;
+    this.kills = 0;            // RC-022 B3: reset the per-run kill counter
+    this.lastFlashMs = -Infinity; // RC-022 B6: reset the muzzle-flash throttle
   }
 
   create() {
@@ -246,6 +254,14 @@ export class RunScene extends Phaser.Scene {
 
     this.hud = this.add.text(12, 12, '',
       { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10).setScrollFactor(0);
+
+    // RC-022 B3: a thin XP-progress bar under the two HUD lines — the single most important missing
+    // feedback (how close the next draft is). Screen-fixed, origin top-left, fill scales 0..1.
+    const XP_BAR_W = 220, XP_BAR_H = 8, xpBarY = 64;
+    this.xpBarBg = this.add.rectangle(12, xpBarY, XP_BAR_W, XP_BAR_H, 0x101418, 0.85)
+      .setOrigin(0, 0).setDepth(10).setScrollFactor(0).setStrokeStyle(1, 0x000000, 0.6);
+    this.xpBarFill = this.add.rectangle(12, xpBarY, 0, XP_BAR_H, 0x4ea3ff, 1)
+      .setOrigin(0, 0).setDepth(11).setScrollFactor(0);
 
     // RC-019: the biome's toughest enemy becomes an announced mini-boss — pull it from the random
     // spawn pool (the card threat-rating still reads it from the untouched biome.spawnTable).
@@ -497,9 +513,11 @@ export class RunScene extends Phaser.Scene {
     this.hud.setText(
       `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
-      `☠ ${this.enemies.countActive(true)} left\n` +
+      `☠ ${this.kills}  ·  ${this.enemies.countActive(true)} left\n` +
       this.loadoutHudLine(),
     );
+    // RC-022 B3: XP bar fill tracks progress to the next level (shares xpForLevel via xpProgress).
+    this.xpBarFill.width = this.xpBarBg.width * xpProgress(this.stats);
 
     // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
     if (this.enemies.countActive(true) === 0) this.startCeremony();
@@ -528,6 +546,9 @@ export class RunScene extends Phaser.Scene {
       } else {
         g.body.setVelocity(0, 0);
       }
+      // RC-022 B5: a top-tier gem's glow rides along as it's magnetted in.
+      const glow = g.getData('glow');
+      if (glow?.active) glow.setPosition(g.x, g.y);
     });
   }
 
@@ -628,6 +649,23 @@ export class RunScene extends Phaser.Scene {
     }
   }
 
+  /** RC-022 B6: a brief tinted circle at the player's muzzle when a projectile volley fires, nudged
+   *  a few px along the aim so it reads as the gun's flash. Self-destroying (alpha-out ~80ms).
+   *  Throttled to one flash per ~90ms so rapid-fire weapons don't spam overlapping flashes. */
+  private muzzleFlash(kit: VfxKit, aimAngle: number) {
+    if (this.elapsed - this.lastFlashMs < 90) return;
+    this.lastFlashMs = this.elapsed;
+    const off = 10 * RUN_SCALE;
+    const fx = this.player.x + Math.cos(aimAngle) * off;
+    const fy = this.player.y + Math.sin(aimAngle) * off;
+    const flash = this.add.circle(fx, fy, 8, kit.tint, 0.85)
+      .setDepth(12).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: flash, scale: 1.4, alpha: 0, duration: 80,
+      onComplete: () => flash.destroy(),
+    });
+  }
+
   private fireWeapon(shot: WeaponShot, weaponId: string) {
     const kit = this.kitFor(shot);
     switch (shot.trajectory) {
@@ -641,6 +679,9 @@ export class RunScene extends Phaser.Scene {
     const baseAngle = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
       : -Math.PI / 2;
+    // RC-022 B6: a small muzzle flash at the player when a volley fires (projectile verbs only —
+    // orbit/trail/lob returned above). Throttled so rapid-fire can't spam flashes.
+    this.muzzleFlash(kit, baseAngle);
     for (let i = 0; i < shot.count; i++) {
       // fan the volley around the aim angle when there is more than one projectile
       const offset = shot.count > 1
@@ -1122,6 +1163,7 @@ export class RunScene extends Phaser.Scene {
     const hp = enemy.getData('hp') - damage;
     if (hp <= 0) {
       const ex = enemy.x, ey = enemy.y;
+      this.kills += 1; // RC-022 B3: a damage-kill increments the HUD counter (ceremony wipe doesn't)
       // RC-018: stop any charger telegraph tween before the sprite is freed.
       this.stopChargerTell(enemy);
       // RC-018: a splitter bursts into weaker children at its death position.
@@ -1223,12 +1265,28 @@ export class RunScene extends Phaser.Scene {
 
   private dropGem(x: number, y: number, resource: Resource, opts?: { valueOverride?: number; tierOverride?: GemTier }) {
     const tier = opts?.tierOverride ?? gemTierForExpeditionTier(this.expedition.tier);
+    const value = opts?.valueOverride ?? rewardValueForTier(this.expedition.tier);
+    // RC-022 B5: display size scales with the value tier so a jackpot reads bigger at a glance.
+    const sizePx = 14 * RUN_SCALE * gemDisplayScale(value);
     const gem = this.add.image(x, y, gemSpriteId(resource, tier)) as any;
-    gem.setDisplaySize(14 * RUN_SCALE, 14 * RUN_SCALE);
+    gem.setDisplaySize(sizePx, sizePx);
     this.physics.add.existing(gem);
     this.gems.add(gem);
     gem.setData('resource', resource);
-    gem.setData('value', opts?.valueOverride ?? rewardValueForTier(this.expedition.tier));
+    gem.setData('value', value);
+    // RC-022 B5: top-tier gems get a soft additive glow behind them, gem-tinted, gently pulsing —
+    // the boss jackpot's big gem becomes unmistakable. Cheaper than postFX; parented to follow the
+    // gem (and torn down with it) so the magnet sweep carries the glow along.
+    if (gemValueTier(value) === 'major') {
+      const tint = this.gemGlowColor(resource);
+      const glow = this.add.circle(x, y, sizePx * 0.85, tint, 0.3)
+        .setDepth(gem.depth - 1).setBlendMode(Phaser.BlendModes.ADD);
+      gem.setData('glow', glow);
+      this.tweens.add({
+        targets: glow, scaleX: 1.35, scaleY: 1.35, alpha: 0.5,
+        duration: 520, ease: 'Sine.easeInOut', yoyo: true, repeat: -1,
+      });
+    }
     // --- Juice: pulsing scale yoyo so gems read as collectible ---
     this.tweens.add({
       targets: gem,
@@ -1241,10 +1299,23 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  /** RC-022 B5: a bright, resource-keyed glow color for top-tier gems (matches the gem palette). */
+  private gemGlowColor(resource: Resource): number {
+    switch (resource) {
+      case 'exploration': return 0x66ddff;
+      case 'science':     return 0x88ccff;
+      case 'industry':    return 0xffcc66;
+      case 'culture':     return 0xff88dd;
+      default:            return 0xffffff;
+    }
+  }
+
   private collectGem(gem: any) {
     const value = gem.getData('value') ?? 1;
     this.collected[gem.getData('resource') as Resource] += value;
     playSfx('gem-pickup', { semitones: gemValueToSemitones(value) }); // RC-020: chime pitched by value
+    const glow = gem.getData('glow'); // RC-022 B5: tear down the top-tier glow with its gem
+    if (glow?.active) glow.destroy();
     gem.destroy();
   }
 
@@ -1281,8 +1352,11 @@ export class RunScene extends Phaser.Scene {
     const panel = this.add.container(0, 0).setDepth(20);
     const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
     panel.add(bg);
+    // RC-022 #13: responsive layout — compute slot positions/sizes from the option count + viewport
+    // so high-draftChoices builds never overflow (1-col → 2-col → shrunk pitch as needed).
+    const lay = draftLayout(picks.length, width, height);
     const queueSuffix = this.pendingDrafts > 0 ? ` (+${this.pendingDrafts} more)` : '';
-    const title = this.add.text(width / 2, height / 2 - 120, `Level up — choose one${queueSuffix}`,
+    const title = this.add.text(width / 2, lay.titleY, `Level up — choose one${queueSuffix}`,
       { fontSize: '20px', color: '#fff' }).setOrigin(0.5);
     panel.add(title);
 
@@ -1296,34 +1370,44 @@ export class RunScene extends Phaser.Scene {
       }
     };
 
+    // When the pitch is shrunk for many options, scale the type down a touch so two lines still fit
+    // inside the shorter card (the 64px-pitch baseline used 15/12px label/sub).
+    const tight = lay.pitch < 56;
+    const labelPx = tight ? 13 : 15;
+    const subPx = tight ? 11 : 12;
+    const labelDy = lay.cardH / 4;
+
     picks.forEach((opt, i) => {
-      const y = height / 2 - 50 + i * 64;
+      const slot = lay.slots[i];
+      const cx = slot.x, y = slot.y;
       // RC-031: fusion options read as the premium choice — gold card + gold text.
       const isFusion = opt.kind === 'fuseWeapons' || opt.kind === 'fusePassives';
       const cardColor = isFusion ? 0x8a6d1a : 0x238636;
       const labelColor = isFusion ? '#ffd75e' : '#fff';
-      const card = this.add.rectangle(width / 2, y, 460, 54, cardColor)
+      const card = this.add.rectangle(cx, y, slot.w, slot.h, cardColor)
         .setInteractive({ useHandCursor: true });
       // rc-017's two-line card (title + what-it-does) driving rc-028's centralized advance flow,
       // so the Oratory reroll path stays intact.
-      const label = this.add.text(width / 2, y - 9, this.draftLabel(opt),
-        { fontSize: '15px', color: labelColor, fontStyle: 'bold' }).setOrigin(0.5);
+      const label = this.add.text(cx, y - labelDy, this.draftLabel(opt),
+        { fontSize: `${labelPx}px`, color: labelColor, fontStyle: 'bold' }).setOrigin(0.5);
       card.on('pointerdown', () => { playSfx('draft-select'); this.applyDraftOption(opt); closeAndAdvance(); });
       panel.add(card); panel.add(label);
       // RC-031: passive cards show their tradeoff with each comma-segment colored by sign — green
       // gains, red costs — laid out as a centered row. Everything else keeps the single sub line.
+      // RC-022 #3: both rows clamp to the card width (scale font down to a 9px floor on overflow).
       if (opt.kind === 'newPassive' || opt.kind === 'levelPassive') {
-        for (const t of this.tradeoffSegments(this.draftDescription(opt), width / 2, y + 11)) panel.add(t);
+        for (const t of this.tradeoffSegments(this.draftDescription(opt), cx, y + labelDy, slot.w - 24, subPx)) panel.add(t);
       } else {
-        const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
-          { fontSize: '12px', color: isFusion ? '#ffe9a8' : '#d2f0d8' }).setOrigin(0.5);
+        const sub = this.add.text(cx, y + labelDy, this.draftDescription(opt),
+          { fontSize: `${subPx}px`, color: isFusion ? '#ffe9a8' : '#d2f0d8' }).setOrigin(0.5);
+        this.clampTextWidth(sub, slot.w - 24, subPx);
         panel.add(sub);
       }
     });
 
     // Oratory reroll affordance: re-roll the current options without consuming the level-up.
     if (this.rerollsLeft > 0) {
-      const ry = height / 2 - 50 + picks.length * 64 + 8;
+      const ry = lay.rerollY;
       const rerollBtn = this.add.rectangle(width / 2, ry, 380, 40, 0x6e40c9)
         .setInteractive({ useHandCursor: true });
       const rerollLabel = this.add.text(width / 2, ry, `🔄 Reroll (${this.rerollsLeft} left)`,
@@ -1389,24 +1473,46 @@ export class RunScene extends Phaser.Scene {
    *  per-segment texts colored by leading sign — green gains, red costs. Comma-separated; a fused
    *  passive's 3 segments each color independently. Returns the created texts (caller adds them to
    *  the panel so the scrollFactor(0) stamp applies). A "  ·  " separator sits between segments. */
-  private tradeoffSegments(desc: string, cx: number, cy: number): Phaser.GameObjects.Text[] {
+  private tradeoffSegments(desc: string, cx: number, cy: number, maxWidth?: number, basePx = 12): Phaser.GameObjects.Text[] {
     const SEP = '  ·  ';
     const segments = desc.split(', ').map((s) => s.trim());
     // Build each segment (and the separators) as origin-(0,0) texts, measure total width, then
     // place them left-to-right starting at the centered left edge.
-    const parts: Phaser.GameObjects.Text[] = [];
-    segments.forEach((seg, idx) => {
-      const negative = seg.startsWith('−') || seg.startsWith('-');
-      const color = negative ? '#ff9f9f' : '#9fe6a0';
-      if (idx > 0) {
-        parts.push(this.add.text(0, cy, SEP, { fontSize: '12px', color: '#88aa99' }).setOrigin(0, 0.5));
+    let fontPx = basePx;
+    const build = (px: number): Phaser.GameObjects.Text[] => {
+      const parts: Phaser.GameObjects.Text[] = [];
+      segments.forEach((seg, idx) => {
+        const negative = seg.startsWith('−') || seg.startsWith('-');
+        const color = negative ? '#ff9f9f' : '#9fe6a0';
+        if (idx > 0) {
+          parts.push(this.add.text(0, cy, SEP, { fontSize: `${px}px`, color: '#88aa99' }).setOrigin(0, 0.5));
+        }
+        parts.push(this.add.text(0, cy, seg, { fontSize: `${px}px`, color }).setOrigin(0, 0.5));
+      });
+      return parts;
+    };
+    let parts = build(fontPx);
+    // RC-022 #3: if the row overruns the card, shrink font proportionally (floor 9px) and rebuild.
+    if (maxWidth) {
+      let total = parts.reduce((w, t) => w + t.width, 0);
+      if (total > maxWidth) {
+        fontPx = Math.max(9, Math.floor(fontPx * (maxWidth / total)));
+        parts.forEach((t) => t.destroy());
+        parts = build(fontPx);
       }
-      parts.push(this.add.text(0, cy, seg, { fontSize: '12px', color }).setOrigin(0, 0.5));
-    });
+    }
     const total = parts.reduce((w, t) => w + t.width, 0);
     let x = cx - total / 2;
     for (const t of parts) { t.setX(x); x += t.width; }
     return parts;
+  }
+
+  /** RC-022 #3: shrink a single-line text's font (down to a 9px floor) until it fits maxWidth.
+   *  Mechanical clamp for long swap stat rows ("current → offered") on narrow cards. */
+  private clampTextWidth(t: Phaser.GameObjects.Text, maxWidth: number, basePx: number) {
+    if (t.width <= maxWidth) return;
+    const px = Math.max(9, Math.floor(basePx * (maxWidth / t.width)));
+    t.setFontSize(px);
   }
 
   private applyDraftOption(o: DraftOption) {

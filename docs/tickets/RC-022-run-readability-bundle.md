@@ -58,3 +58,46 @@ change reduces weapon options, partially mitigating but not fixing the root layo
   fused-passive desc can exceed the 460px card width at small canvas sizes. Fold a measure-and-
   shrink (or wrap) into this ticket's draft-card readability scope. Same for long swap stat rows
   (`current -> offered`).
+
+## Update — 2026-06-11 (mechanical remainder delivered)
+The mechanical remainder of the bundle is now in (RC-031 had already shipped the loadout line, kit
+tints, gold fusion cards, and tradeoff color-coding). Delivered this pass:
+
+- **B3 HUD strip — DELIVERED.** A thin 220×8 XP-progress bar sits under the two HUD lines,
+  screen-fixed, fill = progress to the next level. Reuses a new pure `xpProgress(stats)` helper in
+  `runStats.ts` (built on the existing `xpForLevel`, no duplicated formula; unit-tested). A per-run
+  `kills` counter increments on the damage-death path in `applyDamageToEnemy` (NOT the ceremony
+  wipe), resets in `init()`, and shows in the HUD line as `☠ N`. (Weapon-slot icons with level pips
+  remain as text — `Club L1 | …` — per the RC-031 loadout line; pictographic slot icons are the one
+  subjective-polish item left, see below.)
+- **#13 draft overflow — DELIVERED.** Extracted a pure `draftLayout(count, vw, vh)` helper into
+  `draft.ts` (unit-tested: 3 opts 1-col, 8 opts 2-col, 10 opts on-screen, tiny viewport shrinks
+  pitch, all slots within bounds). `renderDraft` now drives card positions/size from it: single
+  column at full pitch → 2 columns when a column would exceed 70% viewport height (and 2 cards fit
+  horizontally) → shrink pitch toward a 40px floor otherwise. Title above, reroll always below the
+  grid. Verified live on-screen at 5/7/10 options.
+- **#3 tradeoff/swap overflow clamp — DELIVERED.** `tradeoffSegments` measures the built row and, if
+  it exceeds card width − 24, rebuilds at a proportionally smaller font (9px floor). A new
+  `clampTextWidth` does the same for long single-line swap stat rows (`current → offered`).
+- **B5 gem value visibility — DELIVERED.** Added pure `gemValueTier` / `gemDisplayScale` to
+  `gemTier.ts` (unit-tested). Gem display size scales ×1.0 / ×1.25 / ×1.55 by value tier, and
+  top-tier (`major`) gems get a soft additive gem-colored glow circle behind them (alpha ~0.3, gentle
+  pulse) — the boss jackpot's big gem is now unmistakable. Glow rides along during the magnet sweep
+  and is torn down with its gem.
+- **B6 muzzle flash — DELIVERED.** A small additive flash in the weapon's kit tint fires at the
+  muzzle when a projectile volley launches (straight/spread/chain/boomerang/homing — orbit/trail/lob
+  excluded), alpha-out over ~80ms, self-destroying, throttled to ≥90ms between flashes (spam guard).
+
+Verification: 338 vitest green (326 baseline + 12 new pure tests across runStats/gemTier/draft);
+`npm run build` green. Live Playwright pass confirmed the HUD strip (XP bar partial after kills,
+`☠` counter), 7- and 10-option drafts fully on-screen (10 splits to 2 columns), a top-tier gem
+glowing next to a basic one (value 40 / w43 with glow vs value 3 / w28 no glow), and muzzle flashes
+during auto-fire.
+
+### Remaining on RC-022 (subjective polish only)
+- **B3 weapon-slot ICONS:** weapon slots are still rendered as text (`Name Lv`), not pictographic
+  icons-with-pips. Functional readability is met; sprite-icon slots are a cosmetic upgrade.
+- **B4 weapon SPRITE on draft cards:** cards show title + stat readout + color-coding + gold
+  evolutions, but not the weapon's sprite thumbnail. Subjective polish.
+- **B6 per-class projectile sprites/trails:** projectiles are tinted per verb (RC-031 kits) and now
+  have a muzzle flash, but bespoke per-class sprites / motion trails are an art-polish item.
