@@ -1,5 +1,5 @@
 # RC-029: Expedition mutators (risk/reward modifiers)
-**Status**: Open  **Priority**: P3  **Type**: Feature
+**Status**: Delivered  **Priority**: P3  **Type**: Feature
 **Created**: 2026-06-09
 
 ## Summary
