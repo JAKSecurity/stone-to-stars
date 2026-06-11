@@ -6,6 +6,21 @@ export type AgeId = 'stone' | 'bronze' | 'iron' | 'classical' | 'medieval' | 're
 /** Ascending order; index = how advanced. */
 export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern'];
 
+// RC-031 — Forge & Fuse. A weapon's verb. Archetype presets (src/run/archetypes.ts) give each
+// archetype a trajectory + default on-hit; hybrids union their parents' shapes.
+export type ArchetypeId =
+  | 'bolt' | 'piercer' | 'spread' | 'orbiter' | 'lobber'
+  | 'trail' | 'zone' | 'chain' | 'boomerang' | 'homing';
+export type Trajectory = 'straight' | 'lob' | 'orbit' | 'boomerang' | 'trail' | 'homing';
+export interface OnHit {
+  pierce?: number;      // enemies a projectile passes through
+  explode?: number;     // blast radius (px) at impact/landing
+  chain?: number;       // extra hops to nearby enemies after the first hit
+  zoneMs?: number;      // lingering damage-field duration (ms) at the landing point
+  slowPct?: number;     // 0..1 move-speed cut applied to hit enemies for SLOW_MS
+  ignoreArmor?: boolean;
+}
+
 export interface WeaponDef {
   id: string;
   name: string;
@@ -27,6 +42,12 @@ export interface WeaponDef {
   evolvesTo?: string;          // weapon id of the evolved form
   evolveRequiresPerk?: string; // perk id that, owned while this weapon is maxed, enables evolution
   pierceArmor?: boolean;       // if set, hits ignore enemy armor (e.g. the sniper rifle)
+  // RC-031 transitional — set on every catalog weapon in Task 4, after which `behavior`,
+  // `pierce`, `pierceArmor`, `evolvesTo`, `evolveRequiresPerk` are deleted.
+  archetype?: ArchetypeId;
+  onHit?: OnHit;          // overrides/extends the archetype preset's default on-hit
+  trajectory?: Trajectory;// only set explicitly on hybrids (base weapons resolve via preset)
+  bases?: ArchetypeId[];  // constituent archetypes — hybrids carry 2-3, base weapons 1 (implied)
 }
 
 export interface RunBonus {
@@ -34,6 +55,7 @@ export interface RunBonus {
   damageMult?: number;  // additive fraction, 0.1 = +10%
   draftChoices?: number;// flat add
   weapons?: string[];   // weapon ids granted
+  actives?: string[];   // active-item ids granted (RC-031: net / poison_gas / grenade_volley)
 }
 
 /** The additive subset of RunModifiers that traditions (and future sources) can contribute. */
@@ -149,6 +171,8 @@ export interface CivState {
                                       // v3 saves lack it and lazy-default to zero (no save-version bump).
   startWeapon?: string;               // RC-027: chosen starting weapon id (default 'club'); persists as the default.
   biomeBests?: Record<string, number>; // RC-027: biomeId -> best single-run total haul. Optional, lazy-defaulted.
+  kit?: string[];       // RC-031 Expedition Kit: up to 4 unlocked weapon ids draftable this run
+  activeItem?: string;  // RC-031: chosen right-click active id (must be tech-unlocked)
 }
 
 export interface RunModifiers {
@@ -163,6 +187,8 @@ export interface RunModifiers {
   startWeaponLevel: number; // 1 = weapons start at level 1
   startWeapon?: string;     // RC-027: weapon id the run begins with (computeRunModifiers always sets it;
                             // optional so callers building bare modifiers default to 'club' via initialWeapons).
+  actives: string[];    // tech-unlocked active-item ids
+  activeItem?: string;  // the one chosen pre-run (validated against `actives`)
 }
 
 export interface RunResult {
@@ -196,4 +222,7 @@ export interface RunStats {
   pickupRadius: number;
   level: number;
   xp: number;
+  regenHps: number;     // RC-031 passives: HP regenerated per second (0 = none)
+  xpMult: number;       // RC-031 passives: 1.0 = no change
+  activeCharges: number;// RC-031: right-click uses remaining this run
 }

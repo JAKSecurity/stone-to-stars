@@ -61,5 +61,6 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
   return {
     maxHp, damageMult, draftChoices, weapons: [...weapons],
     pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel, startWeapon,
+    actives: [], activeItem: undefined,
   };
 }

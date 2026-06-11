@@ -10,6 +10,9 @@ export function initialRunStats(mods: RunModifiers): RunStats {
     pickupRadius: mods.pickupRadius,
     level: 1,
     xp: 0,
+    regenHps: 0,
+    xpMult: 1,
+    activeCharges: 0,
   };
 }
 

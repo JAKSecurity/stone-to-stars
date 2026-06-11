@@ -69,7 +69,7 @@ export class RunScene extends Phaser.Scene {
   private stats = initialRunStats({
     maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'],
     pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1,
-    draftRerolls: 0, startWeaponLevel: 1,
+    draftRerolls: 0, startWeaponLevel: 1, actives: [],
   });
   private expedition!: Expedition;
   private biome!: BiomeDef;
