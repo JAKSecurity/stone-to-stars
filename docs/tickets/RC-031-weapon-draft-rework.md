@@ -23,9 +23,13 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
 - **Build identity from the civ** — the weapons available in a run are pre-determined by the player's
   civilization/tech, so the meta-game (what you build between runs) sets up the in-run build space.
 - **Inspirations to study:** Slay the Spire (card synergies, risk/reward relics, deck identity),
-  Vampire Survivors (weapon evolutions, passive/weapon interplay, build archetypes), and a
-  "ball-pit"/physics-roguelite (e.g. Ballionaire / peggle-likes — emergent synergy from simple pieces).
-  The goal is **emergent synergy + commitment**, not linear stat upgrades.
+  Vampire Survivors (weapon evolutions, passive/weapon interplay, build archetypes), and
+  **Ball x Pit** (breakout-roguelite — any two balls FUSE into a hybrid inheriting both behaviors;
+  emergent synergy from combining simple pieces), and **Megabonk** (Jeff, 2026-06-11: "an excellent
+  weapon differentiator" — every weapon has a distinct VERB and screen signature: orbiting rocks,
+  fire trail behind your movement, lightning smites, black-hole pull, mines, homing missiles).
+  The goal is **emergent synergy + commitment**, not linear stat upgrades — and weapons that READ
+  distinctly on screen (visuals/effects are in scope).
 
 ## Components folded in (the original narrow scope, now part of the larger redesign)
 - **#7 — one weapon at a time** (drop the 1-melee+1-ranged dual-wield) — likely still the right frame
@@ -72,4 +76,5 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
 - `src/run/weapons.ts`, `src/run/weaponData.ts`, `src/run/draft.ts`, `src/run/modifiers.ts`, `src/scenes/RunScene.ts`
 - Related: RC-025 (perk pool — #6 pierce), RC-027 (starting-weapon choice), RC-019 (boss rewards),
   RC-026 (POI events), RC-015 (orbit/lob behaviors as a behavior-diversity precedent)
-- Inspirations: Slay the Spire, Vampire Survivors, Ballionaire / peggle-likes
+- Inspirations: Slay the Spire, Vampire Survivors, Ball x Pit (ball-fusion breakout-roguelite),
+  Megabonk (weapon visual/verb differentiation)
