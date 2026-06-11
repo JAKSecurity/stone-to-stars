@@ -2272,7 +2272,7 @@ Walkthrough assertions, in order:
 3. In-run: sample scene state via the exposed hook — `equipped.length === 1`, active charges ≥ 0.
 4. Force XP (per the skill's state-sampling pattern) to trigger drafts; pick a `newWeapon`, then `levelWeapon` cards until both weapons hit max level.
 5. Next draft: assert the first card is the fusion offer; pick it; assert `equipped.length === 1` and `equipped[0].hybrid` set; assert the celebration banner appeared.
-6. Right-click: assert `activeCharges` decremented and (for net) enemies gained `slowUntil`.
+6. Right-click: assert `activeCharges` decremented and (for net) enemies gained `slowUntil`; then pick a passive draft card and assert `activeCharges` STAYS at its spent value (regression: recompute must not refund spent charges).
 7. Continue to a second fusion (third weapon drafted, leveled, fused) — assert 3 bases and no further fusion offers.
 8. End the run — runs are RC-034 dungeons now (clear-the-dungeon win, no timer): either clear remaining enemies via state sampling or die deliberately; run-end screen shows; save persists kit (reload → expedition screen still shows the kit).
 

@@ -134,6 +134,10 @@ export class RunScene extends Phaser.Scene {
   // RC-031: chosen right-click active id (wired from this.mods.activeItem in Task 11). Stays
   // undefined until then; the loadout HUD line guards on it.
   private activeId?: string;
+  // RC-031: charges consumed this run. Tracked separately so refreshStatsFromPassives() can
+  // subtract them after recomputeStats() yields the new MAX — preventing passive picks from
+  // refunding already-spent charges (infinite-charges bug).
+  private chargesSpent = 0;
 
   constructor() { super('run'); }
 
@@ -160,6 +164,7 @@ export class RunScene extends Phaser.Scene {
     this.rerollsLeft = this.mods.draftRerolls;
     this.passives = [];
     this.catalysts = 0;
+    this.chargesSpent = 0;
     this.weaponCooldowns = {};
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
@@ -216,11 +221,14 @@ export class RunScene extends Phaser.Scene {
     // RC-031: right-click fires the loadout's active item at the world point under the cursor.
     // disableContextMenu so the browser menu doesn't eat the right-click. The handler is
     // scene-level but gated on rightButtonDown(), so it never collides with the left-click
-    // pointerdown handlers on draft cards / buttons.
+    // pointerdown handlers on draft cards / buttons. Named const + shutdown cleanup prevents
+    // duplicate handler accumulation if a future restart-pattern change re-runs create().
     this.input.mouse?.disableContextMenu();
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+    const onPointer = (p: Phaser.Input.Pointer) => {
       if (p.rightButtonDown()) this.useActive(p.worldX, p.worldY);
-    });
+    };
+    this.input.on('pointerdown', onPointer);
+    this.events.once('shutdown', () => this.input.off('pointerdown', onPointer));
 
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
@@ -624,7 +632,8 @@ export class RunScene extends Phaser.Scene {
    *  or the run is paused / in the victory ceremony. World-anchored visuals (no scrollFactor 0). */
   private useActive(x: number, y: number) {
     if (!this.activeId || this.stats.activeCharges <= 0 || this.paused || this.ceremony) return;
-    this.stats.activeCharges -= 1;
+    this.chargesSpent += 1;
+    this.stats.activeCharges = Math.max(0, this.stats.activeCharges - 1);
     const def = ACTIVES[this.activeId];
     playSfx('draft-open'); // placeholder cue; a bespoke per-active recipe is optional later.
     const e = def.effect;
@@ -1340,6 +1349,9 @@ export class RunScene extends Phaser.Scene {
   private refreshStatsFromPassives() {
     const ratio = this.stats.hp / this.stats.maxHp;
     this.stats = recomputeStats(this.baseStats, this.passives, ratio);
+    // recomputeStats yields the new MAX; consumption is tracked separately so passive picks can't
+    // refund already-spent charges (RC-031 infinite-charges bug fix).
+    this.stats.activeCharges = Math.max(0, this.stats.activeCharges - this.chargesSpent);
   }
 
   private finish(died: boolean) {
