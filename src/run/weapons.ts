@@ -1,4 +1,4 @@
-import { AgeId, AGE_ORDER, OnHit, Trajectory, WeaponDef } from '../game/types';
+import { AgeId, AGE_ORDER, ArchetypeId, OnHit, Trajectory, WeaponDef } from '../game/types';
 import { WEAPONS } from './weaponData';
 import { resolveShape, ARCHETYPES } from './archetypes';
 
@@ -91,6 +91,8 @@ export interface WeaponShot {
   trajectory: Trajectory;
   onHit: OnHit;
   lifeMs: number;
+  archetype: ArchetypeId;   // RC-031 VFX: the firing verb (body) — drives the kit's shake/motion
+  bases: ArchetypeId[];     // RC-031 VFX: constituent archetypes (hybrids carry 2-3); palette pick
 }
 
 /** Resolve a def at a level into per-volley firing numbers (v2: trajectory + onHit). Pure. */
@@ -108,5 +110,7 @@ export function weaponShot(def: WeaponDef, level: number, damageMult: number): W
     trajectory: shape.trajectory,
     onHit: shape.onHit,
     lifeMs: Math.round(BASE_BULLET_LIFE_MS * rangeFactorForTier(def.tier)),
+    archetype: def.archetype ?? 'bolt',
+    bases: shape.bases,
   };
 }

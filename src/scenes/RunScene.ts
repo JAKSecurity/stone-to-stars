@@ -9,6 +9,7 @@ import {
 } from '../run/weapons';
 import { fuseWeapons, fusionName } from '../run/fusion';
 import { resolveShape } from '../run/archetypes';
+import { VFX_KITS, VfxKit, kitForHybrid } from '../run/vfxKits';
 import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
 import { PASSIVES } from '../run/passiveData';
 import { ACTIVES } from '../run/activeData';
@@ -122,6 +123,7 @@ export class RunScene extends Phaser.Scene {
     flightMs: number;
     damage: number;
     onHit: OnHit;
+    kit: VfxKit; // RC-031 VFX: tints the lob, zone patch, and landing impact/shake
   }> = [];
   // RC-031: lingering damage fields shared by trail (burning ground behind you) and zone (mine
   // field at a lob landing). World-anchored visuals — no scrollFactor(0), they live in the world.
@@ -428,10 +430,12 @@ export class RunScene extends Phaser.Scene {
       if (t >= 1) {
         const onHit = lob.onHit;
         this.detonate(lob.target.x, lob.target.y, lob.damage, (onHit.explode ?? LOB_BLAST_RADIUS) * RUN_SCALE);
+        // RC-031 VFX: the verb's impact style + shake class fire at the landing point.
+        this.kitImpact(lob.kit, lob.target.x, lob.target.y);
         // RC-031 zone (dynamite): the blast also leaves a lingering ticking field.
         if (onHit.zoneMs) {
           this.spawnPatch(lob.target.x, lob.target.y, ZONE_RADIUS * RUN_SCALE,
-            onHit.zoneMs, lob.damage * 0.4, 0x99cc33);
+            onHit.zoneMs, lob.damage * 0.4, lob.kit.tint);
         }
         lob.img.destroy();
         this.lobs.splice(i, 1);
@@ -582,11 +586,47 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  /** RC-031 VFX: resolve a shot's screen signature. Hybrids keep the body archetype's motion/shake
+   *  but borrow tint + impact from their palette parent (first base ≠ body); base weapons use their
+   *  own kit. Drives projectile tint, patch tint, impact style and shake class. */
+  private kitFor(shot: WeaponShot): VfxKit {
+    const body = shot.archetype;
+    if (shot.bases.length >= 2) {
+      const palette = shot.bases.find((b) => b !== body) ?? body;
+      return kitForHybrid(body, palette);
+    }
+    return VFX_KITS[body];
+  }
+
+  /** Apply a kit's impact style + shake class at (x, y). 0 → no shake, 1 → light, 2 → heavy. */
+  private kitImpact(kit: VfxKit, x: number, y: number) {
+    if (kit.impact === 'ring') {
+      const ring = this.add.circle(x, y, 14 * RUN_SCALE, kit.tint, 0.45).setDepth(24).setScale(0.3);
+      this.tweens.add({ targets: ring, scale: 1.6, alpha: 0, duration: 220, ease: 'Power2', onComplete: () => ring.destroy() });
+    } else if (kit.impact === 'sparks') {
+      for (let s = 0; s < 4; s++) {
+        const ang = Math.random() * Math.PI * 2;
+        const sp = this.add.circle(x, y, 2.2, kit.tint, 0.95).setDepth(26);
+        this.tweens.add({
+          targets: sp, x: x + Math.cos(ang) * 14, y: y + Math.sin(ang) * 14, alpha: 0,
+          duration: 180, onComplete: () => sp.destroy(),
+        });
+      }
+    } else {
+      // 'flash' — a brief tinted pop at the impact point.
+      const f = this.add.circle(x, y, 9 * RUN_SCALE, kit.tint, 0.6).setDepth(26);
+      this.tweens.add({ targets: f, scale: 0.2, alpha: 0, duration: 150, onComplete: () => f.destroy() });
+    }
+    if (kit.shake === 1) this.cameras.main.shake(80, 0.003);
+    else if (kit.shake === 2) this.cameras.main.shake(140, 0.006);
+  }
+
   private fireWeapon(shot: WeaponShot, weaponId: string) {
+    const kit = this.kitFor(shot);
     switch (shot.trajectory) {
-      case 'orbit': this.summonOrbit(shot, weaponId); return;           // persistent ring — no per-refresh shot sound
-      case 'lob':   playSfx('shoot'); this.fireLob(shot); return;       // zone lands → spawnPatch via lob landing
-      case 'trail': this.dropTrailPatch(shot); return;                  // no projectile at all — burns the ground
+      case 'orbit': this.summonOrbit(shot, weaponId, kit); return;      // persistent ring — no per-refresh shot sound
+      case 'lob':   playSfx('shoot'); this.fireLob(shot, kit); return;  // zone lands → spawnPatch via lob landing
+      case 'trail': this.dropTrailPatch(shot, kit); return;             // no projectile at all — burns the ground
       default: break; // straight / boomerang / homing / chain fire projectiles below
     }
     playSfx('shoot'); // RC-020 (recipe self-throttles)
@@ -602,9 +642,11 @@ export class RunScene extends Phaser.Scene {
       const angle = baseAngle + offset;
       const bullet = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
       bullet.setDisplaySize(12 * RUN_SCALE, 12 * RUN_SCALE);
+      bullet.setTint(kit.tint); // RC-031 VFX: projectile reads its verb's palette
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
       bullet.setData('damage', shot.damage);
+      bullet.setData('kit', kit); // RC-031 VFX: impact style + shake fire on hit
       bullet.setData('onHit', shot.onHit);
       bullet.setData('pierce', shot.onHit.pierce ?? 0);
       bullet.setData('ignoresArmor', shot.onHit.ignoreArmor ?? false);
@@ -625,9 +667,9 @@ export class RunScene extends Phaser.Scene {
 
   /** Trail weapons (flame_jet/flamethrower, speed 0) burn the ground behind you — a patch at your
    *  feet each cooldown. The weapon's cooldownMs IS the drop cadence; no extra timer needed. */
-  private dropTrailPatch(shot: WeaponShot) {
+  private dropTrailPatch(shot: WeaponShot, kit: VfxKit) {
     this.spawnPatch(this.player.x, this.player.y, TRAIL_RADIUS * RUN_SCALE,
-      TRAIL_LINGER_MS, shot.damage, 0xff7733);
+      TRAIL_LINGER_MS, shot.damage, kit.tint);
   }
 
   /** Spawn a lingering damage field (trail patch / zone). tickDamage applies per ZONE_TICK_MS per
@@ -679,7 +721,7 @@ export class RunScene extends Phaser.Scene {
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
    *  replaces this weapon's ring so it refreshes to the current level without stacking. Orbiter
    *  angle comes from the global run clock, so a replaced ring resumes at the same phase — seamless. */
-  private summonOrbit(shot: WeaponShot, weaponId: string) {
+  private summonOrbit(shot: WeaponShot, weaponId: string, kit: VfxKit) {
     (this.bullets.getChildren() as any[])
       .filter((b) => b.getData('behavior') === 'orbit' && b.getData('weaponKey') === weaponId)
       .forEach((b) => b.destroy());
@@ -687,6 +729,7 @@ export class RunScene extends Phaser.Scene {
     for (let i = 0; i < shot.count; i++) {
       const orb = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
       orb.setDisplaySize(PROJ_SIZE, PROJ_SIZE);
+      orb.setTint(kit.tint); // RC-031 VFX: orbit ring reads its verb's palette
       this.physics.add.existing(orb);
       this.bullets.add(orb);
       orb.body.setVelocity(0, 0);
@@ -700,7 +743,7 @@ export class RunScene extends Phaser.Scene {
 
   /** Lob: arc `count` projectiles to a target point and detonate on landing. Purely visual in
    *  flight (no overlap body) — damage is a radius query at the landing point in `detonate`. */
-  private fireLob(shot: WeaponShot) {
+  private fireLob(shot: WeaponShot, kit: VfxKit) {
     const target = this.nearestEnemy() as any;
     const aim = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
@@ -718,6 +761,7 @@ export class RunScene extends Phaser.Scene {
       const ty = this.player.y + Math.sin(angle) * dist;
       const img = this.add.image(this.player.x, this.player.y, shot.sprite).setDepth(15) as any;
       img.setDisplaySize(PROJ_SIZE, PROJ_SIZE);
+      img.setTint(kit.tint); // RC-031 VFX: lob reads its verb's palette in flight
       this.lobs.push({
         img,
         start: { x: this.player.x, y: this.player.y },
@@ -726,6 +770,7 @@ export class RunScene extends Phaser.Scene {
         flightMs: lobFlightMs(dist, shot.speed * RUN_SCALE),
         damage: shot.damage,
         onHit: shot.onHit,
+        kit,
       });
     }
   }
@@ -975,6 +1020,16 @@ export class RunScene extends Phaser.Scene {
     // Damage lands first (existing flow) ...
     this.applyDamageToEnemy(enemy, damage, bullet.getData('ignoresArmor'));
 
+    // RC-031 juice: micro-knockback — nudge the enemy 4px away from the projectile.
+    if (enemy.active) {
+      const kb = Phaser.Math.Angle.Between(bullet.x, bullet.y, enemy.x, enemy.y);
+      enemy.x += Math.cos(kb) * 4; enemy.y += Math.sin(kb) * 4;
+    }
+
+    // RC-031 VFX: the firing verb's impact style + shake class at the hit point.
+    const kit = bullet.getData('kit') as VfxKit | undefined;
+    if (kit) this.kitImpact(kit, enemy.x, enemy.y);
+
     // ... then the RC-031 on-hit extension (explode / slow / chain) ...
     const onHit = (bullet.getData('onHit') ?? {}) as OnHit;
     const hitIds = bullet.getData('hitIds') as Set<string> | undefined;
@@ -1045,13 +1100,15 @@ export class RunScene extends Phaser.Scene {
     enemy.setTintFill(0xffffff);
     this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
 
-    // --- Juice: floating damage number ---
-    const dmgText = this.add.text(enemy.x, enemy.y - 8, String(Math.round(damage)), {
-      fontSize: '20px', color: '#ffee44', stroke: '#000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(30);
+    // --- Juice: floating damage number (RC-031: heavy hits read bigger + gold) ---
+    const heavy = damage >= 50;
+    const dmgText = this.add.text(enemy.x, enemy.y - 14, String(Math.round(damage)), {
+      fontSize: heavy ? '18px' : '13px', color: heavy ? '#ffd75e' : '#ffffff',
+      stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(35);
     this.tweens.add({
       targets: dmgText, y: dmgText.y - 22, alpha: 0,
-      duration: 450, ease: 'Power1',
+      duration: 520, ease: 'Power1',
       onComplete: () => dmgText.destroy(),
     });
 
