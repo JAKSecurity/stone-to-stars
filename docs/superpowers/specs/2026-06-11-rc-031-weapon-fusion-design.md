@@ -122,7 +122,8 @@ hybrid passive (authored small table), slot freed.
   weapon ids wholesale, so v3 saves reset rather than migrate. New `CivState` fields (`kit`,
   `activeItem`) ship with sensible defaults for fresh saves (kit = first unlocked weapons,
   club start, no active until tech-unlocked). Related: manual save/load slots are now tracked
-  separately as a backlog ticket (see RC-034).
+  separately as a backlog ticket (see RC-036 — renumbered after RC-034 was taken by the
+  dungeon-expeditions work merged 2026-06-11).
 - Traditions' civ-level flat run bonuses (`damageMult`, `draftRerolls`, …) stay as-is — the
   *in-run* flat perks are what's replaced. Passive pool starts universal with a hook for
   tech/tradition-unlocked passives later (new home for RC-025's pool expansion).

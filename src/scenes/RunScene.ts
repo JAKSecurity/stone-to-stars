@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource, RESOURCES, Expedition, BiomeDef, EnemyDef } from '../game/types';
-import { runDurationForTier } from '../game/config';
+import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef } from '../game/types';
 import { initialRunStats, addXp } from '../run/runStats';
 import { applyPerk } from '../run/draft';
 import {
@@ -11,13 +10,11 @@ import {
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
-import { pickEnemy, apexEnemyId } from '../run/expedition';
+import { apexEnemyId } from '../run/expedition';
 import { GemTier, gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { rewardValueForTier } from '../game/economy';
-import { spawnTableAt } from '../run/spawnEscalation';
 import {
-  shouldSpawnBoss, bossFreeTable, bossJackpotGems,
-  BOSS_HP_MULT, BOSS_TELEGRAPH_MS,
+  bossFreeTable, bossJackpotGems, BOSS_HP_MULT,
 } from '../run/bossEvent';
 import { playSfx } from '../audio';
 import {
@@ -28,6 +25,12 @@ import {
   ChargerState, ChargerPhase, initChargerState, chargerStep, CHARGER_CONFIG,
   circlerVelocity, CIRCLER_RADIUS, standoffVelocity, STANDOFF_MIN, STANDOFF_MAX,
 } from '../run/enemyBehavior';
+import { mulberry32 } from '../run/rng';
+import {
+  generateLayout, DungeonLayout, Barrier,
+  WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS,
+} from '../run/dungeonGen';
+import { enemyPlacements, gemPlacements, pickBiasedResource } from '../run/dungeonPopulate';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -73,6 +76,7 @@ export class RunScene extends Phaser.Scene {
   });
   private expedition!: Expedition;
   private biome!: BiomeDef;
+  private layout!: DungeonLayout;
 
   private player!: Phaser.GameObjects.Image & { body: Phaser.Physics.Arcade.Body };
   private enemies!: Phaser.Physics.Arcade.Group;
@@ -84,19 +88,13 @@ export class RunScene extends Phaser.Scene {
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
-  private runDurationMs = runDurationForTier(0);
   private equipped: EquippedWeapon[] = initialWeapons();
   private ownedPerks: string[] = [];
   private weaponCooldowns: Record<string, number> = {};
-  private spawnCooldown = 0;
   private bossId = '';
-  private bossSpawned = false;
   private bossEnemy: any = null;
   private trickleBiome!: BiomeDef;          // biome.spawnTable minus the boss (the random-spawn pool)
   private bossHp?: { bg: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text };
-  private explorationCooldown = 0;
-  private relicCooldown = 0;
-  private resourceCooldown = 0;
   private paused = false;
   private finished = false;
   private pendingComplete: RunResult | null = null;
@@ -122,11 +120,10 @@ export class RunScene extends Phaser.Scene {
     this.onComplete = data.onComplete;
     this.expedition = data.expedition;
     this.biome = BIOMES[data.expedition.biomeId];
-    this.runDurationMs = runDurationForTier(data.expedition.tier);
     this.heroSprite = data.heroSprite ?? 'hero';
     this.stats = initialRunStats(this.mods);
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
-    this.elapsed = 0; this.spawnCooldown = 0;
+    this.elapsed = 0;
     this.equipped = initialWeapons(this.mods.startWeapon); // RC-027: chosen starting weapon
     // Heritage tradition: start the run's weapon(s) above level 1.
     const startLvl = this.mods.startWeaponLevel;
@@ -141,19 +138,24 @@ export class RunScene extends Phaser.Scene {
     this.rerollsLeft = this.mods.draftRerolls;
     this.ownedPerks = [];
     this.weaponCooldowns = {};
-    this.explorationCooldown = 0; this.relicCooldown = 0; this.resourceCooldown = 0;
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
     this.lobs = [];
   }
 
   create() {
-    const { width, height } = this.scale;
+    // RC-034: the run is a procedurally generated dungeon DUNGEON_SCREENS x the viewport. The seed
+    // is logged so any layout bug is reproducible (generateLayout is deterministic per seed).
+    const seed = (Math.random() * 0xffffffff) >>> 0;
+    console.info(`[run] dungeon seed ${seed}`);
+    this.layout = generateLayout(mulberry32(seed), this.scale.width, this.scale.height);
+    const { width, height } = this.layout;
     this.physics.world.setBounds(0, 0, width, height);
+    this.cameras.main.setBounds(0, 0, width, height);
     this.cameras.main.setBackgroundColor(this.biome.visual?.ground ?? this.biome.tint);
     this.drawBackground(width, height);
 
-    const player = this.add.image(width / 2, height / 2, this.heroSprite);
+    const player = this.add.image(this.layout.start.x, this.layout.start.y, this.heroSprite);
     player.setDisplaySize(34 * RUN_SCALE, 42 * RUN_SCALE);
     this.physics.add.existing(player);
     this.player = player as any;
@@ -162,13 +164,14 @@ export class RunScene extends Phaser.Scene {
     // you'd snag on obstacle corners with room to spare. Shrink the body to ~64% of the display,
     // centered, so collisions match what you see. (shrinkBody sizes proportionally, not in raw px.)
     this.shrinkBody(this.player, 0.64);
+    this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
     this.enemies = this.physics.add.group();
     this.bullets = this.physics.add.group();
     this.enemyBullets = this.physics.add.group();
     this.gems = this.physics.add.group();
     this.obstacles = this.physics.add.staticGroup();
-    this.scatterObstacles(width, height);
+    this.buildTerrain(this.layout);
 
     this.keys = {
       up: this.input.keyboard!.addKey('W'),
@@ -186,15 +189,33 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.collider(this.enemies, this.obstacles);
 
     this.hud = this.add.text(12, 12, '',
-      { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10);
+      { fontSize: '20px', color: '#fff', stroke: '#000', strokeThickness: 3 }).setDepth(10).setScrollFactor(0);
 
     // RC-019: the biome's toughest enemy becomes an announced mini-boss — pull it from the random
     // spawn pool (the card threat-rating still reads it from the untouched biome.spawnTable).
     this.bossId = apexEnemyId(this.biome.spawnTable);
-    this.bossSpawned = false;
     this.bossEnemy = null;
     this.bossHp = undefined;
     this.trickleBiome = { ...this.biome, spawnTable: bossFreeTable(this.biome.spawnTable, this.bossId) };
+
+    // RC-034: the whole roster is placed at generation — no trickle. Mobs sleep until aggro'd;
+    // the apex mini-boss is pre-placed at the far end with its RC-019 stats, announced on aggro.
+    const placeRng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
+    for (const p of enemyPlacements(placeRng, this.layout, this.expedition.tier,
+      this.trickleBiome, this.bossId, BIOMES, ENEMIES)) {
+      const e = this.spawnEnemyAt(ENEMIES[p.id], p.x, p.y);
+      e.setData('asleep', true);
+      if (p.isBoss) {
+        const maxHp = ENEMIES[p.id].baseHp * BOSS_HP_MULT;
+        e.setData('hp', maxHp);
+        e.setData('maxHp', maxHp);
+        e.setData('isBoss', true);
+        this.bossEnemy = e;
+      }
+    }
+    for (const g of gemPlacements(placeRng, this.layout, this.expedition.tier, this.biome)) {
+      this.dropGem(g.x, g.y, g.resource);
+    }
   }
 
   /** Biome ground + grid + specks from the biome palette (RC-021), falling back to tint/white. */
@@ -209,46 +230,77 @@ export class RunScene extends Phaser.Scene {
     for (let x = 0; x <= width; x += step) grid.lineBetween(x, 0, x, height);
     for (let y = 0; y <= height; y += step) grid.lineBetween(0, y, width, y);
 
-    const specks = Math.min(600, Math.round((width * height) / 9000));
+    const specks = Math.min(1800, Math.round((width * height) / 9000));
     for (let i = 0; i < specks; i++) {
       this.add.circle(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height),
         Phaser.Math.Between(1, 2), speckColor, v ? 0.4 : 0.06).setDepth(-9);
     }
   }
 
-  /** Scatter static collidable terrain — biome-themed sprites (RC-021) — keeping the spawn area clear.
-   *  Visual only: the collision body is the same inset circle regardless of the prop's look. */
-  private scatterObstacles(width: number, height: number) {
-    const set = this.biome.visual?.obstacles ?? [];
-    const count = Math.round((width * height) / 90000) + 4;
-    const cx = width / 2, cy = height / 2;
-    for (let i = 0; i < count; i++) {
-      let x = 0, y = 0, tries = 0;
-      do {
-        x = Phaser.Math.Between(70, width - 70);
-        y = Phaser.Math.Between(70, height - 70);
-        tries++;
-      } while (Phaser.Math.Distance.Between(x, y, cx, cy) < 200 && tries < 25);
-      const r = Phaser.Math.Between(26, 46);
+  /** RC-034: materialise the generated layout — perimeter walls, chokepoint barriers (river with a
+   *  bridge deck / wall with a gateway opening), and the biome-themed obstacle props. All collision
+   *  bodies join this.obstacles, so the existing player/enemy colliders cover them. */
+  private buildTerrain(layout: DungeonLayout) {
+    const { width, height } = layout;
+    const t = WALL_THICKNESS;
+    this.addStaticRect(width / 2, t / 2, width, t, 0x000000, 0.55);            // north wall
+    this.addStaticRect(width / 2, height - t / 2, width, t, 0x000000, 0.55);  // south wall
+    this.addStaticRect(t / 2, height / 2, t, height, 0x000000, 0.55);         // west wall
+    this.addStaticRect(width - t / 2, height / 2, t, height, 0x000000, 0.55); // east wall
 
-      let obj: Phaser.GameObjects.GameObject & { body: Phaser.Physics.Arcade.Body };
-      if (set.length) {
-        const id = set[Phaser.Math.Between(0, set.length - 1)];
-        const img = this.add.image(x, y, id).setDepth(-1);
-        img.setDisplaySize(r * 2, r * 2); // match the old ellipse footprint
-        obj = img as any;
-      } else {
-        const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
-        rock.setStrokeStyle(2, 0xffffff, 0.08);
-        obj = rock as any;
-      }
-      this.physics.add.existing(obj, true);
-      // UNCHANGED collision behavior — an inset circle inside the footprint (rc-017's snag fix).
-      // Sprites are square (r*2 × r*2), so the body is centred symmetrically.
-      const cr = r * 0.8;
-      (obj.body as unknown as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, r - cr);
-      this.obstacles.add(obj);
+    for (const b of layout.barriers) this.buildBarrier(b, layout);
+    for (const o of layout.obstacles) this.addObstacleProp(o.x, o.y, o.r);
+  }
+
+  /** A filled, collidable static rectangle registered into the obstacles group. */
+  private addStaticRect(x: number, y: number, w: number, h: number, color: number, alpha: number) {
+    const rect = this.add.rectangle(x, y, w, h, color, alpha).setDepth(-1);
+    rect.setStrokeStyle(2, 0xffffff, 0.08);
+    this.physics.add.existing(rect, true);
+    this.obstacles.add(rect as any);
+  }
+
+  /** One chokepoint: two collidable band segments with the opening between them. Rivers get a
+   *  walkable bridge deck across the gap; walls read as a broken gateway (the opening itself).
+   *  v1 generation emits vertical bands only — see dungeonGen. */
+  private buildBarrier(b: Barrier, layout: DungeonLayout) {
+    const color = b.kind === 'river' ? 0x2f6f9f : 0x1a1a22;
+    const alpha = b.kind === 'river' ? 0.8 : 0.85;
+    const segments = [
+      { from: 0, to: b.gap.start },
+      { from: b.gap.end, to: layout.height },
+    ];
+    for (const s of segments) {
+      const len = s.to - s.from;
+      if (len <= 0) continue;
+      this.addStaticRect(b.pos, s.from + len / 2, BARRIER_THICKNESS, len, color, alpha);
     }
+    if (b.kind === 'river') {
+      this.add.rectangle(b.pos, (b.gap.start + b.gap.end) / 2,
+        BARRIER_THICKNESS + 24, b.gap.end - b.gap.start, 0x8a6a42, 0.9)
+        .setDepth(-2).setStrokeStyle(2, 0x000000, 0.3);
+    }
+  }
+
+  /** One biome-themed obstacle prop — sprite + the rc-017 inset-circle body (visuals unchanged
+   *  from the pre-RC-034 scatter; only the position source moved to the seeded layout). */
+  private addObstacleProp(x: number, y: number, r: number) {
+    const set = this.biome.visual?.obstacles ?? [];
+    let obj: Phaser.GameObjects.GameObject & { body: Phaser.Physics.Arcade.Body };
+    if (set.length) {
+      const id = set[Phaser.Math.Between(0, set.length - 1)];
+      const img = this.add.image(x, y, id).setDepth(-1);
+      img.setDisplaySize(r * 2, r * 2);
+      obj = img as any;
+    } else {
+      const rock = this.add.ellipse(x, y, r * 2, r * 1.6, 0x000000, 0.4).setDepth(-1);
+      rock.setStrokeStyle(2, 0xffffff, 0.08);
+      obj = rock as any;
+    }
+    this.physics.add.existing(obj, true);
+    const cr = r * 0.8;
+    (obj.body as unknown as Phaser.Physics.Arcade.StaticBody).setCircle(cr, r - cr, r - cr);
+    this.obstacles.add(obj);
   }
 
   update(_t: number, deltaMs: number) {
@@ -265,8 +317,8 @@ export class RunScene extends Phaser.Scene {
     }
     if (this.paused || !this.player?.body) return;
     const dt = deltaMs;
-    // Once the timer expires we hand off to the Zone-Cleared ceremony, which runs its own trimmed
-    // loop (no spawns, no faucets) — just sweep gems in — until it finishes the run.
+    // Once the dungeon is cleared we hand off to the Zone-Cleared ceremony, which runs its own
+    // trimmed loop — just sweep gems in — until it finishes the run.
     if (this.ceremony) { this.updateCeremony(dt); return; }
     this.elapsed += dt;
 
@@ -287,48 +339,17 @@ export class RunScene extends Phaser.Scene {
       }
     }
 
-    this.spawnCooldown -= dt;
-    if (this.spawnCooldown <= 0) {
-      this.spawnEnemy();
-      // Start gentle and ramp up — sparse at first, busier over the run. Base widened to 2000ms
-      // for a calmer early game (the 150ms floor keeps late-game density unchanged).
-      const ramp = 1 + this.elapsed / 30000;
-      this.spawnCooldown = Math.max(150, 2000 / ramp);
-    }
-
-    // RC-019: announce the mini-boss once the run is ~70% through.
-    if (shouldSpawnBoss(this.elapsed, this.runDurationMs, this.bossSpawned)) {
-      this.bossSpawned = true;
-      this.announceBoss();
-    }
     if (this.bossHp) {
       if (this.bossEnemy?.active) this.updateBossHpBar();
       else this.destroyBossHpBar();
     }
 
-    this.explorationCooldown -= dt;
-    if (this.explorationCooldown <= 0) {
-      this.collected.exploration += rewardValueForTier(this.expedition.tier);
-      this.explorationCooldown = 4000 / (this.biome.resourceBias.exploration ?? 1);
-    }
-
-    // Culture relics appear periodically as walk-over pickups (design: villages/relics give culture).
-    this.relicCooldown -= dt;
-    if (this.relicCooldown <= 0) {
-      const { width, height } = this.scale;
-      this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), 'culture');
-      this.relicCooldown = 5000 / (this.biome.resourceBias.culture ?? 1);
-    }
-
-    // Scattered resource deposits — income you gather by exploring the field, not just from kills.
-    this.resourceCooldown -= dt;
-    if (this.resourceCooldown <= 0) {
-      const { width, height } = this.scale;
-      this.dropGem(Phaser.Math.Between(40, width - 40), Phaser.Math.Between(40, height - 40), this.biasedResource());
-      this.resourceCooldown = 2600;
-    }
-
     (this.enemies.getChildren() as any[]).forEach((e) => {
+      if (e.getData('asleep')) {
+        const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+        if (d > AGGRO_RADIUS) { e.body.setVelocity(0, 0); return; }
+        this.wakeEnemy(e);
+      }
       this.updateEnemyMovement(e, dt);
     });
     this.updateEnemyFire(dt);
@@ -362,22 +383,23 @@ export class RunScene extends Phaser.Scene {
     this.hud.setText(
       `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
-      `⏱ ${Math.max(0, Math.ceil((this.runDurationMs - this.elapsed) / 1000))}s`,
+      `☠ ${this.enemies.countActive(true)} left`,
     );
 
-    if (this.elapsed >= this.runDurationMs) this.startCeremony();
+    // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
+    if (this.enemies.countActive(true) === 0) this.startCeremony();
   }
 
   /**
    * Gems are vacuumed in only within pickupRadius — outside it they stay put, so collection is
    * positional and the radius (widened by the Magnet perk) actually matters. The Zone-Cleared
-   * ceremony reuses this with a screen-sized radius to sweep everything in.
+   * ceremony reuses this with a world-sized radius (and a higher speed) to sweep everything in.
    */
-  private vacuumGems() {
+  private vacuumGems(speed = 340) {
     (this.gems.getChildren() as any[]).forEach((g) => {
       const d = Phaser.Math.Distance.Between(g.x, g.y, this.player.x, this.player.y);
       if (d < this.stats.pickupRadius * RUN_SCALE) {
-        this.physics.moveToObject(g, this.player, 340 * RUN_SCALE);
+        this.physics.moveToObject(g, this.player, speed * RUN_SCALE);
       } else {
         g.body.setVelocity(0, 0);
       }
@@ -385,7 +407,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   /**
-   * Timer's up: flash a "Zone Cleared" banner, wipe every non-boss enemy (each drops its gem as a
+   * Dungeon cleared: flash a "Zone Cleared" banner, wipe every non-boss enemy (each drops its gem as a
    * parting reward), and crank the pickup radius past the screen edges so the next few seconds magnet
    * every gem in before the run summary. Bosses (data flag 'isBoss') are spared for future fights.
    */
@@ -404,14 +426,14 @@ export class RunScene extends Phaser.Scene {
     });
     // Freeze the hero and magnet radius out past the screen so every gem flies in.
     this.player.body.setVelocity(0, 0);
-    this.stats.pickupRadius = Math.max(this.scale.width, this.scale.height);
+    this.stats.pickupRadius = this.layout.width + this.layout.height;
 
     this.showZoneClearedBanner();
   }
 
   private updateCeremony(dt: number) {
     this.player.body.setVelocity(0, 0);
-    this.vacuumGems();
+    this.vacuumGems(2400);
     this.hud.setText(
       `${this.biome.name} Cleared!   ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}`,
@@ -425,7 +447,7 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.flash(320, 70, 200, 110); // green wash
     const txt = this.add.text(width / 2, height / 2 - 40, `${this.biome.name} Cleared!`, {
       fontSize: '48px', color: '#ffffff', fontStyle: 'bold', stroke: '#0b2', strokeThickness: 6,
-    }).setOrigin(0.5).setDepth(40).setScale(0.4).setAlpha(0);
+    }).setOrigin(0.5).setDepth(40).setScale(0.4).setAlpha(0).setScrollFactor(0);
     this.tweens.add({ targets: txt, scale: 1, alpha: 1, duration: 360, ease: 'Back.easeOut' });
     this.tweens.add({
       targets: txt, alpha: 0, delay: CEREMONY_MS - 700, duration: 650,
@@ -537,19 +559,6 @@ export class RunScene extends Phaser.Scene {
     return best;
   }
 
-  private spawnEnemy() {
-    const { width, height } = this.scale;
-    const edge = Phaser.Math.Between(0, 3);
-    const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
-    const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
-
-    // RC-017: spawn mix escalates over the run — toward this age's tough enemies + next-age seeds.
-    const progress = this.elapsed / this.runDurationMs;
-    const table = spawnTableAt(this.trickleBiome, progress, BIOMES, ENEMIES);
-    const def = ENEMIES[pickEnemy(table, () => Math.random())];
-    this.spawnEnemyAt(def, x, y);
-  }
-
   /** Create one enemy of `def` at (x,y) with all run-state data. Shared by edge spawns and
    *  RC-018 splitter death-spawns. */
   private spawnEnemyAt(def: EnemyDef, x: number, y: number) {
@@ -576,41 +585,22 @@ export class RunScene extends Phaser.Scene {
     return enemy;
   }
 
-  /** RC-019: warning banner + edge indicator, then the boss arrives after a short telegraph. */
-  private announceBoss() {
+  /** RC-034: rouse a sleeping mob (proximity or damage). Waking the boss runs its RC-019 arrival
+   *  moment — banner + HP bar — repointed from the old timed telegraph to first contact. */
+  private wakeEnemy(e: any) {
+    if (!e.getData('asleep')) return;
+    e.setData('asleep', false);
+    if (e.getData('isBoss')) this.onBossAggro();
+  }
+
+  private onBossAggro() {
+    playSfx('boss-arrival'); // RC-020
     const { width, height } = this.scale;
-    const edge = Phaser.Math.Between(0, 3);
-    const x = edge === 0 ? 0 : edge === 1 ? width : Phaser.Math.Between(0, width);
-    const y = edge === 2 ? 0 : edge === 3 ? height : Phaser.Math.Between(0, height);
-
-    playSfx('boss-arrival'); // RC-020 (first wiring of this cue)
-
     const name = ENEMIES[this.bossId]?.name ?? 'Boss';
-    const banner = this.add.text(width / 2, height * 0.22, `⚔ ${name} approaches`, {
+    const banner = this.add.text(width / 2, height * 0.22, `⚔ ${name} blocks your path`, {
       fontSize: '34px', color: '#ffdd55', stroke: '#000', strokeThickness: 5, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(60).setScrollFactor(0);
     this.tweens.add({ targets: banner, alpha: 0, y: banner.y - 20, delay: 1600, duration: 700, onComplete: () => banner.destroy() });
-
-    // Pulsing warning marker at the entry point, cleared when the boss appears.
-    const warn = this.add.circle(x, y, 22, 0xff3322, 0.6).setDepth(59);
-    this.tweens.add({ targets: warn, scale: 1.8, alpha: 0.2, duration: 400, yoyo: true, repeat: -1 });
-
-    this.time.delayedCall(BOSS_TELEGRAPH_MS, () => {
-      warn.destroy();
-      if (this.finished || this.ceremony) return; // run ended during the telegraph — don't spawn
-      this.spawnBoss(x, y);
-    });
-  }
-
-  /** RC-019: spawn the boss at (x,y) with 5× HP and the isBoss flag, and raise its HP bar. */
-  private spawnBoss(x: number, y: number) {
-    const def = ENEMIES[this.bossId];
-    const e = this.spawnEnemyAt(def, x, y);
-    const maxHp = def.baseHp * BOSS_HP_MULT;
-    e.setData('hp', maxHp);
-    e.setData('maxHp', maxHp);
-    e.setData('isBoss', true);
-    this.bossEnemy = e;
     this.createBossHpBar();
   }
 
@@ -648,6 +638,11 @@ export class RunScene extends Phaser.Scene {
   /** RC-018: per-frame movement by archetype. `chase`/default keeps the simple beeline; the
    *  others call the pure enemyBehavior functions and apply the returned velocity. */
   private updateEnemyMovement(e: any, dt: number) {
+    const waypoint = routeAround(e.x, e.y, this.player.x, this.player.y, this.layout.barriers);
+    if (waypoint.x !== this.player.x || waypoint.y !== this.player.y) {
+      this.physics.moveTo(e, waypoint.x, waypoint.y, e.getData('speed') as number);
+      return;
+    }
     const behavior = (e.getData('behavior') ?? 'chase') as string;
     const speed = e.getData('speed') as number;
     if (behavior === 'chase') { this.physics.moveToObject(e, this.player, speed); return; }
@@ -707,6 +702,7 @@ export class RunScene extends Phaser.Scene {
     for (const e of this.enemies.getChildren() as any[]) {
       const atk = e.getData('attack') as 'ranged' | 'melee' | undefined;
       if (!atk) continue;
+      if (e.getData('asleep')) continue; // RC-034: sleeping mobs hold fire
       let fireMs = (e.getData('fireMs') ?? 0) - dt;
       if (fireMs <= 0) {
         const prof = ENEMY_SHOT[atk];
@@ -748,14 +744,7 @@ export class RunScene extends Phaser.Scene {
 
   /** A resource id biased toward the biome's lean (but every resource can appear). */
   private biasedResource(): Resource {
-    const weights = RESOURCES.map((r) => 0.5 + (this.biome.resourceBias[r] ?? 0));
-    const total = weights.reduce((a, b) => a + b, 0);
-    let roll = Math.random() * total;
-    for (let i = 0; i < RESOURCES.length; i++) {
-      roll -= weights[i];
-      if (roll < 0) return RESOURCES[i];
-    }
-    return RESOURCES[RESOURCES.length - 1];
+    return pickBiasedResource(() => Math.random(), this.biome.resourceBias);
   }
 
   private hitEnemy(bullet: any, enemy: any) {
@@ -799,6 +788,7 @@ export class RunScene extends Phaser.Scene {
    */
   private applyDamageToEnemy(enemy: any, damage: number, ignoresArmor = false) {
     if (!enemy.active) return;
+    this.wakeEnemy(enemy); // RC-034: getting shot wakes a sleeping mob (and announces the boss)
 
     // Armor absorbs whole hits (one layer per hit) regardless of damage — so tanky mobs always take
     // several shots — unless the source pierces armor (sniper line). A blocked hit deals no HP damage.
@@ -1001,6 +991,15 @@ export class RunScene extends Phaser.Scene {
       });
       panel.add(rerollBtn); panel.add(rerollLabel);
     }
+
+    // Phaser containers do not propagate scrollFactor to children for input hit-testing — each
+    // child must carry scrollFactor 0 itself or the cards render screen-fixed yet hit-test at
+    // world coords (unclickable once the camera scrolls). Container.setScrollFactor's
+    // updateChildren arg did NOT stamp children in Phaser 3.90 (verified live), so stamp each
+    // child explicitly.
+    panel.setScrollFactor(0);
+    panel.each((child: Phaser.GameObjects.GameObject & { setScrollFactor: (v: number) => void }) =>
+      child.setScrollFactor(0));
   }
 
   private draftLabel(o: DraftOption): string {

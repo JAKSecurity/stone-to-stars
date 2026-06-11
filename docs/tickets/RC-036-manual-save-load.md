@@ -1,4 +1,4 @@
-# RC-034: Manual save/load — save slots + export/import
+# RC-036: Manual save/load — save slots + export/import
 **Status**: Open  **Priority**: P3  **Type**: Feature
 **Created**: 2026-06-11
 
@@ -8,7 +8,8 @@ localStorage autosave. Likely shape: named/numbered save slots and/or export-to-
 import-from-file, so progress can be backed up and restored.
 
 ## Context
-Raised by Jeff during the RC-031 (weapon redesign) spec review, 2026-06-11. The trigger: the
+(Renumbered from RC-034 on 2026-06-11 — that ID was taken by the dungeon-expeditions work
+merged from a parallel session.) Raised by Jeff during the RC-031 (weapon redesign) spec review, 2026-06-11. The trigger: the
 save system hard-resets on every save-version bump (RC-017 stance, reaffirmed for RC-031's
 v4 bump — no migrations). Manual save/load softens that policy's cost: players can keep a
 pre-bump save export, share saves, or maintain multiple civs. Current persistence is a single

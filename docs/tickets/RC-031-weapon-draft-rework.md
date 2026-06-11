@@ -62,7 +62,7 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
   (ties to RC-019 mini-boss jackpot, RC-026 POI events, RC-025 perk pool)?
 - Backward-compat: this **resets** the weapon/perk data model — save-version bump to v4,
   **reset on bump** per RC-017 precedent (Jeff, 2026-06-11: no migration; manual save/load
-  slots ticketed separately as RC-034).
+  slots ticketed separately as RC-036).
 
 ## Acceptance Criteria (provisional — refine in spec)
 - [ ] Weapons play **mechanically distinctly**, not as stat reskins; power is sidegrade-balanced
