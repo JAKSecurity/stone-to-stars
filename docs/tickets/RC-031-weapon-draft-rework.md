@@ -1,43 +1,75 @@
-# RC-031: In-run weapon & draft rework (single weapon)
-**Status**: Open  **Priority**: P2  **Type**: Feature
-**Created**: 2026-06-10
+# RC-031: Weapon system redesign — meaningful build choices
+**Status**: Open  **Priority**: P1  **Type**: Feature (design-heavy)
+**Created**: 2026-06-10  **Scope expanded**: 2026-06-10
 
 ## Summary
-Playtest feedback (2026-06-10): the dual-weapon loadout and weapon-swap drafting dilute build
-identity. Move to a single-weapon run with a draft that never offers a *weaker* weapon than the one
-you hold, so leveling/evolving your chosen weapon is always the meaningful choice.
+The in-run weapon/upgrade loop is currently **stat-scaling on rails** — draft cards add flat
+damage/fire-rate, weapons differ mostly by numbers, and rewards are interchangeable. Jeff's direction
+(2026-06-10): redesign the weapon system so a run is about **meaningful, risk-bearing build choices**,
+not number-go-up. The north-star feeling:
 
-## Context
-From the 2026-06-10 playtest notes (#7, #4). Current state (per code map):
-- `MAX_WEAPON_SLOTS = 2` (`src/run/weapons.ts:9`) with a 1-melee + 1-ranged split (`MELEE_IDS`,
-  `addWeapon` swap logic ~`:40-44`). `initialWeapons()` returns one weapon (default club).
-- The level-up draft (`src/run/draft.ts`, `rollRunDraft`/`draftOptions`) offers `newWeapon`,
-  `levelWeapon`, and `evolve` options. A `newWeapon` of an occupied class swaps the existing weapon.
-- There are **no negative/downgrade perks** — note #4 refers to the draft offering a *new/weaker
-  weapon* that replaces your leveled one. With a single slot, that swap is a strict downgrade.
+> "With *these* upgrade choices, and my available weapons (pre-determined by my civilization), I
+> should go for **X build**."
 
-## Scope
-- **#7 — One weapon at a time:** drop to a single weapon slot (`MAX_WEAPON_SLOTS = 1`), remove the
-  melee/ranged split. The run starts with the chosen starting weapon and keeps it (level/evolve only).
-- **#4 — No weaker-weapon offers:** the draft must never offer a weapon that is lower-tier/weaker than
-  the currently held weapon. Define "weaker" concretely (e.g. tier index < held weapon's tier, or a
-  computed power score). Keep evolutions and level-ups of the held weapon.
+This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm pass before any plan.
 
-## Open design questions
-- Does the draft still offer *side-grade* swaps (a different same-or-higher-tier weapon), or only
-  level/evolve the one you have? If swaps are allowed, swapping a leveled weapon for a fresh L1 one is
-  itself a downgrade — likely they should be disallowed or carry over levels.
-- What's the "weaker" comparator — `AGE_ORDER` tier of the weapon's `tier` field, or a power score
-  from damage×count/cooldown?
-- Interaction with RC-027 starting-weapon choice and the evolve path (`evolvesTo`/`evolveRequiresPerk`).
+## Design intent (Jeff, 2026-06-10)
+- **Different weapon behaviors**, not stat reskins — each weapon should play differently (the RC-015
+  orbit/lob behaviors are a start; the catalog needs more genuinely distinct firing/movement patterns).
+- **Power balancing** so weapons are sidegrades/tradeoffs, not a strict ladder where the newest is best.
+- **Completely different rewards** — the draft/upgrade rewards themselves get redesigned, not just the
+  weapons. Upgrades should carry **risk / tradeoffs** (give something up to gain something), so picks
+  are decisions, not auto-accepts.
+- **Build identity from the civ** — the weapons available in a run are pre-determined by the player's
+  civilization/tech, so the meta-game (what you build between runs) sets up the in-run build space.
+- **Inspirations to study:** Slay the Spire (card synergies, risk/reward relics, deck identity),
+  Vampire Survivors (weapon evolutions, passive/weapon interplay, build archetypes), and a
+  "ball-pit"/physics-roguelite (e.g. Ballionaire / peggle-likes — emergent synergy from simple pieces).
+  The goal is **emergent synergy + commitment**, not linear stat upgrades.
 
-## Acceptance Criteria
-- [ ] Single weapon slot; no melee/ranged dual-wield; run keeps its starting/evolved weapon
-- [ ] Draft never offers a weapon weaker than the one currently held
-- [ ] Evolutions and level-ups of the held weapon still offered
-- [ ] Unit tests for the draft-filtering logic (pure); Playwright live-verify the draft never shows a downgrade
+## Components folded in (the original narrow scope, now part of the larger redesign)
+- **#7 — one weapon at a time** (drop the 1-melee+1-ranged dual-wield) — likely still the right frame
+  for build commitment, but revisit as part of the redesign (a single weapon + a deck of
+  passives/synergies may be the model).
+- **#4 — no weaker-weapon offers** — subsumed: with a real reward redesign, "weaker swap" offers
+  shouldn't exist by construction.
+- **#6 — piercing as its own powerup** (currently in RC-025) — an example of the kind of behavior-
+  changing upgrade this redesign wants; reconcile with RC-025's perk-pool expansion.
+
+## Current state (code map, for the redesign)
+- `src/run/weapons.ts` — `MAX_WEAPON_SLOTS = 2`, melee/ranged split (`MELEE_IDS`, `weaponClass`),
+  `addWeapon` swaps within class, `draftOptions` offers any unheld pool weapon as a swap +
+  `levelWeapon` + `evolve` + perks. `weaponShot` resolves a def+level into firing numbers.
+- `src/run/weaponData.ts` — the weapon catalog (`WeaponDef`: damage/count/spread/speed/cooldown,
+  `behavior` ∈ straight/pierce/cone/orbit/lob, `levelScaling`, `evolvesTo`/`evolveRequiresPerk`).
+- `src/run/draft.ts` — `PERKS` (flat additive: sharpen/rapid/swift/vigor/magnet) + `rollDraft`.
+- `src/scenes/RunScene.ts` — fires weapons, applies perks, runs the draft overlay.
+- Civ→run wiring: `RunModifiers.weapons` (the run's weapon pool) comes from techs/buildings
+  (`computeRunModifiers`), so "civ determines available weapons" already has a hook.
+
+## Open design questions (resolve in brainstorm)
+- One weapon + a **deck of passive/synergy upgrades** (StS-like), or a small weapon set with
+  evolutions (VS-like)? Or a hybrid?
+- What does a **risk-bearing** upgrade look like here (e.g. "double fire rate but −50% range", "huge
+  AoE but it can hurt you", "lose a weapon slot for a powerful relic")?
+- How do civ choices (techs/traditions/buildings) **pre-shape** the available build space so the
+  player can plan a build before the run?
+- How do **rewards** change — are gems/XP still the currency, or do upgrades come from events/bosses
+  (ties to RC-019 mini-boss jackpot, RC-026 POI events, RC-025 perk pool)?
+- Backward-compat: this likely **resets** the weapon/perk data model — plan a save-version bump and
+  migration if `CivState` weapon/tradition shape changes.
+
+## Acceptance Criteria (provisional — refine in spec)
+- [ ] Weapons play **mechanically distinctly**, not as stat reskins; power is sidegrade-balanced
+- [ ] Upgrade choices carry **tradeoffs/risk** and create legible **build archetypes**
+- [ ] A run's available weapons/upgrades are shaped by the player's civ, enabling pre-run build intent
+- [ ] Rewards redesigned to deliver upgrades meaningfully (draft + events/bosses)
+- [ ] Pure logic unit-tested; Playwright live-verify the build loop end-to-end
+- [ ] Save migration if the weapon/perk data model changes
 
 ## References
-- 2026-06-10 playtest notes (#4, #7)
-- `src/run/weapons.ts`, `src/run/draft.ts`, `src/scenes/RunScene.ts` (equipped loadout)
-- Related: RC-025 (perk pool — #6 pierce perk lands there), RC-027 (starting-weapon choice)
+- 2026-06-10 playtest notes (#4, #7) + 2026-06-10 weapon-redesign direction
+- `src/run/weapons.ts`, `src/run/weaponData.ts`, `src/run/draft.ts`, `src/run/modifiers.ts`, `src/scenes/RunScene.ts`
+- Related: RC-025 (perk pool — #6 pierce), RC-027 (starting-weapon choice), RC-019 (boss rewards),
+  RC-026 (POI events), RC-015 (orbit/lob behaviors as a behavior-diversity precedent)
+- Inspirations: Slay the Spire, Vampire Survivors, Ballionaire / peggle-likes
