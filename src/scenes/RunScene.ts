@@ -141,6 +141,7 @@ export class RunScene extends Phaser.Scene {
   // subtract them after recomputeStats() yields the new MAX — preventing passive picks from
   // refunding already-spent charges (infinite-charges bug).
   private chargesSpent = 0;
+  private lastHeavyShakeMs = -Infinity;
 
   constructor() { super('run'); }
 
@@ -169,6 +170,7 @@ export class RunScene extends Phaser.Scene {
     this.catalysts = 0;
     this.catalystTokens = [];
     this.chargesSpent = 0;
+    this.lastHeavyShakeMs = -Infinity;
     this.weaponCooldowns = {};
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
@@ -618,7 +620,12 @@ export class RunScene extends Phaser.Scene {
       this.tweens.add({ targets: f, scale: 0.2, alpha: 0, duration: 150, onComplete: () => f.destroy() });
     }
     if (kit.shake === 1) this.cameras.main.shake(80, 0.003);
-    else if (kit.shake === 2) this.cameras.main.shake(140, 0.006);
+    else if (kit.shake === 2) {
+      if (this.elapsed - this.lastHeavyShakeMs >= 120) {
+        this.lastHeavyShakeMs = this.elapsed;
+        this.cameras.main.shake(140, 0.006);
+      }
+    }
   }
 
   private fireWeapon(shot: WeaponShot, weaponId: string) {
