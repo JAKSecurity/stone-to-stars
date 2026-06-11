@@ -1439,7 +1439,13 @@ export class RunScene extends Phaser.Scene {
   /** Rebuild stats from the run's base whenever passives change (recompute model). */
   private refreshStatsFromPassives() {
     const ratio = this.stats.hp / this.stats.maxHp;
+    // Carry the live run progression across the recompute: baseStats is the create()-time snapshot
+    // (level 1, xp 0), so a bare recomputeStats() would reset the player's level/xp on every passive
+    // pick. Preserve the CURRENT level/xp (same pattern as chargesSpent below).
+    const { level, xp } = this.stats;
     this.stats = recomputeStats(this.baseStats, this.passives, ratio);
+    this.stats.level = level;
+    this.stats.xp = xp;
     // recomputeStats yields the new MAX; consumption is tracked separately so passive picks can't
     // refund already-spent charges (RC-031 infinite-charges bug fix).
     this.stats.activeCharges = Math.max(0, this.stats.activeCharges - this.chargesSpent);
