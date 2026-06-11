@@ -12,6 +12,7 @@ import { resolveShape } from '../run/archetypes';
 import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
 import { PASSIVES } from '../run/passiveData';
 import { ACTIVES } from '../run/activeData';
+import { BASE_ACTIVE_CHARGES } from '../run/actives';
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
@@ -168,6 +169,11 @@ export class RunScene extends Phaser.Scene {
   }
 
   create() {
+    // RC-031: the chosen right-click active and its base charges. Set BEFORE the baseStats
+    // snapshot so the powder_bandolier passive (effectPerLevel.activeCharges) stacks on top of
+    // this base via recomputeStats rather than being clobbered by the snapshot.
+    this.activeId = this.mods.activeItem;
+    this.stats.activeCharges = this.activeId ? BASE_ACTIVE_CHARGES : 0;
     // RC-031: snapshot the run's base stats (civ modifiers, set in init()) so passive changes
     // always recompute from this base rather than accumulating incrementally.
     this.baseStats = { ...this.stats };
@@ -206,6 +212,15 @@ export class RunScene extends Phaser.Scene {
       left: this.input.keyboard!.addKey('A'),
       right: this.input.keyboard!.addKey('D'),
     };
+
+    // RC-031: right-click fires the loadout's active item at the world point under the cursor.
+    // disableContextMenu so the browser menu doesn't eat the right-click. The handler is
+    // scene-level but gated on rightButtonDown(), so it never collides with the left-click
+    // pointerdown handlers on draft cards / buttons.
+    this.input.mouse?.disableContextMenu();
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.rightButtonDown()) this.useActive(p.worldX, p.worldY);
+    });
 
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
@@ -602,6 +617,44 @@ export class RunScene extends Phaser.Scene {
   private spawnPatch(x: number, y: number, radius: number, lingerMs: number, tickDamage: number, tint: number) {
     const gfx = this.add.circle(x, y, radius, tint, 0.28).setDepth(6);
     this.patches.push({ x, y, bornMs: this.elapsed, lingerMs, radius, tickDamage, lastTick: new Map(), gfx, tint });
+  }
+
+  /** RC-031: fire the loadout's right-click active at (x, y) in WORLD space (so it lands under the
+   *  cursor on the scrolled camera). Spends one charge; no-op when there's no active, no charges,
+   *  or the run is paused / in the victory ceremony. World-anchored visuals (no scrollFactor 0). */
+  private useActive(x: number, y: number) {
+    if (!this.activeId || this.stats.activeCharges <= 0 || this.paused || this.ceremony) return;
+    this.stats.activeCharges -= 1;
+    const def = ACTIVES[this.activeId];
+    playSfx('draft-open'); // placeholder cue; a bespoke per-active recipe is optional later.
+    const e = def.effect;
+    if (e.kind === 'slow') {
+      // A blue ring fades over the slow's duration; enemies caught in it lose move speed until
+      // slowUntil (read by enemyVelocity, same fields as the on-hit slow).
+      const ring = this.add.circle(x, y, e.radius * RUN_SCALE, 0x66ccff, 0.25).setDepth(7);
+      this.tweens.add({ targets: ring, alpha: 0, duration: e.durationMs, onComplete: () => ring.destroy() });
+      (this.enemies.getChildren() as any[]).forEach((en) => {
+        if (en.active && withinRadius(x, y, en.x, en.y, e.radius * RUN_SCALE)) {
+          en.setData('slowPct', e.pct);
+          en.setData('slowUntil', this.elapsed + e.durationMs);
+        }
+      });
+    } else if (e.kind === 'dot') {
+      // A lingering cloud reusing the trail/zone patch system. dps is converted to per-tick damage.
+      this.spawnPatch(x, y, e.radius * RUN_SCALE, e.durationMs, e.dps * (ZONE_TICK_MS / 1000), 0x77dd55);
+    } else if (e.kind === 'burst') {
+      // `count` blasts ringed around the point, staggered 120ms apart, each scaled by damageMult.
+      for (let i = 0; i < e.count; i++) {
+        const ang = (i / e.count) * Math.PI * 2;
+        const bx = x + Math.cos(ang) * e.radius * 0.5 * RUN_SCALE;
+        const by = y + Math.sin(ang) * e.radius * 0.5 * RUN_SCALE;
+        this.time.delayedCall(i * 120, () => this.detonate(bx, by, e.damage * this.stats.damageMult, e.radius * RUN_SCALE));
+      }
+    } else {
+      // Exhaustiveness guard: a new ActiveEffect kind must add a branch here or this won't compile.
+      const _exhaustive: never = e;
+      return _exhaustive;
+    }
   }
 
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
