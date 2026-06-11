@@ -3,7 +3,7 @@ import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
 import { availableExpeditions, apexEnemyId, biomeDanger } from '../run/expedition';
 import { incomeMult } from '../game/economy';
-import { computeRunModifiers } from '../run/modifiers';
+import { unlockedWeapons } from '../run/modifiers';
 import { WEAPONS } from '../run/weaponData';
 import { weaponStatText } from '../run/weapons';
 import { spriteCanvas } from '../art/domSprite';
@@ -32,7 +32,8 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
 
   // --- Starting-weapon picker (A6): a flat grid of every unlocked weapon, one-click to set the
   //     run's opening weapon. Persisted as the default. ---
-  const pool = computeRunModifiers(civ).weapons;
+  // Use unlockedWeapons (full pool) so the grid shows ALL unlocked weapons regardless of kit size.
+  const pool = unlockedWeapons(civ);
   const chosen = pool.includes(civ.startWeapon ?? 'club') ? (civ.startWeapon ?? 'club') : 'club';
   const wsec = document.createElement('div');
   wsec.className = 'startweapon';

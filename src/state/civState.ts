@@ -5,7 +5,7 @@ import { BUILDINGS } from '../camp/buildingData';
 
 export function newCivState(): CivState {
   return {
-    version: 3,
+    version: 4,
     banked: emptyBundle(),
     researched: [],
     buildings: [],
@@ -14,6 +14,8 @@ export function newCivState(): CivState {
     lifetimeResources: emptyBundle(),
     startWeapon: 'club',
     biomeBests: {},
+    kit: ['club'],
+    activeItem: undefined,
   };
 }
 

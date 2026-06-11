@@ -10,6 +10,21 @@ import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { TRADITIONS } from '../civics/traditionData';
 import { resolveActiveItem } from './actives';
+import { validateKit } from './kit';
+
+/** Collect all tech- and building-unlocked weapon ids for a civ (the full pool, ignoring the kit). */
+export function unlockedWeapons(civ: CivState): string[] {
+  const weapons = new Set<string>(BASE_WEAPONS);
+  for (const techId of civ.researched) {
+    const b = TECHS[techId]?.runBonus;
+    (b?.weapons ?? []).forEach((w) => weapons.add(w));
+  }
+  for (const placed of civ.buildings) {
+    const b = BUILDINGS[placed.id]?.runBonus;
+    (b?.weapons ?? []).forEach((w) => weapons.add(w));
+  }
+  return [...weapons];
+}
 
 export function computeRunModifiers(civ: CivState): RunModifiers {
   let maxHp = BASE_MAX_HP;
@@ -59,13 +74,14 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     startWeaponLevel += (e.startWeaponLevel ?? 0) * rank;
   }
 
-  // RC-027: start with the player's chosen weapon if they own it, else the base club.
-  const startWeapon = civ.startWeapon && weapons.has(civ.startWeapon) ? civ.startWeapon : 'club';
+  // RC-031: apply the Expedition Kit — clamp/pad/dedup the player's chosen kit from unlocked pool,
+  // then coerce startWeapon into the kit. mods.weapons = kit weapons (the run draft pool).
+  const { kit, startWeapon } = validateKit(civ.kit, [...weapons], civ.startWeapon);
 
   const activeItem = resolveActiveItem(civ.activeItem, [...actives]);
 
   return {
-    maxHp, damageMult, draftChoices, weapons: [...weapons],
+    maxHp, damageMult, draftChoices, weapons: kit,
     pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel, startWeapon,
     actives: [...actives], activeItem,
   };

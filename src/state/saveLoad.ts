@@ -4,7 +4,8 @@ export const SAVE_KEY = 'rogue-civ-save-v1';
 // v2 = RC-017 economy rescale; v3 = RC-028 traditions map. Both make older saves incompatible
 // (old-scale banked resources / missing traditions), so any pre-v3 save resets — load → null —
 // rather than migrate. This matches RC-017's "rescale resets saves" stance.
-const CURRENT_VERSION = 3;
+// v4 = RC-031 Forge & Fuse (kit/activeItem + catalog rebuild). Reset on bump — no migration (Jeff 2026-06-11).
+const CURRENT_VERSION = 4;
 
 export function serialize(civ: CivState): string {
   return JSON.stringify(civ);
