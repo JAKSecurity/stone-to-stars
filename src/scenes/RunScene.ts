@@ -1194,9 +1194,21 @@ export class RunScene extends Phaser.Scene {
   }
 
   private hitPlayer(enemy: any) {
+    // RC-035: the boss is exempt from kamikaze destruction — it deals contact damage and stays alive.
+    // Non-boss enemies keep the old one-hit kamikaze behavior.
+    const isBoss = enemy.getData('isBoss') as boolean | undefined;
+    if (isBoss) {
+      // Wake a sleeping boss on contact so the banner + HP bar trigger naturally.
+      this.wakeEnemy(enemy);
+      // Throttle repeated contact damage to ~800 ms so sustained overlap doesn't instantly drain HP.
+      const nextHit = (enemy.getData('bossNextContactMs') as number | undefined) ?? -Infinity;
+      if (this.elapsed < nextHit) return;
+      enemy.setData('bossNextContactMs', this.elapsed + 800);
+    } else {
+      this.stopChargerTell(enemy);
+      enemy.destroy();
+    }
     this.stats.hp -= enemy.getData('contactDamage');
-    this.stopChargerTell(enemy);
-    enemy.destroy();
     playSfx('player-hit'); // RC-020
     // --- Juice: a red screen flash + the hero flashing red so a hit is unmistakable, plus shake ---
     this.cameras.main.flash(110, 130, 0, 0);
