@@ -90,6 +90,21 @@ export function routeAround(
   return best.axis === 'v' ? { x: best.pos, y: gapMid } : { x: gapMid, y: best.pos };
 }
 
+/**
+ * RC-038: clamp a point into the playable field — the world inset by `margin` on every edge.
+ * Pure; used at every spawn site and by the per-frame containment sweep so nothing (enemy, gem,
+ * player) can come to rest in or beyond the perimeter wall band. Each axis is clamped independently
+ * into [margin, world − margin], so an off-corner point snaps to the nearest in-bounds corner.
+ */
+export function clampToPlayable(
+  x: number, y: number, worldW: number, worldH: number, margin: number,
+): { x: number; y: number } {
+  return {
+    x: Math.max(margin, Math.min(worldW - margin, x)),
+    y: Math.max(margin, Math.min(worldH - margin, y)),
+  };
+}
+
 /** True when an obstacle at (x,y,r) would clip into a barrier band or crowd its opening. */
 function nearBarrier(b: Barrier, x: number, y: number, r: number): boolean {
   const across = b.axis === 'v' ? x : y;

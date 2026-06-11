@@ -38,7 +38,7 @@ import {
 import { mulberry32 } from '../run/rng';
 import {
   generateLayout, DungeonLayout, Barrier,
-  WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS,
+  WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS, clampToPlayable,
 } from '../run/dungeonGen';
 import { enemyPlacements, gemPlacements, pickBiasedResource, openPoint } from '../run/dungeonPopulate';
 import { combineMutators, applyHaulMult } from '../run/mutators';
@@ -104,6 +104,7 @@ export class RunScene extends Phaser.Scene {
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
+  private lastSweepMs = 0; // RC-038: throttle for the ~1s containment sweep
   private equipped: EquippedWeapon[] = initialWeapons();
   private passives: EquippedPassive[] = [];
   private catalysts = 0;
@@ -620,6 +621,11 @@ export class RunScene extends Phaser.Scene {
     if (this.keys.up.isDown) b.setVelocityY(-speed);
     if (this.keys.down.isDown) b.setVelocityY(speed);
 
+    // RC-038: clamp the player every frame — a wall-collision bounce at the border can displace him
+    // past the perimeter; re-seat him inside the playable field before anything reads his position.
+    const pc = clampToPlayable(this.player.x, this.player.y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    if (pc.x !== this.player.x || pc.y !== this.player.y) this.player.body.reset(pc.x, pc.y);
+
     for (const w of this.equipped) {
       this.weaponCooldowns[w.id] = (this.weaponCooldowns[w.id] ?? 0) - dt;
       if (this.weaponCooldowns[w.id] <= 0) {
@@ -643,6 +649,21 @@ export class RunScene extends Phaser.Scene {
       this.updateEnemyMovement(e, dt);
     });
     this.updateEnemyFire(dt);
+
+    // RC-038 containment failsafe: ~once a second, any enemy that has drifted outside the playable
+    // field (knockback/tunneling, whatever the cause) is hard-reset back inside via body.reset —
+    // re-seating the body cleanly rather than nudging velocity. This is the soft-lock guard: a
+    // strayed last enemy re-enters and becomes killable, so the clear can always complete.
+    if (this.elapsed - this.lastSweepMs >= 1000) {
+      this.lastSweepMs = this.elapsed;
+      const { width: ww, height: wh } = this.layout;
+      const m = WALL_THICKNESS + 24;
+      (this.enemies.getChildren() as any[]).forEach((e) => {
+        if (!e.active) return;
+        const c = clampToPlayable(e.x, e.y, ww, wh, m);
+        if (c.x !== e.x || c.y !== e.y) e.body.reset(c.x, c.y);
+      });
+    }
 
     // RC-026: POI proximity activation (shrine wave / altar wake) + off-screen edge indicators.
     this.updatePois();
@@ -1081,7 +1102,11 @@ export class RunScene extends Phaser.Scene {
   /** Create one enemy of `def` at (x,y) with all run-state data. Shared by edge spawns and
    *  RC-018 splitter death-spawns. */
   private spawnEnemyAt(def: EnemyDef, x: number, y: number) {
-    const enemy = this.add.image(x, y, def.sprite) as any;
+    // RC-038: single choke point — every spawn (placed roster, splitter children, shrine wave,
+    // courier, boss) flows through here, so clamping the position here keeps the whole roster inside
+    // the playable field. Margin clears the wall band plus a body's half-width.
+    const c = clampToPlayable(x, y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    const enemy = this.add.image(c.x, c.y, def.sprite) as any;
     enemy.setDisplaySize(def.displaySize.w * RUN_SCALE, def.displaySize.h * RUN_SCALE);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
@@ -1527,6 +1552,10 @@ export class RunScene extends Phaser.Scene {
   }
 
   private dropGem(x: number, y: number, resource: Resource, opts?: { valueOverride?: number; tierOverride?: GemTier }) {
+    // RC-038: jackpot bursts at wall-adjacent shrines/couriers scatter loot on a ring that can land
+    // in the wall band — clamp so every gem is reachable inside the playable field.
+    const cg = clampToPlayable(x, y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    x = cg.x; y = cg.y;
     const tier = opts?.tierOverride ?? gemTierForExpeditionTier(this.expedition.tier);
     const value = opts?.valueOverride ?? rewardValueForTier(this.expedition.tier);
     // RC-022 B5: display size scales with the value tier so a jackpot reads bigger at a glance.

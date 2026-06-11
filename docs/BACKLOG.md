@@ -54,4 +54,5 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-034 | Procedural dungeon expeditions — explore & clear (Diablo-scale) | Delivered | P2 | C3 | docs/tickets/RC-034-procedural-dungeon-expeditions.md |
 | RC-035 | Boss contact-kill skips the jackpot (climax can be no-sold) | Delivered | P3 | C3 | docs/tickets/RC-035-boss-contact-kill-skips-jackpot.md |
 | RC-036 | Manual save/load — save slots + export/import | Delivered | P3 |  | docs/tickets/RC-036-manual-save-load.md |
-| RC-037 | Ranged mobs snipe from off-screen (unlimited fire range post-RC-034) | Open | P2 | C3 | docs/tickets/RC-037-offscreen-ranged-sniping.md |
+| RC-037 | Ranged mobs snipe from off-screen (unlimited fire range post-RC-034) | Delivered | P2 | C3 | docs/tickets/RC-037-offscreen-ranged-sniping.md |
+| RC-038 | Entities escape the playable field — out-of-bounds mob soft-locks the clear | Delivered | P1 | C3 | docs/tickets/RC-038-out-of-bounds-softlock.md |

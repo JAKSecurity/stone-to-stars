@@ -26,3 +26,13 @@ existing wake/cap/cadence logic. Melee unchanged. One-conditional fix + a Playwr
 - `src/scenes/RunScene.ts` `updateEnemyFire` / `ENEMY_SHOT`
 - RC-018 (enemy attack types), RC-034 (scrolled dungeon — the context change that broke the assumption)
 - 2026-06-11 evening playtest (Jeff)
+
+## Resolution
+Delivered 2026-06-11. `updateEnemyFire` (RunScene.ts) now gates the `ranged` branch on the shooter
+being inside the camera's `worldView`, inset 24px on every edge, instead of firing unconditionally:
+`inRange = atk === 'ranged' ? onCamera : d < prof.range`. Melee range gating, sleep gating, the
+`MAX_ENEMY_BULLETS` cap, and cadence are all unchanged — the only new cost is one cheap bounds
+compare per armed enemy. Live-verified via Playwright against a fresh run: a woken ranged mob pinned
+just below the viewport (y 2289 vs viewBottom 1889) with its fire timer forced ready every frame
+emitted **0** enemy bullets; the same mob moved to the centre of the view emitted **10**. Unit suite
+green at 360 tests; `npm run build` clean.
