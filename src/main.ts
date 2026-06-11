@@ -100,7 +100,7 @@ function startRun() {
   civEl.classList.add('hidden');
   expEl.classList.add('active');
   renderExpeditionScreen(expEl, civ, {
-    onPick: (expedition: Expedition) => launchExpedition(expedition),
+    onPick: (expedition: Expedition, mutators: string[]) => launchExpedition(expedition, mutators),
     onKitChange: (kit, startWeapon) => { civ = { ...civ, kit, startWeapon }; persist(); startRun(); }, // re-render with new kit
     onSelectActive: (id) => { civ = { ...civ, activeItem: id }; persist(); startRun(); }, // re-render with new active
     onBack: () => { expEl.classList.remove('active'); showCiv(); },
@@ -109,7 +109,7 @@ function startRun() {
 
 let lastBiomeId: string | undefined; // for per-biome best tracking (RC-027)
 
-function launchExpedition(expedition: Expedition) {
+function launchExpedition(expedition: Expedition, mutators: string[] = []) {
   lastBiomeId = expedition.biomeId;
   expEl.classList.remove('active');
   runEl.classList.add('active');
@@ -121,6 +121,7 @@ function launchExpedition(expedition: Expedition) {
   game.scene.start('run', {
     modifiers,
     expedition,
+    mutators,
     heroSprite: heroSpriteFor(getAge(civ)),
     onComplete: (result: RunResult) => onRunComplete(result),
   });

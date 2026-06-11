@@ -161,4 +161,10 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .exp-foes { display: flex; flex-wrap: wrap; gap: 4px; margin: 9px 0 7px; }
 .exp-foes canvas { flex: none; }
 .exp-meta { font-size: 0.78rem; opacity: 0.85; }
+/* RC-029 mutator wager chips on expedition cards (flat, dense; green = selected, like .wcard.sel) */
+.mutchips { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 9px; }
+.mutchip { font-size: 0.66rem; line-height: 1; padding: 4px 7px; border: 1px solid #30363d; border-radius: 5px; background: #0d1117; color: #c9d1d9; cursor: pointer; user-select: none; }
+.mutchip:hover { background: #11161d; border-color: #6e7681; }
+.mutchip.mut-on { border-color: #3fb950; background: #11201a; color: #e6edf3; }
+.muttotal { font-size: 0.72rem; font-weight: 700; color: #3fb950; margin-left: auto; }
 .exp-back { margin-top: 16px; padding: 10px 16px; background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; cursor: pointer; }

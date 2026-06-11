@@ -8,6 +8,8 @@ import { WEAPONS } from '../run/weaponData';
 import { weaponStatText } from '../run/weapons';
 import { validateKit, KIT_SIZE } from '../run/kit';
 import { ACTIVES } from '../run/activeData';
+import { MUTATORS } from '../run/mutatorData';
+import { combineMutators } from '../run/mutators';
 import { spriteCanvas } from '../art/domSprite';
 
 const ICON: Record<Resource, string> = {
@@ -15,7 +17,7 @@ const ICON: Record<Resource, string> = {
 };
 
 export interface ExpeditionCallbacks {
-  onPick: (expedition: Expedition) => void;
+  onPick: (expedition: Expedition, mutators: string[]) => void;
   onKitChange: (kit: string[], startWeapon: string) => void;
   onSelectActive: (id: string) => void;
   onBack: () => void;
@@ -191,7 +193,40 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
       `Apex: <b>${apex.name}</b>` + (best > 0 ? ` &nbsp;·&nbsp; Best haul <b>${best}</b>` : '');
     card.appendChild(meta);
 
-    card.onclick = () => cb.onPick(exp);
+    // --- RC-029 mutator chips: per-card wager toggles. Selection is ephemeral closure state
+    //     (a fresh Set per render — resets every time the screen rebuilds, by design, spec §2).
+    //     Chip clicks must NOT bubble to the card's launch onclick. ---
+    const sel = new Set<string>();
+    const chips = document.createElement('div');
+    chips.className = 'mutchips';
+    const total = document.createElement('span');
+    total.className = 'muttotal';
+    const refreshTotal = () => {
+      if (sel.size) {
+        total.textContent = `×${combineMutators([...sel]).rewardMult.toFixed(2)}`;
+        total.style.display = '';
+      } else {
+        total.style.display = 'none';
+      }
+    };
+    for (const m of Object.values(MUTATORS)) {
+      const chip = document.createElement('span');
+      chip.className = 'mutchip';
+      chip.textContent = `${m.icon} ${m.name}`;
+      chip.title = m.desc;
+      chip.onclick = (ev) => {
+        ev.stopPropagation(); // don't trigger the card's launch click
+        if (sel.has(m.id)) { sel.delete(m.id); chip.classList.remove('mut-on'); }
+        else { sel.add(m.id); chip.classList.add('mut-on'); }
+        refreshTotal();
+      };
+      chips.appendChild(chip);
+    }
+    chips.appendChild(total);
+    refreshTotal();
+    card.appendChild(chips);
+
+    card.onclick = () => cb.onPick(exp, [...sel]);
     grid.appendChild(card);
   }
   wrap.appendChild(grid);
