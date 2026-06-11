@@ -1194,7 +1194,9 @@ export class RunScene extends Phaser.Scene {
   }
 
   private hitPlayer(enemy: any) {
-    // RC-035: the boss is exempt from kamikaze destruction — it deals contact damage and stays alive.
+    // RC-035: read contactDamage BEFORE any branch so destroy() can't null the DataManager first.
+    const contactDamage = (enemy.getData('contactDamage') as number | undefined) ?? 0;
+    // The boss is exempt from kamikaze destruction — it deals contact damage and stays alive.
     // Non-boss enemies keep the old one-hit kamikaze behavior.
     const isBoss = enemy.getData('isBoss') as boolean | undefined;
     if (isBoss) {
@@ -1204,11 +1206,12 @@ export class RunScene extends Phaser.Scene {
       const nextHit = (enemy.getData('bossNextContactMs') as number | undefined) ?? -Infinity;
       if (this.elapsed < nextHit) return;
       enemy.setData('bossNextContactMs', this.elapsed + 800);
+      this.stats.hp -= contactDamage;
     } else {
+      this.stats.hp -= contactDamage;
       this.stopChargerTell(enemy);
       enemy.destroy();
     }
-    this.stats.hp -= enemy.getData('contactDamage');
     playSfx('player-hit'); // RC-020
     // --- Juice: a red screen flash + the hero flashing red so a hit is unmistakable, plus shake ---
     this.cameras.main.flash(110, 130, 0, 0);
