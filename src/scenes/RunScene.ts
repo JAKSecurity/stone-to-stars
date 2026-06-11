@@ -1242,7 +1242,14 @@ export class RunScene extends Phaser.Scene {
       if (fireMs <= 0) {
         const prof = ENEMY_SHOT[atk];
         const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-        const inRange = atk === 'ranged' ? true : d < (prof as typeof ENEMY_SHOT.melee).range;
+        // RC-037: in the scrolled dungeon (RC-034) a ranged mob must be genuinely on-camera to fire —
+        // otherwise it snipes the player from off-screen. Gate on the shooter being inside the
+        // viewport's worldView, inset ~24px so a mob at the very edge isn't yet shooting.
+        const view = this.cameras.main.worldView;
+        const onCamera =
+          e.x >= view.x + 24 && e.x <= view.right - 24 &&
+          e.y >= view.y + 24 && e.y <= view.bottom - 24;
+        const inRange = atk === 'ranged' ? onCamera : d < (prof as typeof ENEMY_SHOT.melee).range;
         if (inRange && this.enemyBullets.countActive(true) < MAX_ENEMY_BULLETS) {
           this.fireEnemyShot(e, atk);
           fireMs = prof.cooldownMs + Phaser.Math.Between(-300, 700);
