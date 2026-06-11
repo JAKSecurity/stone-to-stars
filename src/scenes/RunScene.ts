@@ -994,8 +994,12 @@ export class RunScene extends Phaser.Scene {
 
     // Phaser containers do not propagate scrollFactor to children for input hit-testing — each
     // child must carry scrollFactor 0 itself or the cards render screen-fixed yet hit-test at
-    // world coords (unclickable once the camera scrolls). updateChildren=true stamps them all.
-    panel.setScrollFactor(0, 0, true);
+    // world coords (unclickable once the camera scrolls). Container.setScrollFactor's
+    // updateChildren arg did NOT stamp children in Phaser 3.90 (verified live), so stamp each
+    // child explicitly.
+    panel.setScrollFactor(0);
+    panel.each((child: Phaser.GameObjects.GameObject & { setScrollFactor: (v: number) => void }) =>
+      child.setScrollFactor(0));
   }
 
   private draftLabel(o: DraftOption): string {

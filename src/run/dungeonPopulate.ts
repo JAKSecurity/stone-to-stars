@@ -13,7 +13,9 @@ import { runDurationForTier } from '../game/config';
 
 export const BASE_ENEMY_COUNT = 26;   // placed enemies at tier 0 ...
 export const ENEMIES_PER_TIER = 8;    // ... plus this many per age tier
-export const ENEMY_SAFE_RADIUS = 420; // no enemy placed this close to the start
+// Must exceed dungeonGen's AGGRO_RADIUS (720): anything placed inside the aggro ring is awake and
+// attacking at second zero — playtest showed an idle player dies at spawn with the old 420.
+export const ENEMY_SAFE_RADIUS = 900;
 
 export interface EnemyPlacement { id: string; x: number; y: number; isBoss?: boolean; }
 export interface GemPlacement { x: number; y: number; resource: Resource; }
