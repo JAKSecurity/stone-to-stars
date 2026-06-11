@@ -5,7 +5,8 @@ describe('ageUnlocks', () => {
   it('derives what enters at the Bronze age from the data', () => {
     const u = ageUnlocks('bronze');
     expect(u.biomes).toEqual(['Frontier']);
-    expect(u.techs).toEqual(['Bronze Working']);
+    // RC-009 #3: Mining and Writing moved to bronze age
+    expect(u.techs).toEqual(['Mining', 'Writing', 'Bronze Working']);
     expect(u.buildings).toEqual(['Forge']);
     expect(u.weapons).toEqual(['Bronze Spear']);
   });
@@ -15,7 +16,8 @@ describe('ageUnlocks', () => {
     expect(u.biomes).toContain('The Wilds');
     expect(u.biomes).toContain('Ancient Ruins');
     expect(u.buildings).toEqual(expect.arrayContaining(['Granary', 'Mine']));
-    expect(u.techs.length).toBeGreaterThanOrEqual(4); // pottery/hunting/mysticism/mining/writing
+    // RC-009 #3: Mining/Writing moved to bronze → stone techs = pottery/hunting/mysticism (3)
+    expect(u.techs.length).toBeGreaterThanOrEqual(3);
   });
 
   it('every age contributes at least its techs', () => {
