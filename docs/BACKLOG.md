@@ -43,10 +43,10 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-023 | Civ screen info density (tech effects inline, age grouping, yields, record strip) | Delivered | P2 | C3 | docs/tickets/RC-023-civ-screen-info-density.md |
 | RC-024 | Age-up celebration moment | Delivered | P2 | C3 | docs/tickets/RC-024-age-up-celebration.md |
 | RC-025 | Perk pool expansion + healing pickups | Open | P2 | C3 | docs/tickets/RC-025-perk-pool-healing.md |
-| RC-026 | In-run point-of-interest events (shrine, treasure courier) | Open | P3 | C3 | docs/tickets/RC-026-in-run-poi-events.md |
+| RC-026 | In-run point-of-interest events (shrine, treasure courier) | Delivered | P3 | C3 | docs/tickets/RC-026-in-run-poi-events.md |
 | RC-027 | Expedition screen upgrade + starting-weapon choice | Delivered | P3 | C3 | docs/tickets/RC-027-expedition-screen-upgrade.md |
 | RC-028 | Culture sink — Traditions meta-progression | Delivered | P3 | C3 | docs/tickets/RC-028-culture-traditions.md |
-| RC-029 | Expedition mutators (risk/reward modifiers) | Open | P3 | C3 | docs/tickets/RC-029-expedition-mutators.md |
+| RC-029 | Expedition mutators (risk/reward modifiers) | Delivered | P3 | C3 | docs/tickets/RC-029-expedition-mutators.md |
 | RC-030 | Polish defects: fresh-save palette message + favicon | Delivered | P3 | C3 | docs/tickets/RC-030-polish-defects.md |
 | RC-031 | Weapon system redesign — Forge & Fuse meaningful build choices | Delivered | P1 | C3 | docs/tickets/RC-031-weapon-draft-rework.md |
 | RC-032 | Camp scale & city growth-by-age | Open | P2 | C3 | docs/tickets/RC-032-camp-scale-city-growth.md |
