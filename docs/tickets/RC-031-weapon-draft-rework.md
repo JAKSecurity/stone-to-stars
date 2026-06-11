@@ -23,9 +23,13 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
 - **Build identity from the civ** — the weapons available in a run are pre-determined by the player's
   civilization/tech, so the meta-game (what you build between runs) sets up the in-run build space.
 - **Inspirations to study:** Slay the Spire (card synergies, risk/reward relics, deck identity),
-  Vampire Survivors (weapon evolutions, passive/weapon interplay, build archetypes), and a
-  "ball-pit"/physics-roguelite (e.g. Ballionaire / peggle-likes — emergent synergy from simple pieces).
-  The goal is **emergent synergy + commitment**, not linear stat upgrades.
+  Vampire Survivors (weapon evolutions, passive/weapon interplay, build archetypes), and
+  **Ball x Pit** (breakout-roguelite — any two balls FUSE into a hybrid inheriting both behaviors;
+  emergent synergy from combining simple pieces), and **Megabonk** (Jeff, 2026-06-11: "an excellent
+  weapon differentiator" — every weapon has a distinct VERB and screen signature: orbiting rocks,
+  fire trail behind your movement, lightning smites, black-hole pull, mines, homing missiles).
+  The goal is **emergent synergy + commitment**, not linear stat upgrades — and weapons that READ
+  distinctly on screen (visuals/effects are in scope).
 
 ## Components folded in (the original narrow scope, now part of the larger redesign)
 - **#7 — one weapon at a time** (drop the 1-melee+1-ranged dual-wield) — likely still the right frame
@@ -56,8 +60,9 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
   player can plan a build before the run?
 - How do **rewards** change — are gems/XP still the currency, or do upgrades come from events/bosses
   (ties to RC-019 mini-boss jackpot, RC-026 POI events, RC-025 perk pool)?
-- Backward-compat: this likely **resets** the weapon/perk data model — plan a save-version bump and
-  migration if `CivState` weapon/tradition shape changes.
+- Backward-compat: this **resets** the weapon/perk data model — save-version bump to v4,
+  **reset on bump** per RC-017 precedent (Jeff, 2026-06-11: no migration; manual save/load
+  slots ticketed separately as RC-036).
 
 ## Acceptance Criteria (provisional — refine in spec)
 - [ ] Weapons play **mechanically distinctly**, not as stat reskins; power is sidegrade-balanced
@@ -65,11 +70,12 @@ This is a **design-heavy redesign**, not a rebalance. It needs a real brainstorm
 - [ ] A run's available weapons/upgrades are shaped by the player's civ, enabling pre-run build intent
 - [ ] Rewards redesigned to deliver upgrades meaningfully (draft + events/bosses)
 - [ ] Pure logic unit-tested; Playwright live-verify the build loop end-to-end
-- [ ] Save migration if the weapon/perk data model changes
+- [ ] Save-version bump to v4 (reset on bump — no migration)
 
 ## References
 - 2026-06-10 playtest notes (#4, #7) + 2026-06-10 weapon-redesign direction
 - `src/run/weapons.ts`, `src/run/weaponData.ts`, `src/run/draft.ts`, `src/run/modifiers.ts`, `src/scenes/RunScene.ts`
 - Related: RC-025 (perk pool — #6 pierce), RC-027 (starting-weapon choice), RC-019 (boss rewards),
   RC-026 (POI events), RC-015 (orbit/lob behaviors as a behavior-diversity precedent)
-- Inspirations: Slay the Spire, Vampire Survivors, Ballionaire / peggle-likes
+- Inspirations: Slay the Spire, Vampire Survivors, Ball x Pit (ball-fusion breakout-roguelite),
+  Megabonk (weapon visual/verb differentiation)

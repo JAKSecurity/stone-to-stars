@@ -7,7 +7,7 @@ export const TECHS: Record<string, TechNode> = {
   },
   hunting: {
     id: 'hunting', name: 'Hunting', age: 'stone',
-    cost: { industry: 8 }, requires: [], runBonus: { damageMult: 0.10 },
+    cost: { industry: 8 }, requires: [], runBonus: { damageMult: 0.10, actives: ['net'] },
   },
   mysticism: {
     id: 'mysticism', name: 'Mysticism', age: 'stone',
@@ -76,10 +76,10 @@ export const TECHS: Record<string, TechNode> = {
     cost: { industry: 50, culture: 25 }, requires: ['feudalism'],
     unlocksBuilding: 'armory', runBonus: { weapons: ['crossbow'] } },
   guilds: { id: 'guilds', name: 'Guilds', age: 'medieval',
-    cost: { industry: 40, exploration: 25 }, requires: ['masonry'], runBonus: { weapons: ['flail'] } },
+    cost: { industry: 40, exploration: 25 }, requires: ['masonry'], runBonus: { weapons: ['flail'], actives: ['poison_gas'] } },
   gunpowder: { id:'gunpowder', name:'Gunpowder', age:'renaissance',
     cost:{ industry:75, science:50 }, requires:['guilds'],
-    unlocksBuilding:'gunsmith', gatesAge:'renaissance', runBonus:{ weapons:['musket'] } },
+    unlocksBuilding:'gunsmith', gatesAge:'renaissance', runBonus:{ weapons:['musket'], actives: ['grenade_volley'] } },
   printing_press: { id:'printing_press', name:'Printing Press', age:'renaissance',
     cost:{ science:60, culture:30 }, requires:['gunpowder'],
     unlocksBuilding:'university', runBonus:{ draftChoices:1 } },

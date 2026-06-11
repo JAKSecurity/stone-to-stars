@@ -99,7 +99,8 @@ function startRun() {
   expEl.classList.add('active');
   renderExpeditionScreen(expEl, civ, {
     onPick: (expedition: Expedition) => launchExpedition(expedition),
-    onSelectWeapon: (id) => { civ = { ...civ, startWeapon: id }; persist(); startRun(); }, // re-render with new pick
+    onKitChange: (kit, startWeapon) => { civ = { ...civ, kit, startWeapon }; persist(); startRun(); }, // re-render with new kit
+    onSelectActive: (id) => { civ = { ...civ, activeItem: id }; persist(); startRun(); }, // re-render with new active
     onBack: () => { expEl.classList.remove('active'); showCiv(); },
   });
 }

@@ -14,6 +14,7 @@ describe('computeRunModifiers', () => {
       maxHp: 100, damageMult: 1.0, draftChoices: 3, weapons: ['club'],
       pickupRadius: 60, moveSpeedMult: 1.0, fireRateMult: 1.0,
       draftRerolls: 0, startWeaponLevel: 1, startWeapon: 'club',
+      actives: [], activeItem: undefined,
     });
   });
 
@@ -35,6 +36,9 @@ describe('computeRunModifiers', () => {
     civ = research(civ, 'mining');
     civ = research(civ, 'bronze_working');
     civ = build(civ, 'forge', 1);
+    // RC-031: the run pool is the chosen kit, not the full unlocked pool — opt the new
+    // weapon into the kit (a deliberately small kit is no longer padded from unlocked).
+    civ = { ...civ, kit: ['club', 'bronze_spear'] };
     const m = computeRunModifiers(civ);
     expect(m.maxHp).toBe(125);
     expect(m.damageMult).toBeCloseTo(1.10);
@@ -54,5 +58,12 @@ describe('computeRunModifiers', () => {
   it('a rank forced past maxRank is clamped to the documented cap', () => {
     const civ = { ...newCivState(), traditions: { vigor: 99 } }; // maxRank 5 => cap +40
     expect(computeRunModifiers(civ).maxHp).toBe(140);
+  });
+
+  it('collects tech-granted actives and validates the chosen one', () => {
+    const civ = { ...newCivState(), researched: ['hunting', 'guilds'], activeItem: 'poison_gas' };
+    const mods = computeRunModifiers(civ);
+    expect(mods.actives).toEqual(expect.arrayContaining(['net', 'poison_gas']));
+    expect(mods.activeItem).toBe('poison_gas');
   });
 });

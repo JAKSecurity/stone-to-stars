@@ -4,11 +4,28 @@ import {
 import {
   BASE_MAX_HP, BASE_DAMAGE_MULT, BASE_DRAFT_CHOICES, BASE_WEAPONS,
   BASE_PICKUP_RADIUS, BASE_MOVE_MULT, BASE_FIRE_MULT,
-  BASE_DRAFT_REROLLS, BASE_START_WEAPON_LEVEL,
+  BASE_DRAFT_REROLLS, BASE_START_WEAPON_LEVEL, BASE_ACTIVES,
 } from '../game/config';
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { TRADITIONS } from '../civics/traditionData';
+import { resolveActiveItem } from './actives';
+import { validateKit } from './kit';
+
+/** Collect all tech- and building-unlocked weapon ids for a civ (the full pool, ignoring the kit). */
+// Weapon-collection logic mirrored in computeRunModifiers' inline `weapons` Set — keep in sync.
+export function unlockedWeapons(civ: CivState): string[] {
+  const weapons = new Set<string>(BASE_WEAPONS);
+  for (const techId of civ.researched) {
+    const b = TECHS[techId]?.runBonus;
+    (b?.weapons ?? []).forEach((w) => weapons.add(w));
+  }
+  for (const placed of civ.buildings) {
+    const b = BUILDINGS[placed.id]?.runBonus;
+    (b?.weapons ?? []).forEach((w) => weapons.add(w));
+  }
+  return [...weapons];
+}
 
 export function computeRunModifiers(civ: CivState): RunModifiers {
   let maxHp = BASE_MAX_HP;
@@ -19,7 +36,9 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
   let fireRateMult = BASE_FIRE_MULT;
   let draftRerolls = BASE_DRAFT_REROLLS;
   let startWeaponLevel = BASE_START_WEAPON_LEVEL;
+  // Weapon-collection logic mirrored in unlockedWeapons — keep in sync.
   const weapons = new Set<string>(BASE_WEAPONS);
+  const actives = new Set<string>(BASE_ACTIVES);
 
   for (const techId of civ.researched) {
     const b = TECHS[techId]?.runBonus;
@@ -28,6 +47,7 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     damageMult += b.damageMult ?? 0;
     draftChoices += b.draftChoices ?? 0;
     (b.weapons ?? []).forEach((w) => weapons.add(w));
+    (b.actives ?? []).forEach((a) => actives.add(a));
   }
 
   for (const placed of civ.buildings) {
@@ -37,6 +57,7 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     damageMult += (b.damageMult ?? 0) * placed.level;
     draftChoices += (b.draftChoices ?? 0) * placed.level;
     (b.weapons ?? []).forEach((w) => weapons.add(w));
+    (b.actives ?? []).forEach((a) => actives.add(a));
   }
 
   // Traditions: each owned node contributes effectPerRank * clamp(rank, 0, maxRank).
@@ -55,11 +76,15 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     startWeaponLevel += (e.startWeaponLevel ?? 0) * rank;
   }
 
-  // RC-027: start with the player's chosen weapon if they own it, else the base club.
-  const startWeapon = civ.startWeapon && weapons.has(civ.startWeapon) ? civ.startWeapon : 'club';
+  // RC-031: apply the Expedition Kit — clamp/pad/dedup the player's chosen kit from unlocked pool,
+  // then coerce startWeapon into the kit. mods.weapons = kit weapons (the run draft pool).
+  const { kit, startWeapon } = validateKit(civ.kit, [...weapons], civ.startWeapon);
+
+  const activeItem = resolveActiveItem(civ.activeItem, [...actives]);
 
   return {
-    maxHp, damageMult, draftChoices, weapons: [...weapons],
+    maxHp, damageMult, draftChoices, weapons: kit,
     pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel, startWeapon,
+    actives: [...actives], activeItem,
   };
 }

@@ -59,4 +59,9 @@ describe('saveLoad', () => {
       expect(load(storage)).toBeNull();
     }
   });
+
+  it('v3 saves reset on load (reset-on-bump, RC-017 stance)', () => {
+    const fake = { getItem: () => JSON.stringify({ ...newCivState(), version: 3 }), setItem: () => {}, removeItem: () => {} } as unknown as Storage;
+    expect(load(fake)).toBeNull();
+  });
 });

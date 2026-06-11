@@ -1,12 +1,19 @@
 import Phaser from 'phaser';
-import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef } from '../game/types';
+import { RunModifiers, RunResult, Resource, Expedition, BiomeDef, EnemyDef, EquippedPassive, RunStats, OnHit } from '../game/types';
 import { initialRunStats, addXp } from '../run/runStats';
-import { applyPerk } from '../run/draft';
+import { rollDraft, DraftOption } from '../run/draft';
 import {
-  EquippedWeapon, initialWeapons, addWeapon, levelWeapon, applyEvolve,
-  weaponShot, WeaponShot, rollRunDraft, DraftOption,
-  weaponStatText, weaponLevelGainText, weaponClass,
+  EquippedWeapon, initialWeapons, addWeapon, swapWeapon, levelWeapon, defOf,
+  weaponShot, WeaponShot, equipHybrid,
+  weaponStatText, weaponLevelGainText,
 } from '../run/weapons';
+import { fuseWeapons, fusionName } from '../run/fusion';
+import { resolveShape } from '../run/archetypes';
+import { VFX_KITS, VfxKit, kitForHybrid } from '../run/vfxKits';
+import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
+import { PASSIVES } from '../run/passiveData';
+import { ACTIVES } from '../run/activeData';
+import { BASE_ACTIVE_CHARGES } from '../run/actives';
 import { WEAPONS } from '../run/weaponData';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
@@ -14,12 +21,15 @@ import { apexEnemyId } from '../run/expedition';
 import { GemTier, gemTierForExpeditionTier, gemSpriteId } from '../run/gemTier';
 import { rewardValueForTier } from '../game/economy';
 import {
-  bossFreeTable, bossJackpotGems, BOSS_HP_MULT,
+  bossFreeTable, bossJackpotGems, BOSS_HP_MULT, dropsCatalyst,
 } from '../run/bossEvent';
 import { playSfx } from '../audio';
 import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
   ORBIT_RADIUS, ORBIT_HIT_INTERVAL_MS, LOB_BLAST_RADIUS, LOB_PEAK_HEIGHT,
+  boomerangVelocity, homingVelocity, chainNextTarget,
+  BOOMERANG_OUT_MS, CHAIN_RANGE, CHAIN_FALLOFF, ZONE_TICK_MS,
+  TRAIL_RADIUS, TRAIL_LINGER_MS, ZONE_RADIUS, SLOW_MS,
 } from '../run/projectileMotion';
 import {
   ChargerState, ChargerPhase, initChargerState, chargerStep, CHARGER_CONFIG,
@@ -72,7 +82,7 @@ export class RunScene extends Phaser.Scene {
   private stats = initialRunStats({
     maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'],
     pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1,
-    draftRerolls: 0, startWeaponLevel: 1,
+    draftRerolls: 0, startWeaponLevel: 1, actives: [],
   });
   private expedition!: Expedition;
   private biome!: BiomeDef;
@@ -89,7 +99,10 @@ export class RunScene extends Phaser.Scene {
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
   private equipped: EquippedWeapon[] = initialWeapons();
-  private ownedPerks: string[] = [];
+  private passives: EquippedPassive[] = [];
+  private catalysts = 0;
+  private catalystTokens: any[] = [];
+  private baseStats!: RunStats; // snapshot of the run's base stats (civ mods), set in create()
   private weaponCooldowns: Record<string, number> = {};
   private bossId = '';
   private bossEnemy: any = null;
@@ -109,9 +122,26 @@ export class RunScene extends Phaser.Scene {
     elapsed: number;
     flightMs: number;
     damage: number;
+    onHit: OnHit;
+    kit: VfxKit; // RC-031 VFX: tints the lob, zone patch, and landing impact/shake
   }> = [];
+  // RC-031: lingering damage fields shared by trail (burning ground behind you) and zone (mine
+  // field at a lob landing). World-anchored visuals — no scrollFactor(0), they live in the world.
+  private patches: Array<{
+    x: number; y: number; bornMs: number; lingerMs: number; radius: number;
+    tickDamage: number; lastTick: Map<any, number>; gfx: Phaser.GameObjects.Arc; tint: number;
+  }> = [];
+  private enemyUidCounter = 0;
   private hud!: Phaser.GameObjects.Text;
   private heroSprite = 'hero';
+  // RC-031: chosen right-click active id (wired from this.mods.activeItem in Task 11). Stays
+  // undefined until then; the loadout HUD line guards on it.
+  private activeId?: string;
+  // RC-031: charges consumed this run. Tracked separately so refreshStatsFromPassives() can
+  // subtract them after recomputeStats() yields the new MAX — preventing passive picks from
+  // refunding already-spent charges (infinite-charges bug).
+  private chargesSpent = 0;
+  private lastHeavyShakeMs = -Infinity;
 
   constructor() { super('run'); }
 
@@ -136,14 +166,28 @@ export class RunScene extends Phaser.Scene {
     }
     // Oratory tradition: rerolls available this run.
     this.rerollsLeft = this.mods.draftRerolls;
-    this.ownedPerks = [];
+    this.passives = [];
+    this.catalysts = 0;
+    this.catalystTokens = [];
+    this.chargesSpent = 0;
+    this.lastHeavyShakeMs = -Infinity;
     this.weaponCooldowns = {};
     this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
     this.lobs = [];
+    this.patches = [];
+    this.enemyUidCounter = 0;
   }
 
   create() {
+    // RC-031: the chosen right-click active and its base charges. Set BEFORE the baseStats
+    // snapshot so the powder_bandolier passive (effectPerLevel.activeCharges) stacks on top of
+    // this base via recomputeStats rather than being clobbered by the snapshot.
+    this.activeId = this.mods.activeItem;
+    this.stats.activeCharges = this.activeId ? BASE_ACTIVE_CHARGES : 0;
+    // RC-031: snapshot the run's base stats (civ modifiers, set in init()) so passive changes
+    // always recompute from this base rather than accumulating incrementally.
+    this.baseStats = { ...this.stats };
     // RC-034: the run is a procedurally generated dungeon DUNGEON_SCREENS x the viewport. The seed
     // is logged so any layout bug is reproducible (generateLayout is deterministic per seed).
     const seed = (Math.random() * 0xffffffff) >>> 0;
@@ -179,6 +223,18 @@ export class RunScene extends Phaser.Scene {
       left: this.input.keyboard!.addKey('A'),
       right: this.input.keyboard!.addKey('D'),
     };
+
+    // RC-031: right-click fires the loadout's active item at the world point under the cursor.
+    // disableContextMenu so the browser menu doesn't eat the right-click. The handler is
+    // scene-level but gated on rightButtonDown(), so it never collides with the left-click
+    // pointerdown handlers on draft cards / buttons. Named const + shutdown cleanup prevents
+    // duplicate handler accumulation if a future restart-pattern change re-runs create().
+    this.input.mouse?.disableContextMenu();
+    const onPointer = (p: Phaser.Input.Pointer) => {
+      if (p.rightButtonDown()) this.useActive(p.worldX, p.worldY);
+    };
+    this.input.on('pointerdown', onPointer);
+    this.events.once('shutdown', () => this.input.off('pointerdown', onPointer));
 
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
@@ -333,7 +389,7 @@ export class RunScene extends Phaser.Scene {
     for (const w of this.equipped) {
       this.weaponCooldowns[w.id] = (this.weaponCooldowns[w.id] ?? 0) - dt;
       if (this.weaponCooldowns[w.id] <= 0) {
-        const shot = weaponShot(WEAPONS[w.id], w.level, this.stats.damageMult);
+        const shot = weaponShot(defOf(w), w.level, this.stats.damageMult);
         this.fireWeapon(shot, w.id);
         this.weaponCooldowns[w.id] = shot.cooldownMs / this.stats.fireRateMult;
       }
@@ -374,25 +430,94 @@ export class RunScene extends Phaser.Scene {
       const apex = 1 + 0.5 * (lobArcHeight(t) / LOB_PEAK_HEIGHT);
       lob.img.setDisplaySize(PROJ_SIZE * apex, PROJ_SIZE * apex);
       if (t >= 1) {
-        this.detonate(lob.target.x, lob.target.y, lob.damage);
+        const onHit = lob.onHit;
+        this.detonate(lob.target.x, lob.target.y, lob.damage, (onHit.explode ?? LOB_BLAST_RADIUS) * RUN_SCALE);
+        // RC-031 VFX: the verb's impact style + shake class fire at the landing point.
+        this.kitImpact(lob.kit, lob.target.x, lob.target.y);
+        // RC-031 zone (dynamite): the blast also leaves a lingering ticking field.
+        if (onHit.zoneMs) {
+          this.spawnPatch(lob.target.x, lob.target.y, ZONE_RADIUS * RUN_SCALE,
+            onHit.zoneMs, lob.damage * 0.4, lob.kit.tint);
+        }
         lob.img.destroy();
         this.lobs.splice(i, 1);
       }
     }
 
+    // --- RC-031 boomerang/homing steering: bullets carry their own trajectory each frame. ---
+    (this.bullets.getChildren() as any[]).forEach((b) => {
+      const traj = b.getData('trajectory');
+      if (traj === 'boomerang') {
+        let phase = b.getData('phase');
+        if (phase === 'out' && this.elapsed - b.getData('bornMs') >= BOOMERANG_OUT_MS) {
+          phase = 'return'; b.setData('phase', phase);
+        }
+        const aim = b.getData('aim');
+        const v = boomerangVelocity(
+          phase, aim.x, aim.y, this.player.x, this.player.y, b.x, b.y,
+          b.getData('speed') ?? 300 * RUN_SCALE,
+        );
+        b.body.setVelocity(v.vx, v.vy);
+        if (phase === 'return' && Phaser.Math.Distance.Between(b.x, b.y, this.player.x, this.player.y) < 24 * RUN_SCALE) {
+          b.destroy();
+        }
+      } else if (traj === 'homing') {
+        const t = this.nearestEnemy() as any;
+        if (t) {
+          const v = homingVelocity(
+            b.body.velocity.x, b.body.velocity.y, b.x, b.y, t.x, t.y,
+            b.getData('speed') ?? 360 * RUN_SCALE, dt,
+          );
+          b.body.setVelocity(v.vx, v.vy);
+        }
+      }
+    });
+
+    // --- RC-031 lingering damage fields (trail patches + zones) tick on enemies in range. ---
+    for (let i = this.patches.length - 1; i >= 0; i--) {
+      const p = this.patches[i];
+      const age = this.elapsed - p.bornMs;
+      if (age >= p.lingerMs) { p.gfx.destroy(); this.patches.splice(i, 1); continue; }
+      p.gfx.setAlpha(0.28 * (1 - age / p.lingerMs) + 0.08);
+      (this.enemies.getChildren() as any[]).forEach((e) => {
+        if (!e.active || !withinRadius(p.x, p.y, e.x, e.y, p.radius)) return;
+        const last = p.lastTick.get(e) ?? -Infinity;
+        if (this.elapsed - last >= ZONE_TICK_MS) {
+          p.lastTick.set(e, this.elapsed);
+          this.applyDamageToEnemy(e, p.tickDamage);
+        }
+      });
+    }
+
+    // RC-031 passives: regen HP over time (capped at maxHp).
+    if (this.stats.regenHps > 0 && this.stats.hp < this.stats.maxHp) {
+      this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + this.stats.regenHps * (dt / 1000));
+    }
+
     this.hud.setText(
       `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
-      `☠ ${this.enemies.countActive(true)} left`,
+      `☠ ${this.enemies.countActive(true)} left\n` +
+      this.loadoutHudLine(),
     );
 
     // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
     if (this.enemies.countActive(true) === 0) this.startCeremony();
   }
 
+  /** RC-031 loadout HUD: second line — weapons + levels, passive icons + levels, the active
+   *  icon × charges (absent when no active is equipped), and catalysts. */
+  private loadoutHudLine(): string {
+    const loadout = this.equipped.map((w) => `${defOf(w).name} L${w.level}`).join(' | ');
+    const passiveStr = this.passives.map((p) => `${passiveDefOf(p).icon}${p.level}`).join('');
+    const activeStr = this.activeId ? `${ACTIVES[this.activeId].icon}×${this.stats.activeCharges}` : '';
+    const catalystStr = this.catalysts > 0 ? `⚗️×${this.catalysts}` : '';
+    return [loadout, passiveStr, activeStr, catalystStr].filter((s) => s).join('   ');
+  }
+
   /**
    * Gems are vacuumed in only within pickupRadius — outside it they stay put, so collection is
-   * positional and the radius (widened by the Magnet perk) actually matters. The Zone-Cleared
+   * positional and the radius (widened by the Lodestone passive) actually matters. The Zone-Cleared
    * ceremony reuses this with a world-sized radius (and a higher speed) to sweep everything in.
    */
   private vacuumGems(speed = 340) {
@@ -424,6 +549,14 @@ export class RunScene extends Phaser.Scene {
       this.stopChargerTell(e);
       e.destroy();
     });
+    // Catalysts on the floor auto-collect at the ceremony — the boss usually dies last and the
+    // player is frozen here, so a walk-over token would otherwise be unreachable (RC-031 review).
+    let autocollected = 0;
+    for (const tok of this.catalystTokens) {
+      if (tok.active) { tok.destroy(); this.catalysts += 1; autocollected += 1; }
+    }
+    if (autocollected > 0) playSfx('gem-pickup', { semitones: 12 });
+    this.catalystTokens = [];
     // Freeze the hero and magnet radius out past the screen so every gem flies in.
     this.player.body.setVelocity(0, 0);
     this.stats.pickupRadius = this.layout.width + this.layout.height;
@@ -455,10 +588,55 @@ export class RunScene extends Phaser.Scene {
     });
   }
 
+  /** RC-031 VFX: resolve a shot's screen signature. Hybrids keep the body archetype's motion/shake
+   *  but borrow tint + impact from their palette parent (first base ≠ body); base weapons use their
+   *  own kit. Drives projectile tint, patch tint, impact style and shake class. */
+  private kitFor(shot: WeaponShot): VfxKit {
+    const body = shot.archetype;
+    if (shot.bases.length >= 2) {
+      const palette = shot.bases.find((b) => b !== body) ?? body;
+      return kitForHybrid(body, palette);
+    }
+    return VFX_KITS[body];
+  }
+
+  /** Apply a kit's impact style + shake class at (x, y). 0 → no shake, 1 → light, 2 → heavy. */
+  private kitImpact(kit: VfxKit, x: number, y: number) {
+    if (kit.impact === 'ring') {
+      const ring = this.add.circle(x, y, 14 * RUN_SCALE, kit.tint, 0.45).setDepth(24).setScale(0.3);
+      this.tweens.add({ targets: ring, scale: 1.6, alpha: 0, duration: 220, ease: 'Power2', onComplete: () => ring.destroy() });
+    } else if (kit.impact === 'sparks') {
+      for (let s = 0; s < 4; s++) {
+        const ang = Math.random() * Math.PI * 2;
+        const sp = this.add.circle(x, y, 2.2, kit.tint, 0.95).setDepth(26);
+        this.tweens.add({
+          targets: sp, x: x + Math.cos(ang) * 14, y: y + Math.sin(ang) * 14, alpha: 0,
+          duration: 180, onComplete: () => sp.destroy(),
+        });
+      }
+    } else {
+      // 'flash' — a brief tinted pop at the impact point.
+      const f = this.add.circle(x, y, 9 * RUN_SCALE, kit.tint, 0.6).setDepth(26);
+      this.tweens.add({ targets: f, scale: 0.2, alpha: 0, duration: 150, onComplete: () => f.destroy() });
+    }
+    if (kit.shake === 1) this.cameras.main.shake(80, 0.003);
+    else if (kit.shake === 2) {
+      if (this.elapsed - this.lastHeavyShakeMs >= 120) {
+        this.lastHeavyShakeMs = this.elapsed;
+        this.cameras.main.shake(140, 0.006);
+      }
+    }
+  }
+
   private fireWeapon(shot: WeaponShot, weaponId: string) {
-    if (shot.behavior === 'orbit') { this.summonOrbit(shot, weaponId); return; } // persistent ring — no per-refresh shot sound
-    playSfx('shoot'); // RC-020 (recipe self-throttles); lob + straight/cone fire a projectile
-    if (shot.behavior === 'lob') { this.fireLob(shot); return; }
+    const kit = this.kitFor(shot);
+    switch (shot.trajectory) {
+      case 'orbit': this.summonOrbit(shot, weaponId, kit); return;      // persistent ring — no per-refresh shot sound
+      case 'lob':   playSfx('shoot'); this.fireLob(shot, kit); return;  // zone lands → spawnPatch via lob landing
+      case 'trail': this.dropTrailPatch(shot, kit); return;             // no projectile at all — burns the ground
+      default: break; // straight / boomerang / homing / chain fire projectiles below
+    }
+    playSfx('shoot'); // RC-020 (recipe self-throttles)
     const target = this.nearestEnemy() as any;
     const baseAngle = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
@@ -471,21 +649,86 @@ export class RunScene extends Phaser.Scene {
       const angle = baseAngle + offset;
       const bullet = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
       bullet.setDisplaySize(12 * RUN_SCALE, 12 * RUN_SCALE);
+      bullet.setTint(kit.tint); // RC-031 VFX: projectile reads its verb's palette
       this.physics.add.existing(bullet);
       this.bullets.add(bullet);
       bullet.setData('damage', shot.damage);
-      bullet.setData('pierce', shot.pierce);
-      bullet.setData('ignoresArmor', shot.ignoresArmor);
+      bullet.setData('kit', kit); // RC-031 VFX: impact style + shake fire on hit
+      bullet.setData('onHit', shot.onHit);
+      bullet.setData('pierce', shot.onHit.pierce ?? 0);
+      bullet.setData('ignoresArmor', shot.onHit.ignoreArmor ?? false);
+      bullet.setData('hitIds', new Set<string>());
+      bullet.setData('trajectory', shot.trajectory);
+      bullet.setData('speed', shot.speed * RUN_SCALE); // boomerang/homing steering read this
+      if (shot.trajectory === 'boomerang') {
+        bullet.setData('phase', 'out');
+        bullet.setData('aim', { x: Math.cos(angle), y: Math.sin(angle) });
+        bullet.setData('bornMs', this.elapsed);
+      }
       bullet.body.setVelocity(Math.cos(angle) * shot.speed * RUN_SCALE, Math.sin(angle) * shot.speed * RUN_SCALE);
       // Range = speed × life; earlier weapons get a shorter life so their shots don't cross the field.
-      this.time.delayedCall(shot.lifeMs, () => bullet.destroy());
+      // Boomerangs despawn by returning to the player (in update), so they skip the lifeMs timer.
+      if (shot.trajectory !== 'boomerang') this.time.delayedCall(shot.lifeMs, () => bullet.destroy());
+    }
+  }
+
+  /** Trail weapons (flame_jet/flamethrower, speed 0) burn the ground behind you — a patch at your
+   *  feet each cooldown. The weapon's cooldownMs IS the drop cadence; no extra timer needed. */
+  private dropTrailPatch(shot: WeaponShot, kit: VfxKit) {
+    this.spawnPatch(this.player.x, this.player.y, TRAIL_RADIUS * RUN_SCALE,
+      TRAIL_LINGER_MS, shot.damage, kit.tint);
+  }
+
+  /** Spawn a lingering damage field (trail patch / zone). tickDamage applies per ZONE_TICK_MS per
+   *  enemy. World-anchored — no scrollFactor(0). */
+  private spawnPatch(x: number, y: number, radius: number, lingerMs: number, tickDamage: number, tint: number) {
+    const gfx = this.add.circle(x, y, radius, tint, 0.28).setDepth(6);
+    this.patches.push({ x, y, bornMs: this.elapsed, lingerMs, radius, tickDamage, lastTick: new Map(), gfx, tint });
+  }
+
+  /** RC-031: fire the loadout's right-click active at (x, y) in WORLD space (so it lands under the
+   *  cursor on the scrolled camera). Spends one charge; no-op when there's no active, no charges,
+   *  or the run is paused / in the victory ceremony. World-anchored visuals (no scrollFactor 0). */
+  private useActive(x: number, y: number) {
+    if (!this.activeId || this.stats.activeCharges <= 0 || this.paused || this.ceremony) return;
+    this.chargesSpent += 1;
+    this.stats.activeCharges = Math.max(0, this.stats.activeCharges - 1);
+    const def = ACTIVES[this.activeId];
+    playSfx('draft-open'); // placeholder cue; a bespoke per-active recipe is optional later.
+    const e = def.effect;
+    if (e.kind === 'slow') {
+      // A blue ring fades over the slow's duration; enemies caught in it lose move speed until
+      // slowUntil (read by enemyVelocity, same fields as the on-hit slow).
+      const ring = this.add.circle(x, y, e.radius * RUN_SCALE, 0x66ccff, 0.25).setDepth(7);
+      this.tweens.add({ targets: ring, alpha: 0, duration: e.durationMs, onComplete: () => ring.destroy() });
+      (this.enemies.getChildren() as any[]).forEach((en) => {
+        if (en.active && withinRadius(x, y, en.x, en.y, e.radius * RUN_SCALE)) {
+          en.setData('slowPct', e.pct);
+          en.setData('slowUntil', this.elapsed + e.durationMs);
+        }
+      });
+    } else if (e.kind === 'dot') {
+      // A lingering cloud reusing the trail/zone patch system. dps is converted to per-tick damage.
+      this.spawnPatch(x, y, e.radius * RUN_SCALE, e.durationMs, e.dps * (ZONE_TICK_MS / 1000), 0x77dd55);
+    } else if (e.kind === 'burst') {
+      // `count` blasts ringed around the point, staggered 120ms apart, each scaled by damageMult.
+      for (let i = 0; i < e.count; i++) {
+        const ang = (i / e.count) * Math.PI * 2;
+        const bx = x + Math.cos(ang) * e.radius * 0.5 * RUN_SCALE;
+        const by = y + Math.sin(ang) * e.radius * 0.5 * RUN_SCALE;
+        this.time.delayedCall(i * 120, () => this.detonate(bx, by, e.damage * this.stats.damageMult, e.radius * RUN_SCALE));
+      }
+    } else {
+      // Exhaustiveness guard: a new ActiveEffect kind must add a branch here or this won't compile.
+      const _exhaustive: never = e;
+      return _exhaustive;
     }
   }
 
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
    *  replaces this weapon's ring so it refreshes to the current level without stacking. Orbiter
    *  angle comes from the global run clock, so a replaced ring resumes at the same phase — seamless. */
-  private summonOrbit(shot: WeaponShot, weaponId: string) {
+  private summonOrbit(shot: WeaponShot, weaponId: string, kit: VfxKit) {
     (this.bullets.getChildren() as any[])
       .filter((b) => b.getData('behavior') === 'orbit' && b.getData('weaponKey') === weaponId)
       .forEach((b) => b.destroy());
@@ -493,6 +736,7 @@ export class RunScene extends Phaser.Scene {
     for (let i = 0; i < shot.count; i++) {
       const orb = this.add.image(this.player.x, this.player.y, shot.sprite) as any;
       orb.setDisplaySize(PROJ_SIZE, PROJ_SIZE);
+      orb.setTint(kit.tint); // RC-031 VFX: orbit ring reads its verb's palette
       this.physics.add.existing(orb);
       this.bullets.add(orb);
       orb.body.setVelocity(0, 0);
@@ -506,7 +750,7 @@ export class RunScene extends Phaser.Scene {
 
   /** Lob: arc `count` projectiles to a target point and detonate on landing. Purely visual in
    *  flight (no overlap body) — damage is a radius query at the landing point in `detonate`. */
-  private fireLob(shot: WeaponShot) {
+  private fireLob(shot: WeaponShot, kit: VfxKit) {
     const target = this.nearestEnemy() as any;
     const aim = target
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y)
@@ -524,6 +768,7 @@ export class RunScene extends Phaser.Scene {
       const ty = this.player.y + Math.sin(angle) * dist;
       const img = this.add.image(this.player.x, this.player.y, shot.sprite).setDepth(15) as any;
       img.setDisplaySize(PROJ_SIZE, PROJ_SIZE);
+      img.setTint(kit.tint); // RC-031 VFX: lob reads its verb's palette in flight
       this.lobs.push({
         img,
         start: { x: this.player.x, y: this.player.y },
@@ -531,20 +776,24 @@ export class RunScene extends Phaser.Scene {
         elapsed: 0,
         flightMs: lobFlightMs(dist, shot.speed * RUN_SCALE),
         damage: shot.damage,
+        onHit: shot.onHit,
+        kit,
       });
     }
   }
 
-  /** Resolve a lob at its landing point: shock-ring + shake, then AoE damage to enemies in range. */
-  private detonate(x: number, y: number, damage: number) {
-    const ring = this.add.circle(x, y, LOB_BLAST, 0xffaa33, 0.4).setDepth(24).setScale(0.15);
+  /** Resolve an explosion at (x,y): shock-ring + shake, then AoE damage to enemies within `radius`.
+   *  Default radius keeps plain lobbers (grenade/mortar) backward compatible; RC-031 callers pass an
+   *  onHit.explode-derived radius. */
+  private detonate(x: number, y: number, damage: number, radius = LOB_BLAST) {
+    const ring = this.add.circle(x, y, radius, 0xffaa33, 0.4).setDepth(24).setScale(0.15);
     this.tweens.add({
       targets: ring, scale: 1, alpha: 0,
       duration: 260, ease: 'Power2', onComplete: () => ring.destroy(),
     });
     this.cameras.main.shake(120, 0.006);
     (this.enemies.getChildren() as any[]).forEach((e) => {
-      if (e.active && withinRadius(x, y, e.x, e.y, LOB_BLAST)) {
+      if (e.active && withinRadius(x, y, e.x, e.y, radius)) {
         this.applyDamageToEnemy(e, damage);
       }
     });
@@ -566,6 +815,7 @@ export class RunScene extends Phaser.Scene {
     enemy.setDisplaySize(def.displaySize.w * RUN_SCALE, def.displaySize.h * RUN_SCALE);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
+    enemy.setData('uid', `e${++this.enemyUidCounter}`); // RC-031: stable id for chain hit-memory
     enemy.setData('hp', def.baseHp);
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
@@ -638,13 +888,16 @@ export class RunScene extends Phaser.Scene {
   /** RC-018: per-frame movement by archetype. `chase`/default keeps the simple beeline; the
    *  others call the pure enemyBehavior functions and apply the returned velocity. */
   private updateEnemyMovement(e: any, dt: number) {
+    // RC-031: an onHit.slowPct hit cuts move speed until slowUntil. Scale the final speed every
+    // movement branch uses by `slowed` (1 = unaffected).
+    const slowed = (e.getData('slowUntil') ?? 0) > this.elapsed ? Math.max(0, 1 - (e.getData('slowPct') ?? 0)) : 1;
+    const speed = (e.getData('speed') as number) * slowed;
     const waypoint = routeAround(e.x, e.y, this.player.x, this.player.y, this.layout.barriers);
     if (waypoint.x !== this.player.x || waypoint.y !== this.player.y) {
-      this.physics.moveTo(e, waypoint.x, waypoint.y, e.getData('speed') as number);
+      this.physics.moveTo(e, waypoint.x, waypoint.y, speed);
       return;
     }
     const behavior = (e.getData('behavior') ?? 'chase') as string;
-    const speed = e.getData('speed') as number;
     if (behavior === 'chase') { this.physics.moveToObject(e, this.player, speed); return; }
 
     const dx = this.player.x - e.x, dy = this.player.y - e.y;
@@ -770,14 +1023,59 @@ export class RunScene extends Phaser.Scene {
     hitSet.add(enemy);
 
     const damage = bullet.getData('damage');
+
+    // Damage lands first (existing flow) ...
+    this.applyDamageToEnemy(enemy, damage, bullet.getData('ignoresArmor'));
+
+    // RC-031 juice: micro-knockback — nudge the enemy 4px away from the projectile.
+    if (enemy.active) {
+      const kb = Phaser.Math.Angle.Between(bullet.x, bullet.y, enemy.x, enemy.y);
+      enemy.x += Math.cos(kb) * 4; enemy.y += Math.sin(kb) * 4;
+    }
+
+    // RC-031 VFX: the firing verb's impact style + shake class at the hit point.
+    const kit = bullet.getData('kit') as VfxKit | undefined;
+    if (kit) this.kitImpact(kit, enemy.x, enemy.y);
+
+    // ... then the RC-031 on-hit extension (explode / slow / chain) ...
+    const onHit = (bullet.getData('onHit') ?? {}) as OnHit;
+    const hitIds = bullet.getData('hitIds') as Set<string> | undefined;
+    const enemyUid = enemy.getData('uid') ?? String(enemy.name || enemy.x + ',' + enemy.y);
+    hitIds?.add(enemyUid);
+
+    // Reentrant: detonate -> applyDamageToEnemy can death-spawn splitters mid-overlap (same pattern as lob landing).
+    if (onHit.explode) {
+      this.detonate(enemy.x, enemy.y, bullet.getData('damage') * 0.6, onHit.explode * RUN_SCALE);
+    }
+    if (onHit.slowPct) {
+      enemy.setData('slowPct', onHit.slowPct);
+      enemy.setData('slowUntil', this.elapsed + SLOW_MS);
+    }
+    if (onHit.chain) {
+      const hops = bullet.getData('hopsLeft') ?? onHit.chain;
+      if (hops > 0) {
+        const candidates = (this.enemies.getChildren() as any[])
+          .filter((e) => e.active)
+          .map((e) => ({ id: e.getData('uid') as string, x: e.x, y: e.y }));
+        const next = chainNextTarget(candidates, enemy.x, enemy.y, hitIds ?? new Set(), CHAIN_RANGE * RUN_SCALE);
+        if (next) {
+          bullet.setData('hopsLeft', hops - 1);
+          bullet.setData('damage', bullet.getData('damage') * CHAIN_FALLOFF);
+          const ang = Phaser.Math.Angle.Between(enemy.x, enemy.y, next.x, next.y);
+          const spd = bullet.getData('speed');
+          bullet.body.setVelocity(Math.cos(ang) * spd, Math.sin(ang) * spd);
+          return; // chain hop keeps the bullet alive regardless of pierce
+        }
+      }
+    }
+
+    // ... then the existing pierce-decrement / destroy.
     const pierce = bullet.getData('pierce') ?? 0;
     if (pierce > 0) {
       bullet.setData('pierce', pierce - 1);
     } else {
       bullet.destroy();
     }
-
-    this.applyDamageToEnemy(enemy, damage, bullet.getData('ignoresArmor'));
   }
 
   /**
@@ -809,13 +1107,15 @@ export class RunScene extends Phaser.Scene {
     enemy.setTintFill(0xffffff);
     this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
 
-    // --- Juice: floating damage number ---
-    const dmgText = this.add.text(enemy.x, enemy.y - 8, String(Math.round(damage)), {
-      fontSize: '20px', color: '#ffee44', stroke: '#000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(30);
+    // --- Juice: floating damage number (RC-031: heavy hits read bigger + gold) ---
+    const heavy = damage >= 50;
+    const dmgText = this.add.text(enemy.x, enemy.y - 14, String(Math.round(damage)), {
+      fontSize: heavy ? '18px' : '13px', color: heavy ? '#ffd75e' : '#ffffff',
+      stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(35);
     this.tweens.add({
       targets: dmgText, y: dmgText.y - 22, alpha: 0,
-      duration: 450, ease: 'Power1',
+      duration: 520, ease: 'Power1',
       onComplete: () => dmgText.destroy(),
     });
 
@@ -841,6 +1141,23 @@ export class RunScene extends Phaser.Scene {
         for (const g of bossJackpotGems(base, tier)) {
           const jx = ex + Phaser.Math.Between(-44, 44), jy = ey + Phaser.Math.Between(-44, 44);
           this.dropGem(jx, jy, this.biasedResource(), { valueOverride: g.value, tierOverride: g.tier });
+        }
+        // RC-031: 35% chance to also drop a fusion catalyst token at the boss position.
+        if (dropsCatalyst(() => Math.random())) {
+          let picked = false;
+          const tok = this.add.text(ex, ey, '⚗️', { fontSize: '28px' }).setOrigin(0.5).setDepth(30) as any;
+          this.physics.add.existing(tok);
+          // Stable hitbox — not font-metric-dependent (RC-031 review).
+          (tok.body as Phaser.Physics.Arcade.Body).setCircle(20, -20, -20);
+          this.catalystTokens.push(tok);
+          this.physics.add.overlap(this.player, tok, () => {
+            if (picked) return;
+            picked = true;
+            tok.destroy();
+            this.catalystTokens = this.catalystTokens.filter((t) => t !== tok);
+            this.catalysts += 1;
+            playSfx('gem-pickup', { semitones: 12 });
+          });
         }
         this.destroyBossHpBar();
         this.bossEnemy = null;
@@ -917,7 +1234,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   private gainXp(amount: number) {
-    const r = addXp(this.stats, amount);
+    const r = addXp(this.stats, Math.round(amount * this.stats.xpMult)); // RC-031 passives: xpMult
     this.stats = r.stats;
     if (r.levelsGained > 0) {
       playSfx('level-up'); // RC-020
@@ -939,10 +1256,11 @@ export class RunScene extends Phaser.Scene {
 
   /** Rolls a fresh set of options and draws the draft panel. Called on open and on reroll. */
   private renderDraft() {
-    const picks = rollRunDraft(() => Math.random(), this.mods.draftChoices, {
+    const picks = rollDraft(() => Math.random(), this.mods.draftChoices, {
       equipped: this.equipped,
-      ownedPerks: this.ownedPerks,
-      pool: this.mods.weapons,
+      passives: this.passives,
+      kitPool: this.mods.weapons,
+      catalysts: this.catalysts,
     });
     const { width, height } = this.scale;
     const panel = this.add.container(0, 0).setDepth(20);
@@ -965,16 +1283,27 @@ export class RunScene extends Phaser.Scene {
 
     picks.forEach((opt, i) => {
       const y = height / 2 - 50 + i * 64;
-      const card = this.add.rectangle(width / 2, y, 460, 54, 0x238636)
+      // RC-031: fusion options read as the premium choice — gold card + gold text.
+      const isFusion = opt.kind === 'fuseWeapons' || opt.kind === 'fusePassives';
+      const cardColor = isFusion ? 0x8a6d1a : 0x238636;
+      const labelColor = isFusion ? '#ffd75e' : '#fff';
+      const card = this.add.rectangle(width / 2, y, 460, 54, cardColor)
         .setInteractive({ useHandCursor: true });
       // rc-017's two-line card (title + what-it-does) driving rc-028's centralized advance flow,
       // so the Oratory reroll path stays intact.
       const label = this.add.text(width / 2, y - 9, this.draftLabel(opt),
-        { fontSize: '15px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
-      const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
-        { fontSize: '12px', color: '#d2f0d8' }).setOrigin(0.5);
+        { fontSize: '15px', color: labelColor, fontStyle: 'bold' }).setOrigin(0.5);
       card.on('pointerdown', () => { playSfx('draft-select'); this.applyDraftOption(opt); closeAndAdvance(); });
-      panel.add(card); panel.add(label); panel.add(sub);
+      panel.add(card); panel.add(label);
+      // RC-031: passive cards show their tradeoff with each comma-segment colored by sign — green
+      // gains, red costs — laid out as a centered row. Everything else keeps the single sub line.
+      if (opt.kind === 'newPassive' || opt.kind === 'levelPassive') {
+        for (const t of this.tradeoffSegments(this.draftDescription(opt), width / 2, y + 11)) panel.add(t);
+      } else {
+        const sub = this.add.text(width / 2, y + 11, this.draftDescription(opt),
+          { fontSize: '12px', color: isFusion ? '#ffe9a8' : '#d2f0d8' }).setOrigin(0.5);
+        panel.add(sub);
+      }
     });
 
     // Oratory reroll affordance: re-roll the current options without consuming the level-up.
@@ -1004,48 +1333,122 @@ export class RunScene extends Phaser.Scene {
 
   private draftLabel(o: DraftOption): string {
     switch (o.kind) {
-      case 'perk': return o.perk.name;
-      case 'newWeapon': {
-        const cls = weaponClass(o.weaponId);
-        const cur = this.equipped.find((w) => weaponClass(w.id) === cls);
-        const verb = cur ? `Swap ${cls}` : `New ${cls}`;
-        return `${verb}: ${WEAPONS[o.weaponId].name}`;
-      }
+      case 'fuseWeapons': return o.early
+        ? '⚗️ FUSE NOW (catalyst — weaker hybrid)'
+        : `⚒️ FUSE: ${defOf(this.equipped[0]).name} + ${defOf(this.equipped[1]).name}`;
+      case 'fusePassives': return '⚗️ Fuse passives';
+      case 'newWeapon': return o.replaceId
+        ? `Swap ${defOf(this.equipped.find((w) => w.id === o.replaceId)!).name} → ${WEAPONS[o.weaponId].name}`
+        : `New weapon: ${WEAPONS[o.weaponId].name}`;
       case 'levelWeapon': {
-        const cur = this.equipped.find((w) => w.id === o.weaponId)?.level ?? 1;
-        const next = Math.min(cur + 1, WEAPONS[o.weaponId].maxLevel);
-        return `Upgrade: ${WEAPONS[o.weaponId].name} (Lv ${cur}→${next})`;
+        const w = this.equipped.find((x) => x.id === o.weaponId)!;
+        return `Upgrade: ${defOf(w).name} (Lv ${w.level}→${Math.min(w.level + 1, defOf(w).maxLevel)})`;
       }
-      case 'evolve': return `Evolve: ${WEAPONS[o.fromId].name} → ${WEAPONS[o.toId].name}`;
+      case 'newPassive': return `${PASSIVES[o.passiveId].icon} ${PASSIVES[o.passiveId].name}`;
+      case 'levelPassive': {
+        const p = this.passives.find((x) => x.id === o.passiveId)!;
+        return `${passiveDefOf(p).icon} ${passiveDefOf(p).name} (Lv ${p.level}→${p.level + 1})`;
+      }
     }
   }
 
   /** The second, smaller line on a draft card: what the option actually does. */
   private draftDescription(o: DraftOption): string {
     switch (o.kind) {
-      case 'perk': return o.perk.desc;
-      case 'newWeapon': return weaponStatText(WEAPONS[o.weaponId]);
-      case 'levelWeapon': return weaponLevelGainText(WEAPONS[o.weaponId]);
-      case 'evolve': return weaponStatText(WEAPONS[o.toId]);
+      case 'fuseWeapons': return fusionName(
+        [...new Set([...resolveShape(defOf(this.equipped[0])).bases, ...resolveShape(defOf(this.equipped[1])).bases])],
+      );
+      case 'fusePassives': return 'Merge both passives into one — frees a slot';
+      case 'newWeapon': if (o.replaceId) {
+        const cur = this.equipped.find((w) => w.id === o.replaceId)!;
+        return `${weaponStatText(defOf(cur))}  →  ${weaponStatText(WEAPONS[o.weaponId])}`;
+      }
+        return weaponStatText(WEAPONS[o.weaponId]);
+      case 'levelWeapon': return weaponLevelGainText(defOf(this.equipped.find((w) => w.id === o.weaponId)!));
+      case 'newPassive': return PASSIVES[o.passiveId].desc;
+      case 'levelPassive': return passiveDefOf(this.passives.find((p) => p.id === o.passiveId)!).desc;
     }
+  }
+
+  /** RC-031: render a passive's tradeoff desc ("+10% damage, −5% fire rate") as a centered row of
+   *  per-segment texts colored by leading sign — green gains, red costs. Comma-separated; a fused
+   *  passive's 3 segments each color independently. Returns the created texts (caller adds them to
+   *  the panel so the scrollFactor(0) stamp applies). A "  ·  " separator sits between segments. */
+  private tradeoffSegments(desc: string, cx: number, cy: number): Phaser.GameObjects.Text[] {
+    const SEP = '  ·  ';
+    const segments = desc.split(', ').map((s) => s.trim());
+    // Build each segment (and the separators) as origin-(0,0) texts, measure total width, then
+    // place them left-to-right starting at the centered left edge.
+    const parts: Phaser.GameObjects.Text[] = [];
+    segments.forEach((seg, idx) => {
+      const negative = seg.startsWith('−') || seg.startsWith('-');
+      const color = negative ? '#ff9f9f' : '#9fe6a0';
+      if (idx > 0) {
+        parts.push(this.add.text(0, cy, SEP, { fontSize: '12px', color: '#88aa99' }).setOrigin(0, 0.5));
+      }
+      parts.push(this.add.text(0, cy, seg, { fontSize: '12px', color }).setOrigin(0, 0.5));
+    });
+    const total = parts.reduce((w, t) => w + t.width, 0);
+    let x = cx - total / 2;
+    for (const t of parts) { t.setX(x); x += t.width; }
+    return parts;
   }
 
   private applyDraftOption(o: DraftOption) {
     switch (o.kind) {
-      case 'perk':
-        this.stats = applyPerk(this.stats, o.perk);
-        this.ownedPerks.push(o.perk.id);
+      case 'fuseWeapons': {
+        const [a, b] = this.equipped;
+        const hybrid = fuseWeapons(
+          { def: defOf(a), level: a.level }, { def: defOf(b), level: b.level },
+        );
+        if (o.early) this.catalysts = Math.max(0, this.catalysts - 1);
+        this.equipped = equipHybrid(hybrid);
+        this.weaponCooldowns = {};
+        this.celebrateFusion(hybrid.name);
+        break;
+      }
+      case 'fusePassives':
+        this.passives = fusePassives(this.passives) ?? this.passives;
+        this.refreshStatsFromPassives();
         break;
       case 'newWeapon':
-        this.equipped = addWeapon(this.equipped, o.weaponId);
+        this.equipped = o.replaceId
+          ? swapWeapon(this.equipped, o.replaceId, o.weaponId)
+          : addWeapon(this.equipped, o.weaponId);
         break;
-      case 'levelWeapon':
-        this.equipped = levelWeapon(this.equipped, o.weaponId);
-        break;
-      case 'evolve':
-        this.equipped = applyEvolve(this.equipped, o.fromId, o.toId);
-        break;
+      case 'levelWeapon': this.equipped = levelWeapon(this.equipped, o.weaponId); break;
+      case 'newPassive':  this.passives = addPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
+      case 'levelPassive': this.passives = levelPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
     }
+  }
+
+  /** RC-031 fusion celebration (spec §5): gold camera flash + shake + reused age-up cue, then a
+   *  screen-fixed name banner that pops in (Back.easeOut) and fades after a beat. The banner MUST
+   *  carry setScrollFactor(0) — the run camera scrolls, so a world-anchored banner would drift. */
+  private celebrateFusion(name: string) {
+    this.cameras.main.flash(420, 255, 215, 90);
+    this.cameras.main.shake(180, 0.008);
+    playSfx('age-up'); // reuse the celebration cue until a bespoke 'fuse' recipe lands
+    const banner = this.add.text(this.scale.width / 2, this.scale.height * 0.3,
+      `⚒️ ${name}`, { fontSize: '40px', color: '#ffd75e', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 },
+    ).setOrigin(0.5).setDepth(60).setScrollFactor(0).setScale(0.3).setAlpha(0);
+    this.tweens.add({ targets: banner, scale: 1, alpha: 1, duration: 320, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: banner, alpha: 0, delay: 1500, duration: 600, onComplete: () => banner.destroy() });
+  }
+
+  /** Rebuild stats from the run's base whenever passives change (recompute model). */
+  private refreshStatsFromPassives() {
+    const ratio = this.stats.hp / this.stats.maxHp;
+    // Carry the live run progression across the recompute: baseStats is the create()-time snapshot
+    // (level 1, xp 0), so a bare recomputeStats() would reset the player's level/xp on every passive
+    // pick. Preserve the CURRENT level/xp (same pattern as chargesSpent below).
+    const { level, xp } = this.stats;
+    this.stats = recomputeStats(this.baseStats, this.passives, ratio);
+    this.stats.level = level;
+    this.stats.xp = xp;
+    // recomputeStats yields the new MAX; consumption is tracked separately so passive picks can't
+    // refund already-spent charges (RC-031 infinite-charges bug fix).
+    this.stats.activeCharges = Math.max(0, this.stats.activeCharges - this.chargesSpent);
   }
 
   private finish(died: boolean) {

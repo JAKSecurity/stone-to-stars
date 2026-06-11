@@ -53,3 +53,63 @@ export function withinRadius(ax: number, ay: number, bx: number, by: number, r: 
   const dx = bx - ax, dy = by - ay;
   return dx * dx + dy * dy <= r * r;
 }
+
+// ---- RC-031 Forge & Fuse trajectories (pure math; RunScene renders) ----
+
+export const BOOMERANG_OUT_MS = 450;     // outbound flight time before the return leg
+export const HOMING_TURN_RAD_S = 3.5;    // max steering rate
+export const CHAIN_RANGE = 180;          // px hop search radius
+export const CHAIN_FALLOFF = 0.75;       // damage multiplier per hop
+export const TRAIL_DROP_MS = 250;        // trail weapons drop a patch this often while firing
+export const TRAIL_LINGER_MS = 1500;     // how long a trail patch burns
+export const TRAIL_RADIUS = 26;          // patch hit radius
+export const ZONE_TICK_MS = 400;         // lingering fields re-hit cadence (trail + zone)
+export const ZONE_RADIUS = 70;           // zone (mine field) radius
+export const SLOW_MS = 2000;             // onHit.slowPct duration
+export const BOOMERANG_RETURN_MULT = 1.15; // return leg flies this much faster than the outbound
+
+export type BoomerangPhase = 'out' | 'return';
+
+export interface Velocity { vx: number; vy: number }
+
+/** Velocity of a boomerang: outbound rides the locked aim; the return leg steers at the player. */
+export function boomerangVelocity(
+  phase: BoomerangPhase, aimX: number, aimY: number,
+  px: number, py: number, bx: number, by: number, speed: number,
+): Velocity {
+  if (phase === 'out') return { vx: aimX * speed, vy: aimY * speed };
+  const dx = px - bx, dy = py - by;
+  const d = Math.hypot(dx, dy) || 1;
+  return { vx: (dx / d) * speed * BOOMERANG_RETURN_MULT, vy: (dy / d) * speed * BOOMERANG_RETURN_MULT }; // returns slightly faster
+}
+
+/** Steer (vx,vy) toward (tx,ty) by at most HOMING_TURN_RAD_S·dt, preserving speed. */
+export function homingVelocity(
+  vx: number, vy: number, bx: number, by: number, tx: number, ty: number,
+  speed: number, dtMs: number,
+): Velocity {
+  const want = Math.atan2(ty - by, tx - bx);
+  const cur = Math.atan2(vy, vx);
+  let delta = want - cur;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  const maxTurn = HOMING_TURN_RAD_S * (dtMs / 1000);
+  const next = cur + Math.max(-maxTurn, Math.min(maxTurn, delta));
+  return { vx: Math.cos(next) * speed, vy: Math.sin(next) * speed };
+}
+
+export interface ChainCandidate { id: string; x: number; y: number }
+
+/** Nearest unhit candidate within `range` of (fromX, fromY), else null. */
+export function chainNextTarget(
+  candidates: ChainCandidate[], fromX: number, fromY: number,
+  hit: Set<string>, range: number,
+): ChainCandidate | null {
+  let best: ChainCandidate | null = null, bestD = range;
+  for (const c of candidates) {
+    if (hit.has(c.id)) continue;
+    const d = Math.hypot(c.x - fromX, c.y - fromY);
+    if (d <= bestD) { bestD = d; best = c; }
+  }
+  return best;
+}

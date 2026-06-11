@@ -4,6 +4,7 @@ import { costMult, ageIndexOf, COST_BASE } from '../game/economy';
 import { TECHS } from './techData';
 import { BUILDINGS, buildingEffectText } from '../camp/buildingData';
 import { WEAPONS } from '../run/weaponData';
+import { ACTIVES } from '../run/activeData';
 
 // RC-017: a tech's flat base cost is derived from its role; G^age (in costMult) provides all the
 // across-age growth, so the per-tech `cost` data only supplies the resource types + their order
@@ -88,6 +89,7 @@ export function techEffectText(techId: string): string {
     if (rb.damageMult != null) parts.push(`+${Math.round(rb.damageMult * 100)}% dmg`);
     if (rb.draftChoices != null) parts.push(`+${rb.draftChoices} draft pick`);
     if (rb.weapons) for (const id of rb.weapons) parts.push(`Weapon: ${WEAPONS[id]?.name ?? id}`);
+    if (rb.actives) for (const id of rb.actives) parts.push(`Active: ${ACTIVES[id]?.name ?? id}`);
   }
   return parts.join(' · ');
 }

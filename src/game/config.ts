@@ -13,6 +13,7 @@ export const BASE_MAX_HP = 100;
 export const BASE_DAMAGE_MULT = 1.0;
 export const BASE_DRAFT_CHOICES = 3;
 export const BASE_WEAPONS: string[] = ['club'];
+export const BASE_ACTIVES: string[] = [];
 
 // Base values for tradition-driven run-modifier axes (no traditions = these defaults).
 export const BASE_PICKUP_RADIUS = 60;     // matches the prior hardcoded RunStats pickupRadius
