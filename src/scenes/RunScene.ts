@@ -56,6 +56,7 @@ import {
   HAUNT_DROP_MS, HAUNT_LINGER_MS,
   ENRAGE_MULT,
   arcContains, beamHits, enrageActive, flamePatchPoints, spawnerMaySummon,
+  enemyDamageMult, bossDamageMult,
 } from '../run/enemyAttacks';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
@@ -352,10 +353,13 @@ export class RunScene extends Phaser.Scene {
         e.setData('hp', maxHp);
         e.setData('maxHp', maxHp);
         e.setData('isBoss', true);
+        // RC-009: bosses use the steeper boss curve (1×→6×), not the regular curve stacked on top.
+        // Re-set contactDamage over spawnEnemyAt's regular-mult value.
+        const def = ENEMIES[p.id];
+        e.setData('contactDamage', Math.round(def.contactDamage * bossDamageMult(this.expedition.tier)));
         // RC-019 playtest: apex boss rendered at 2× size; re-apply shrinkBody so the physics
         // body scales with the new display size (shrinkBody uses source-frame px, so body world
         // size = sourceW * 0.72 * scaleX — doubling scaleX via setDisplaySize doubles the body).
-        const def = ENEMIES[p.id];
         e.setDisplaySize(def.displaySize.w * RUN_SCALE * 2, def.displaySize.h * RUN_SCALE * 2);
         this.shrinkBody(e, 0.72);
         this.bossEnemy = e;
@@ -1162,7 +1166,7 @@ export class RunScene extends Phaser.Scene {
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
     enemy.setData('speed', def.speed * RUN_SCALE * this.mutFx.effects.enemySpeedMult);
-    enemy.setData('contactDamage', def.contactDamage);
+    enemy.setData('contactDamage', Math.round(def.contactDamage * enemyDamageMult(this.expedition.tier)));
     enemy.setData('armor', (def.armor ?? 0) + this.mutFx.effects.enemyArmorAdd);
     enemy.setData('attack', def.attack);
     // RC-040 attack profile + enrage. profileMs counts down to the next telegraphed attack (staggered
@@ -1543,7 +1547,8 @@ export class RunScene extends Phaser.Scene {
       if (!e.active) return;
       e.clearTint();
       for (const pt of flamePatchPoints(e.x, e.y, facing, FLAME_CONE_RANGE * RUN_SCALE)) {
-        this.spawnEnemyPatch(pt.x, pt.y, 26 * RUN_SCALE, 1500, 10);
+        // RC-009: flat patch damage scales with tier so flamejet stays relevant at end-game.
+        this.spawnEnemyPatch(pt.x, pt.y, 26 * RUN_SCALE, 1500, Math.round(10 * enemyDamageMult(this.expedition.tier)));
       }
     });
     return FLAME_COOLDOWN_MS + 400;
@@ -1616,7 +1621,8 @@ export class RunScene extends Phaser.Scene {
     const v = e.body?.velocity;
     const moving = v && (Math.abs(v.x) + Math.abs(v.y)) > 1;
     if (!moving) return -1; // parked — no trail to lay
-    this.spawnEnemyPatch(e.x, e.y, 20 * RUN_SCALE, HAUNT_LINGER_MS, 8);
+    // RC-009: flat patch damage scales with tier so the haunt trail stays threatening at end-game.
+    this.spawnEnemyPatch(e.x, e.y, 20 * RUN_SCALE, HAUNT_LINGER_MS, Math.round(8 * enemyDamageMult(this.expedition.tier)));
     return HAUNT_DROP_MS;
   }
 

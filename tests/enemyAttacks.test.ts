@@ -9,6 +9,7 @@ import {
   HAUNT_DROP_MS, HAUNT_LINGER_MS,
   ENRAGE_THRESHOLD, ENRAGE_MULT,
   arcContains, beamHits, enrageActive, flamePatchPoints, spawnerMaySummon,
+  enemyDamageMult, bossDamageMult,
 } from '../src/run/enemyAttacks';
 
 describe('enemyAttacks — constants sanity', () => {
@@ -170,5 +171,70 @@ describe('enemyAttacks — spawnerMaySummon', () => {
   it('blocks summoning at or above the cap', () => {
     expect(spawnerMaySummon(SPAWNER_CAP)).toBe(false);
     expect(spawnerMaySummon(SPAWNER_CAP + 2)).toBe(false);
+  });
+});
+
+describe('enemyAttacks — enemyDamageMult (RC-009)', () => {
+  it('returns 1.0 at tier 0 (stone age — no scaling)', () => {
+    expect(enemyDamageMult(0)).toBeCloseTo(1.0, 6);
+  });
+
+  it('returns 3.0 at tier 7 (modern — full scaling)', () => {
+    expect(enemyDamageMult(7)).toBeCloseTo(3.0, 6);
+  });
+
+  it('returns a value between 1 and 3 at tier 3 (midway-ish)', () => {
+    const m = enemyDamageMult(3);
+    expect(m).toBeGreaterThan(1);
+    expect(m).toBeLessThan(3);
+    // linear: 1 + (3/7)*2 ≈ 1.857
+    expect(m).toBeCloseTo(1 + (3 / 7) * 2, 6);
+  });
+
+  it('returns a value between 1 and 3 at tier 4', () => {
+    const m = enemyDamageMult(4);
+    // linear: 1 + (4/7)*2 ≈ 2.143
+    expect(m).toBeCloseTo(1 + (4 / 7) * 2, 6);
+  });
+
+  it('clamps tier above 7 to 3.0 (tier 9)', () => {
+    expect(enemyDamageMult(9)).toBeCloseTo(3.0, 6);
+  });
+
+  it('clamps negative tiers to 1.0', () => {
+    expect(enemyDamageMult(-1)).toBeCloseTo(1.0, 6);
+    expect(enemyDamageMult(-99)).toBeCloseTo(1.0, 6);
+  });
+});
+
+describe('enemyAttacks — bossDamageMult (RC-009)', () => {
+  it('returns 1.0 at tier 0 (no scaling)', () => {
+    expect(bossDamageMult(0)).toBeCloseTo(1.0, 6);
+  });
+
+  it('returns 6.0 at tier 7 (full scaling)', () => {
+    expect(bossDamageMult(7)).toBeCloseTo(6.0, 6);
+  });
+
+  it('returns a value between 1 and 6 at tier 3', () => {
+    const m = bossDamageMult(3);
+    expect(m).toBeGreaterThan(1);
+    expect(m).toBeLessThan(6);
+    // linear: 1 + (3/7)*5 ≈ 3.143
+    expect(m).toBeCloseTo(1 + (3 / 7) * 5, 6);
+  });
+
+  it('returns a value between 1 and 6 at tier 4', () => {
+    const m = bossDamageMult(4);
+    // linear: 1 + (4/7)*5 ≈ 3.857
+    expect(m).toBeCloseTo(1 + (4 / 7) * 5, 6);
+  });
+
+  it('clamps tier above 7 to 6.0 (tier 9)', () => {
+    expect(bossDamageMult(9)).toBeCloseTo(6.0, 6);
+  });
+
+  it('clamps negative tiers to 1.0', () => {
+    expect(bossDamageMult(-1)).toBeCloseTo(1.0, 6);
   });
 });

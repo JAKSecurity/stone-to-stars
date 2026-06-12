@@ -83,6 +83,9 @@ Three constant tweaks from Jeff's live playtest session:
 
 **Deferred intent (Jeff pre-approved direction, not yet the moment):** when the doubled-density economy runs hot, halve per-kill gem values to rebalance.
 
+## 2026-06-12 balance — enemy damage tier scaling
+Implemented linear damage scaling by expedition tier (balance(RC-009) commit). Pure fns `enemyDamageMult` (×1→×3) and `bossDamageMult` (×1→×6) in `src/run/enemyAttacks.ts`; applied at `spawnEnemyAt` contactDamage and overridden to boss curve in the isBoss block. Flat patch damages (flamejet 10→10×mult, haunt 8→8×mult) also scaled. Numeric sanity: tier-0 beast contact 10→10; tier-7 juggernaut (34 base) contact 34×3=102; tier-7 apex juggernaut 34×6=204.
+
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §6
 - KNOWN_ISSUES.md #2, #3, #4. Depends on RC-008 (content present). Decomposed from RC-005.

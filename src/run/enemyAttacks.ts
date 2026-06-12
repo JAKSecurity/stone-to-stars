@@ -105,3 +105,15 @@ export function flamePatchPoints(
 export function spawnerMaySummon(aliveChildren: number): boolean {
   return aliveChildren < SPAWNER_CAP;
 }
+
+// ---- RC-009: tier-based damage multipliers ----
+
+/** Regular-enemy damage multiplier by run tier: linear 1.0 (tier 0) → 3.0 (tier 7). */
+export function enemyDamageMult(tier: number): number {
+  return 1 + (Math.max(0, Math.min(7, tier)) / 7) * 2;
+}
+
+/** Apex-boss damage multiplier by run tier: linear 1.0 (tier 0) → 6.0 (tier 7). */
+export function bossDamageMult(tier: number): number {
+  return 1 + (Math.max(0, Math.min(7, tier)) / 7) * 5;
+}
