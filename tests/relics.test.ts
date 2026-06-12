@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PASSIVES, PASSIVE_FUSIONS } from '../src/run/passiveData';
 import { RELICS } from '../src/run/relicData';
+import { SPRITES, validateSpriteDef } from '../src/art/registry';
 import { draftOptions, rollDraft, DraftContext } from '../src/run/draft';
 import { TECHS } from '../src/tech/techData';
 import { TRADITIONS } from '../src/civics/traditionData';
@@ -178,5 +179,12 @@ describe('regen cards disclose the 25% lifetime cap (spec §4)', () => {
   it('field_medic and heartwood descs mention the cap', () => {
     expect(PASSIVES.field_medic.desc).toContain('25%');
     expect(PASSIVE_FUSIONS['field_medic+oxhide'].desc).toContain('25%');
+  });
+});
+
+describe('food pickup sprite', () => {
+  it('food_ration is registered and valid', () => {
+    expect(SPRITES.food_ration).toBeDefined();
+    expect(validateSpriteDef(SPRITES.food_ration)).toEqual([]);
   });
 });
