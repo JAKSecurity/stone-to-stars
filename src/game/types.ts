@@ -228,6 +228,21 @@ export interface PassiveDef {
 }
 export interface EquippedPassive { id: string; level: number; hybrid?: PassiveDef }
 
+// RC-025 — relics: tech/tradition-gated rare passives. Pure-upside new mechanics, the ONLY
+// passives exempt from the sidegrade rule (civ investment earned the exception). maxLevel is
+// always 1 (no leveling, no fusion); one relic per run in a dedicated third slot.
+export type RelicUnlock =
+  | { kind: 'tech'; techId: string }
+  | { kind: 'tradition'; traditionId: string; rank: number };
+
+export interface RelicDef {
+  id: string;
+  name: string;
+  icon: string;        // emoji for HUD slot + draft card
+  desc: string;        // mechanic line for the draft card
+  unlock: RelicUnlock;
+}
+
 export interface RunStats {
   hp: number;
   maxHp: number;
