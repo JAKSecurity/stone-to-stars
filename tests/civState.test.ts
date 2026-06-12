@@ -72,7 +72,7 @@ describe('civState', () => {
   it('applyRunResult also adds per-run building yields times level', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
-    civ = build(civ, 'granary', 0);
+    civ = build(civ, 'granary', 12); // tile 12 = center (rank 0), always unlocked in stone age
     const before = civ.banked.culture;
     const after = applyRunResult(civ, {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
@@ -84,7 +84,7 @@ describe('civState', () => {
   it('building yields scale by the run tier (RC-017)', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
-    civ = build(civ, 'granary', 0); // granary yields culture 3
+    civ = build(civ, 'granary', 12); // tile 12 = center (rank 0), granary yields culture 3
     const before = civ.banked.culture;
     const after = applyRunResult(civ, {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },

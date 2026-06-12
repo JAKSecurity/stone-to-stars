@@ -33,10 +33,10 @@ describe('computeRunModifiers', () => {
   it('building run-bonuses scale with level and grant weapons once', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
-    civ = build(civ, 'granary', 0);
+    civ = build(civ, 'granary', 12); // tile 12 = center (rank 0), stone age
     civ = research(civ, 'mining');
     civ = research(civ, 'bronze_working');
-    civ = build(civ, 'forge', 1);
+    civ = build(civ, 'forge', 7); // tile 7 = orthogonal neighbor (rank 1), unlocked in bronze age
     // RC-031: the run pool is the chosen kit, not the full unlocked pool — opt the new
     // weapon into the kit (a deliberately small kit is no longer padded from unlocked).
     civ = { ...civ, kit: ['club', 'bronze_spear'] };

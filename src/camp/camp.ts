@@ -10,6 +10,19 @@ import { GRID_SIZE, CAMP_SLOTS_BASE, CAMP_SLOTS_PER_AGE } from '../game/config';
 // callers/tests keep importing it from camp.
 export { buildingEffectText } from './buildingData';
 
+// RC-032: the camp unlocks center-out — a settlement growing into the wilderness, not a
+// spreadsheet filling row-major. Order = Euclidean distance from the center tile (12),
+// ties broken by ascending index (deterministic; orthogonals beat diagonals at dist 1 vs √2).
+const CENTER = { col: 2, row: 2 };
+export const TILE_UNLOCK_ORDER: number[] = Array.from({ length: GRID_SIZE }, (_, t) => t)
+  .sort((a, b) => {
+    const d = (t: number) => Math.hypot((t % 5) - CENTER.col, Math.floor(t / 5) - CENTER.row);
+    return d(a) - d(b) || a - b;
+  });
+const TILE_RANK: number[] = TILE_UNLOCK_ORDER.reduce((acc, tile, rank) => {
+  acc[tile] = rank; return acc;
+}, [] as number[]);
+
 // RC-017: a building's flat base cost is derived; G^age (via costMult) and the level multiplier do
 // the scaling, so `baseCost` data only supplies the resource types + order (largest = primary).
 const BUILDING_BASE = { primary: 12, secondary: 6 };
@@ -37,9 +50,9 @@ export function unlockedTileCount(civ: CivState): number {
   return Math.min(GRID_SIZE, CAMP_SLOTS_BASE + CAMP_SLOTS_PER_AGE * ageIdx);
 }
 
-/** Whether tile index `tile` is unlocked at the civ's current age (tiles fill in low-index first). */
+/** Whether tile index `tile` is unlocked at the civ's current age (center-out ring order). */
 export function tileUnlocked(civ: CivState, tile: number): boolean {
-  return tile < unlockedTileCount(civ);
+  return TILE_RANK[tile] < unlockedTileCount(civ);
 }
 
 export function tileOccupied(civ: CivState, tile: number): boolean {
@@ -95,13 +108,23 @@ export function buildableBuildings(civ: CivState): BuildingDef[] {
   );
 }
 
-/** Lowest unlocked tile with no building, or null if every unlocked tile is occupied. */
+/** First unlocked tile (in unlock order) with no building, or null if every unlocked tile is occupied. */
 export function firstEmptyTile(civ: CivState): number | null {
   const unlocked = unlockedTileCount(civ);
-  for (let tile = 0; tile < unlocked; tile++) {
+  for (const tile of TILE_UNLOCK_ORDER.slice(0, unlocked)) {
     if (!tileOccupied(civ, tile)) return tile;
   }
   return null;
+}
+
+/** RC-032 save migration: re-seat placed buildings onto the first N unlock-order tiles,
+ *  ordered by the unlock rank of their current tile. Idempotent: a migrated layout occupies
+ *  ranks 0..n−1 already, so every building maps back to its own tile (same reference returned). */
+export function remapCampTiles(civ: CivState): CivState {
+  const sorted = [...civ.buildings].sort((a, b) => TILE_RANK[a.tile] - TILE_RANK[b.tile]);
+  const moved = sorted.some((b, n) => b.tile !== TILE_UNLOCK_ORDER[n]);
+  if (!moved) return civ;
+  return { ...civ, buildings: sorted.map((b, n) => ({ ...b, tile: TILE_UNLOCK_ORDER[n] })) };
 }
 
 /**
