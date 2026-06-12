@@ -6,7 +6,7 @@ import { load, save } from './state/saveLoad';
 import { research, getAge } from './tech/tech';
 import { TECHS } from './tech/techData';
 import { heroSpriteFor } from './game/heroByAge';
-import { build, upgradeBuilding, moveBuilding } from './camp/camp';
+import { build, upgradeBuilding, moveBuilding, remapCampTiles } from './camp/camp';
 import { buyTradition } from './civics/traditions';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen, slotCard } from './ui/civScreen';
@@ -26,7 +26,7 @@ const expEl = document.getElementById('expedition')!;
 const runEndEl = document.getElementById('runend')!;
 const pauseEl = document.getElementById('pausemenu')!;
 
-let civ: CivState = load() ?? newCivState();
+let civ: CivState = remapCampTiles(load() ?? newCivState());
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

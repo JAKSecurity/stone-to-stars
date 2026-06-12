@@ -2,7 +2,7 @@ import { CivState, Resource, RESOURCES, AGE_ORDER, AgeId, TechNode } from '../ga
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge, techCost, techEffectText, unmetRequirements } from '../tech/tech';
-import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost, buildingCost, unlockedTileCount } from '../camp/camp';
+import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost, buildingCost, tileUnlocked } from '../camp/camp';
 import { TRADITIONS } from '../civics/traditionData';
 import { traditionRank, nextRankCost, canBuyTradition } from '../civics/traditions';
 import { canAfford } from '../economy/resources';
@@ -201,16 +201,15 @@ export function renderCivScreen(
   campPanel.innerHTML = '<h2>Base Camp</h2>';
   const grid = document.createElement('div');
   grid.className = 'grid';
-  const unlockedCount = unlockedTileCount(civ);
   for (let tile = 0; tile < GRID_SIZE; tile++) {
     const placed = civ.buildings.find((b) => b.tile === tile);
-    const unlocked = tile < unlockedCount;
+    const unlocked = tileUnlocked(civ, tile);
     const cell = document.createElement('div');
     cell.className = 'cell';
-    // Locked tiles (not yet unlocked for this age) are inert placeholders that advertise future room.
+    // Locked tiles (not yet unlocked for this age) are faint terrain — wilderness not yet settled.
     if (!unlocked && !placed) {
       cell.classList.add('locked-tile');
-      cell.innerHTML = '<span class="lvl">🔒</span>';
+      cell.innerHTML = '';
       grid.appendChild(cell);
       continue;
     }
