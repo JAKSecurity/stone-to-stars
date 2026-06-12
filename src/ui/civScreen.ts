@@ -11,6 +11,7 @@ import { spriteCanvas } from '../art/domSprite';
 import { heroSpriteFor } from '../game/heroByAge';
 import { ageUnlocks } from '../game/ageUnlocks';
 import { SLOTS, SlotId, slotInfo, saveToSlot, loadSlot, exportSave, importSave } from '../state/saveSlots';
+import { relicForTradition } from '../run/relics';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
@@ -367,6 +368,10 @@ export function renderCivScreen(
     card.className = 'bcard' + (maxed ? ' done' : buyable ? ' afford' : ' locked');
     const text = document.createElement('div');
     const capLine = `<div class="beff">${def.blurb(Math.max(rank, 1))}</div>`;
+    const tradRelic = relicForTradition(def.id);
+    const relicLine = tradRelic && tradRelic.unlock.kind === 'tradition'
+      ? `<div class="beff">Rank ${tradRelic.unlock.rank}: unlocks relic ${tradRelic.icon} ${tradRelic.name}</div>`
+      : '';
     const rankLine = `<div class="bnm">${def.icon} ${def.name} <span class="lvl">${rank}/${def.maxRank}</span></div>`;
     let footer: string;
     if (maxed) {
@@ -380,7 +385,7 @@ export function renderCivScreen(
     } else {
       footer = '';
     }
-    text.innerHTML = rankLine + capLine + footer;
+    text.innerHTML = rankLine + capLine + relicLine + footer;
     card.appendChild(text);
     if (buyable) {
       card.onclick = () => cb.onBuyTradition(def.id);

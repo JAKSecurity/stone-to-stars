@@ -196,6 +196,8 @@ export interface RunModifiers {
                             // optional so callers building bare modifiers default to 'club' via initialWeapons).
   actives: string[];    // tech-unlocked active-item ids
   activeItem?: string;  // the one chosen pre-run (validated against `actives`)
+  relics?: string[];    // RC-025: relic ids the civ has unlocked (optional — bare-modifier
+                        // callers and old saves default to []; RunScene reads `?? []`)
 }
 
 export interface RunResult {
@@ -227,6 +229,21 @@ export interface PassiveDef {
   desc: string;            // per-level effect line, signs explicit ("+10% damage, −5% fire rate")
 }
 export interface EquippedPassive { id: string; level: number; hybrid?: PassiveDef }
+
+// RC-025 — relics: tech/tradition-gated rare passives. Pure-upside new mechanics, the ONLY
+// passives exempt from the sidegrade rule (civ investment earned the exception). maxLevel is
+// always 1 (no leveling, no fusion); one relic per run in a dedicated third slot.
+export type RelicUnlock =
+  | { kind: 'tech'; techId: string }
+  | { kind: 'tradition'; traditionId: string; rank: number };
+
+export interface RelicDef {
+  id: string;
+  name: string;
+  icon: string;        // emoji for HUD slot + draft card
+  desc: string;        // mechanic line for the draft card
+  unlock: RelicUnlock;
+}
 
 export interface RunStats {
   hp: number;

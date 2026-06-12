@@ -11,6 +11,7 @@ import { BUILDINGS } from '../camp/buildingData';
 import { TRADITIONS } from '../civics/traditionData';
 import { resolveActiveItem } from './actives';
 import { validateKit } from './kit';
+import { unlockedRelics } from './relics';
 
 /** Collect all tech- and building-unlocked weapon ids for a civ (the full pool, ignoring the kit). */
 // Weapon-collection logic mirrored in computeRunModifiers' inline `weapons` Set — keep in sync.
@@ -86,5 +87,6 @@ export function computeRunModifiers(civ: CivState): RunModifiers {
     maxHp, damageMult, draftChoices, weapons: kit,
     pickupRadius, moveSpeedMult, fireRateMult, draftRerolls, startWeaponLevel, startWeapon,
     actives: [...actives], activeItem,
+    relics: unlockedRelics([...civ.researched], civ.traditions),
   };
 }
