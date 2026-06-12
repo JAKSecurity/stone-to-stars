@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { TECHS } from '../src/tech/techData';
-import { isResearched, canResearch, research, getAge, techUnlocksBuilding, techCost } from '../src/tech/tech';
+import { isResearched, canResearch, research, getAge, techUnlocksBuilding, techCost, techEffectText } from '../src/tech/tech';
 import { newCivState } from '../src/state/civState';
 
 describe('tech', () => {
@@ -62,5 +62,11 @@ describe('tech', () => {
   it('techUnlocksBuilding maps tech → building id', () => {
     expect(techUnlocksBuilding('pottery')).toBe('granary');
     expect(techUnlocksBuilding('hunting')).toBeUndefined();
+  });
+
+  it('RC-025: gate techs list their relic in the effect text', () => {
+    expect(techEffectText('hunting')).toContain('Relic: 🩸 Blood Rush');
+    expect(techEffectText('masonry')).toContain('Relic: 🕊️ Second Wind');
+    expect(techEffectText('pottery')).not.toContain('Relic:');
   });
 });
