@@ -288,6 +288,20 @@ export const SHOT_TRACER: SpriteDef = {
   ],
 };
 
+// Space Age projectile sprites (RC-041)
+
+export const SHOT_LASER: SpriteDef = {
+  id: 'shot_laser', w: 18, h: 8, shadow: false,
+  prims: [
+    // thin cyan beam bolt — elongated horizontal streak
+    { kind: 'poly', points: [[1, 3], [14, 2], [17, 4], [14, 6], [1, 5]], color: PAL.visor, role: 'beam' },
+    // laser-bright core line down the center
+    { kind: 'rect', x: 2, y: 3, w: 13, h: 2, rx: 1, color: PAL.laser, role: 'core' },
+    // bright tip flare at the leading edge
+    { kind: 'poly', points: [[14, 2], [17, 4], [14, 6]], color: PAL.laser, role: 'tip' },
+  ],
+};
+
 export const PROJECTILES: SpriteDef[] = [
   SHOT_CLUB,
   SHOT_BRONZE,
@@ -315,4 +329,5 @@ export const PROJECTILES: SpriteDef[] = [
   SHOT_ROCKET,
   SHOT_SHELL,
   SHOT_TRACER,
+  SHOT_LASER,
 ];

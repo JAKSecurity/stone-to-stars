@@ -46,6 +46,7 @@ const AGE_ERA: Record<string, string> = {
   renaissance: 'renaissance',
   industrial: 'industrial',
   modern: 'modern',
+  space: 'modern', // RC-041: space shares the modern era bed until it earns its own track
 };
 
 // Biome → mood key (in-run). Multiple biomes share a mood family.

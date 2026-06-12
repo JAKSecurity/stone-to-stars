@@ -10,6 +10,9 @@ describe('heroByAge', () => {
   it('maps iron to hero_iron', () => {
     expect(heroSpriteFor('iron')).toBe('hero_iron');
   });
+  it('maps space to hero_space (RC-041)', () => {
+    expect(heroSpriteFor('space')).toBe('hero_space');
+  });
   it('every mapped hero sprite is registered in SPRITES', () => {
     for (const id of Object.values(HERO_SPRITE_BY_AGE)) {
       expect(SPRITES[id as string]).toBeDefined();

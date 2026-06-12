@@ -28,7 +28,8 @@ lazily (inside functions, never at module load). `music.ts` is imported **only**
 ## Music
 
 Tracks are selected by context in `music.ts`: the civ screen plays an **era** track keyed by
-the current age (stone/bronze/iron share one "ancient" bed; the rest are 1:1), and a run
+the current age (stone/bronze/iron share one "ancient" bed, space shares "modern"; the
+rest are 1:1), and a run
 plays a **mood** track keyed by the expedition's biome. Adding finer granularity later = drop
 a file + add one registry line; `startAmbient('civ', ageId)` / `startAmbient('run', biomeId)`
 do the lookup with a default fallback.
@@ -46,7 +47,7 @@ provenance. All from [OpenGameArt.org](https://opengameart.org).
 | medieval | *Medieval: Market Day* | RandomMind |
 | renaissance | *If my complaints could passions move* (Dowland, 1597) | Of Far Different Nature |
 | industrial | *The Gears of Progress* | section31 |
-| modern | *Hunter-class Lifeform* | Vitalezzz |
+| modern (modern/space) | *Hunter-class Lifeform* | Vitalezzz |
 
 **Run — mood (by biome):**
 

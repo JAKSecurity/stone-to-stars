@@ -40,6 +40,8 @@ export const PAL = {
   // modern age — olive drab, gunmetal, khaki, asphalt, hazard, radio green
   olive: '#6b6f3a', gunmetal: '#3a3f44', khaki: '#b3a06a', asphalt: '#2a2d31',
   hazard: '#e8b923', radio: '#5fd35f',
+  // space age (RC-041) — suit white, visor cyan, laser beam
+  suit: '#e8ebf2', suitShade: '#b3bcc9', visor: '#39c6f0', laser: '#6ff7ff',
   // RC-021 — biome obstacle tones (themed terrain props scattered in-run)
   foliage: '#3a6b35', foliageDark: '#27512a', bark: '#553b26', barkDark: '#382616',
   rockLite: '#8a857f', rockDark: '#46433f', moss: '#557a36', ringWood: '#9a6e44',
