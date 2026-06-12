@@ -124,6 +124,13 @@ export class RunScene extends Phaser.Scene {
   private lastSweepMs = 0; // RC-038: throttle for the ~1s containment sweep
   private equipped: EquippedWeapon[] = initialWeapons();
   private passives: EquippedPassive[] = [];
+  // RC-025 relic slot + mechanic state
+  private relic: string | null = null;
+  private secondWindUsed = false;
+  private bloodRushUntil = -Infinity;
+  private overchargeMs = 0;
+  private regenHealed = 0;           // lifetime regen spent against the 25% budget
+  private foods!: Phaser.Physics.Arcade.Group;
   private catalysts = 0;
   private catalystTokens: any[] = [];
   private baseStats!: RunStats; // snapshot of the run's base stats (civ mods), set in create()
@@ -226,6 +233,14 @@ export class RunScene extends Phaser.Scene {
     // Oratory tradition: rerolls available this run.
     this.rerollsLeft = this.mods.draftRerolls;
     this.passives = [];
+    this.relic = null;
+    this.secondWindUsed = false;
+    this.bloodRushUntil = -Infinity;
+    this.overchargeMs = 0;
+    this.regenHealed = 0;
+    // RC-025 TEMP: these are consumed by the relic-mechanics task (Task 8); this one-line read
+    // silences noUnusedLocals until then. Task 8 deletes this line.
+    void [this.secondWindUsed, this.bloodRushUntil, this.overchargeMs, this.regenHealed, this.hasRelic];
     this.catalysts = 0;
     this.catalystTokens = [];
     this.chargesSpent = 0;
@@ -320,6 +335,8 @@ export class RunScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
     this.physics.add.overlap(this.player, this.enemyBullets, (_p, b) => this.hitPlayerProjectile(b as any));
     this.physics.add.overlap(this.player, this.gems, (_p, g) => this.collectGem(g as any));
+    this.foods = this.physics.add.group();
+    this.physics.add.overlap(this.player, this.foods, (_p, f) => this.collectFood(f as any));
     // Obstacles block movement for both the player and the chasing enemies (they bunch up on them).
     this.physics.add.collider(this.player, this.obstacles);
     this.physics.add.collider(this.enemies, this.obstacles);
@@ -820,18 +837,22 @@ export class RunScene extends Phaser.Scene {
     if (remaining === 0) this.startCeremony();
   }
 
+  /** RC-025: does the (single) relic slot hold this relic? */
+  private hasRelic(id: string): boolean { return this.relic === id; }
+
   /** RC-031 loadout HUD: second line — weapons + levels, passive icons + levels, the active
    *  icon × charges (absent when no active is equipped), and catalysts. */
   private loadoutHudLine(): string {
     const loadout = this.equipped.map((w) => `${defOf(w).name} L${w.level}`).join(' | ');
     const passiveStr = this.passives.map((p) => `${passiveDefOf(p).icon}${p.level}`).join('');
+    const relicStr = this.relic ? `〔${RELICS[this.relic].icon}〕` : '';
     const activeStr = this.activeId ? `${ACTIVES[this.activeId].icon}×${this.stats.activeCharges}` : '';
     const catalystStr = this.catalysts > 0 ? `⚗️×${this.catalysts}` : '';
     // RC-029: echo active wagers + the haul multiplier they earn.
     const mutStr = this.mutatorIds.length
       ? this.mutatorIds.map((id) => MUTATORS[id]?.icon ?? '?').join('') + `×${this.mutFx.rewardMult.toFixed(2)}`
       : '';
-    return [loadout, passiveStr, activeStr, catalystStr, mutStr].filter((s) => s).join('   ');
+    return [loadout, passiveStr, relicStr, activeStr, catalystStr, mutStr].filter((s) => s).join('   ');
   }
 
   /**
@@ -1964,6 +1985,11 @@ export class RunScene extends Phaser.Scene {
     gem.destroy();
   }
 
+  /** RC-025: food pickup heal — full mechanics land with the relic mechanics task. */
+  private collectFood(food: any) {
+    food.destroy();
+  }
+
   private gainXp(amount: number) {
     const r = addXp(this.stats, Math.round(amount * this.stats.xpMult)); // RC-031 passives: xpMult
     this.stats = r.stats;
@@ -1992,6 +2018,8 @@ export class RunScene extends Phaser.Scene {
       passives: this.passives,
       kitPool: this.mods.weapons,
       catalysts: this.catalysts,
+      relicPool: this.mods.relics ?? [],
+      relic: this.relic,
     });
     const { width, height } = this.scale;
     const panel = this.add.container(0, 0).setDepth(20);
@@ -2027,8 +2055,9 @@ export class RunScene extends Phaser.Scene {
       const cx = slot.x, y = slot.y;
       // RC-031: fusion options read as the premium choice — gold card + gold text.
       const isFusion = opt.kind === 'fuseWeapons' || opt.kind === 'fusePassives';
-      const cardColor = isFusion ? 0x8a6d1a : 0x238636;
-      const labelColor = isFusion ? '#ffd75e' : '#fff';
+      const isRelic = opt.kind === 'newRelic';
+      const cardColor = isFusion ? 0x8a6d1a : isRelic ? 0x5a2ea6 : 0x238636;
+      const labelColor = isFusion ? '#ffd75e' : isRelic ? '#dcc8ff' : '#fff';
       const card = this.add.rectangle(cx, y, slot.w, slot.h, cardColor)
         .setInteractive({ useHandCursor: true });
       // rc-017's two-line card (title + what-it-does) driving rc-028's centralized advance flow,
@@ -2044,7 +2073,7 @@ export class RunScene extends Phaser.Scene {
         for (const t of this.tradeoffSegments(this.draftDescription(opt), cx, y + labelDy, slot.w - 24, subPx)) panel.add(t);
       } else {
         const sub = this.add.text(cx, y + labelDy, this.draftDescription(opt),
-          { fontSize: `${subPx}px`, color: isFusion ? '#ffe9a8' : '#d2f0d8' }).setOrigin(0.5);
+          { fontSize: `${subPx}px`, color: isFusion ? '#ffe9a8' : isRelic ? '#e9defc' : '#d2f0d8' }).setOrigin(0.5);
         this.clampTextWidth(sub, slot.w - 24, subPx);
         panel.add(sub);
       }
@@ -2187,6 +2216,7 @@ export class RunScene extends Phaser.Scene {
       case 'levelWeapon': this.equipped = levelWeapon(this.equipped, o.weaponId); break;
       case 'newPassive':  this.passives = addPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
       case 'levelPassive': this.passives = levelPassive(this.passives, o.passiveId); this.refreshStatsFromPassives(); break;
+      case 'newRelic': this.relic = o.relicId; break;
     }
   }
 
