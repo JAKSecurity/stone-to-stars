@@ -57,6 +57,14 @@ Shipped:
 Economy watch: Prospector's Eye interacts with the standing RC-009 gem-value lever —
 observe in the next playtest.
 
+Playtest watch list (final-review minors, none blocking):
+- `food_ration` sprite needs Jeff's in-game art ratification (redo = `src/art/sprites/food.ts` only)
+- Overcharge timer accrues/resets while fully charged — a full-charge player loses partial
+  refund windows; alternative is holding the timer at cap until a charge is spent (tuning feel)
+- Food pickups aren't swept by the Zone-Cleared ceremony vacuum (gems are) — cosmetic asymmetry
+- Tradition card still reads "Rank 3: unlocks relic …" after the unlock — could flip to an
+  "unlocked" state (cosmetic)
+
 ## References
 - Review session 2026-06-09 (items A3, A4)
 - `src/run/draft.ts`, `src/run/runStats.ts`, `src/scenes/RunScene.ts`
