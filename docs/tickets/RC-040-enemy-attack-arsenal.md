@@ -1,5 +1,5 @@
 # RC-040: Enemy attack arsenal — mid+ tier difficulty via attack variety
-**Status**: Open  **Priority**: P1  **Type**: Feature
+**Status**: Delivered  **Priority**: P1  **Type**: Feature
 **Created**: 2026-06-11
 
 ## Summary
@@ -60,13 +60,62 @@ hasn't opted in).
 - Balance numbers provisional (RC-009 owns feel).
 
 ## Acceptance Criteria
-- [ ] 8 profiles implemented, data-driven, telegraphed as tabled
-- [ ] Every assignment in the audit table active; low-tier enemies byte-identical
-- [ ] Enemy hazards damage the player (with re-hit throttle) and never damage enemies; player AoE rules unchanged
-- [ ] Spawner respects its alive-cap; spawned minions count toward the dungeon clear
-- [ ] Pure helpers unit-tested; live verify one profile per tier band
-- [ ] No save bump
+- [x] 8 profiles implemented, data-driven, telegraphed as tabled
+- [x] Every assignment in the audit table active; low-tier enemies byte-identical
+- [x] Enemy hazards damage the player (with re-hit throttle) and never damage enemies; player AoE rules unchanged
+- [x] Spawner respects its alive-cap; spawned minions count toward the dungeon clear
+- [x] Pure helpers unit-tested; live verify one profile per tier band
+- [x] No save bump
 
 ## References
 - 2026-06-11 playtest; RC-018 (movement archetypes — the pattern to mirror); `src/scenes/RunScene.ts`
   ENEMY_SHOT/updateEnemyFire; patches system (RC-031 Task 9)
+
+## Resolution
+Delivered 2026-06-11 in two parts.
+
+**Part 1** (commits 9606306 / b71ca04): pure `src/run/enemyAttacks.ts` — profile
+constants + geometry/timing helpers (arcContains, beamHits, enrageActive,
+flamePatchPoints, spawnerMaySummon), unit-tested; `EnemyDef.attackProfile / enrage /
+spawns` assigned per the binding tables.
+
+**Part 2** (commit 279c6e5): scene wiring in `src/scenes/RunScene.ts`, mirroring the
+existing `updateEnemyFire` / `patches` architecture. All per-profile state lives on
+enemy data; everything is asleep-gated, and every profile holds while off-camera
+(RC-037 inset gate) EXCEPT slash (melee — already requires proximity).
+
+- `updateEnemyProfiles(dt)` dispatches the 8 profiles via per-enemy `profileMs`
+  countdown (staggered like `fireMs`). A profile that declines to act (player out of
+  slash range, spawner capped) retries after 250ms instead of burning the full cooldown.
+- `enemyPatches`: a second hazard list mirroring `patches` but ticking the PLAYER
+  (never enemies) on a `ZONE_TICK_MS` re-hit cadence, hostile-tinted; used by flamejet
+  (4 patches along the cone) and haunt (small trail patches while moving). Reset in
+  `init()`; gfx reaped on shutdown like the player patches.
+- Telegraphs: slash 120° arc sector locked to windup-start facing (600ms pulse →
+  solid flash + hit); beam thin aim line locked through the player (600ms glow → thick
+  beam ~120ms); mortar ground target circle during the 900ms shell arc; flamejet 400ms
+  warm-up tint.
+- enrage (`maybeEnrage`): once `hp/maxHp < 0.3`, sets speed ×1.6, `enrageRateMult` 1.6
+  (read by both the fire cadence and profile cadence), red tint 0xff5544. Triggered
+  from BOTH the profile tick and `applyDamageToEnemy`'s non-fatal branch (so an
+  armor-absorbed hit still enrages via the next profile tick). Hit-flash `clearTint`
+  re-applies the enrage red via `restoreEnemyTint`.
+- `MAX_ENEMY_BULLETS` 10 → 16 for volley headroom (its ~700ms cadence).
+- Mortar blast damage is captured at FIRE time (`blastDamage`), so a committed shell
+  lands full damage even if its firing enemy dies mid-flight (reading `e.getData` at
+  landing would have yielded 0 — caught and fixed during live verify).
+- Spawner children are normal active enemies with no `poiCourier` flag, so the clear
+  check (`enemies.getChildren().filter(e => e.active && !poiCourier)`) counts them
+  naturally — "N left" grows on summon and the dungeon can't clear until they die.
+
+**Ruling applied:** gargoyle `behavior` standoff → circler — a haunt painter must
+move around the player to lay its trail; a standoff would park it and no trail forms.
+
+**Live verification** (verify-canvas-game-playwright; forced profiled defs via
+scene-side `spawnEnemyAt` with real def objects): volley 3 bullets @ ~700ms; slash arc
++ 19 dmg (16×1.2) on locked facing; beam aim line + 28 dmg (22×0.8×1.6) on locked line;
+flamejet 4 patches after 400ms warm-up; mortar target circle + 15 dmg blast; spawner
+capped at exactly 3 live drones; haunt 4 trail patches while circling; enrage red tint
++ speed ×1.6 + rate ×1.6 (both trigger paths); enemy patch hurt the player 40 HP while
+an enemy standing in it took 0; off-camera volley fired 0 bullets. `npm test` 394 green;
+`npm run build` green; no save bump.

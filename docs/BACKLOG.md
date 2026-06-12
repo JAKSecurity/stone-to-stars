@@ -57,4 +57,4 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-037 | Ranged mobs snipe from off-screen (unlimited fire range post-RC-034) | Delivered | P2 | C3 | docs/tickets/RC-037-offscreen-ranged-sniping.md |
 | RC-038 | Entities escape the playable field — out-of-bounds mob soft-locks the clear | Delivered | P1 | C3 | docs/tickets/RC-038-out-of-bounds-softlock.md |
 | RC-039 | ESC pause menu — abandon run, save/load, volume | Delivered | P2 | C3 | docs/tickets/RC-039-pause-menu.md |
-| RC-040 | Enemy attack arsenal — mid+ tier difficulty via attack variety | Open | P1 | C3 | docs/tickets/RC-040-enemy-attack-arsenal.md |
+| RC-040 | Enemy attack arsenal — mid+ tier difficulty via attack variety | Delivered | P1 | C3 | docs/tickets/RC-040-enemy-attack-arsenal.md |
