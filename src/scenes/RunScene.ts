@@ -80,11 +80,14 @@ interface RunInit {
   onComplete: (result: RunResult) => void;
   heroSprite?: string;
   mutators?: string[]; // RC-029: ephemeral per-launch wager ids
+  // RC-039: ESC pause menu — main.ts shows/hides its DOM overlay in response to this.
+  onPauseMenu?: (open: boolean) => void;
 }
 
 export class RunScene extends Phaser.Scene {
   private mods!: RunModifiers;
   private onComplete!: (r: RunResult) => void;
+  private onPauseMenu?: (open: boolean) => void; // RC-039
   private stats = initialRunStats({
     maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'],
     pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1,
@@ -119,6 +122,9 @@ export class RunScene extends Phaser.Scene {
   private trickleBiome!: BiomeDef;          // biome.spawnTable minus the boss (the random-spawn pool)
   private bossHp?: { bg: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text };
   private paused = false;
+  // RC-039: ESC pause menu. Distinct from `paused` (which the draft overlay also drives) so ESC
+  // only closes a pause it opened, never a draft. When true, `paused` is also true + physics paused.
+  private pauseMenuOpen = false;
   private finished = false;
   private pendingComplete: RunResult | null = null;
   private ceremony = false;
@@ -171,6 +177,7 @@ export class RunScene extends Phaser.Scene {
   init(data: RunInit) {
     this.mods = data.modifiers;
     this.onComplete = data.onComplete;
+    this.onPauseMenu = data.onPauseMenu; // RC-039
     this.expedition = data.expedition;
     this.biome = BIOMES[data.expedition.biomeId];
     this.heroSprite = data.heroSprite ?? 'hero';
@@ -203,7 +210,7 @@ export class RunScene extends Phaser.Scene {
     this.chargesSpent = 0;
     this.lastHeavyShakeMs = -Infinity;
     this.weaponCooldowns = {};
-    this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
+    this.paused = false; this.pauseMenuOpen = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
     this.lobs = [];
     this.patches = [];
@@ -275,6 +282,17 @@ export class RunScene extends Phaser.Scene {
     };
     this.input.on('pointerdown', onPointer);
     this.events.once('shutdown', () => this.input.off('pointerdown', onPointer));
+
+    // RC-039: ESC toggles the pause menu. Registered as a keydown listener (not a polled key) so the
+    // edge fires once per press. Gated so it only acts when no draft overlay is up: a draft already
+    // pauses via `paused`, and ESC must not close it (v1). The handler + shutdown cleanup mirror the
+    // pointer handler above so a future restart that re-runs create() can't accumulate duplicates.
+    const onEsc = () => this.togglePauseMenu();
+    this.input.keyboard!.on('keydown-ESC', onEsc);
+    this.events.once('shutdown', () => {
+      this.input.keyboard?.off('keydown-ESC', onEsc);
+      this.onPauseMenu?.(false); // RC-039: ensure the DOM overlay is hidden if the scene tears down while paused
+    });
 
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
@@ -1890,5 +1908,57 @@ export class RunScene extends Phaser.Scene {
       mutators: [...this.mutatorIds],
       rewardMult: this.mutFx.rewardMult,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // RC-039: ESC pause menu. Reuses the draft overlay's pause mechanics (paused flag +
+  // physics.pause/resume); main.ts owns the DOM overlay and drives the buttons via the
+  // public methods below.
+  // ---------------------------------------------------------------------------
+
+  /** ESC handler: open the pause menu, or close it if it's already open. A no-op while a draft is
+   *  open (paused but not via the pause menu), during the victory ceremony, or after the run has
+   *  finished — ESC there must not desync the pause state. */
+  private togglePauseMenu() {
+    if (this.pauseMenuOpen) { this.closePauseMenu(); return; }
+    if (this.paused || this.ceremony || this.finished) return; // draft up / wrapping up — leave alone
+    this.openPauseMenu();
+  }
+
+  private openPauseMenu() {
+    if (this.pauseMenuOpen) return; // idempotent — never stack
+    this.pauseMenuOpen = true;
+    this.paused = true;
+    this.physics.pause();
+    this.onPauseMenu?.(true);
+  }
+
+  /** Close the pause menu and resume play. Public so main.ts's Resume button can call it. Idempotent
+   *  and a no-op once the run has finished (the scene is being torn down). */
+  closePauseMenu() {
+    if (!this.pauseMenuOpen) return;
+    this.pauseMenuOpen = false;
+    this.onPauseMenu?.(false);
+    if (this.finished) return; // run already ending — don't un-pause a dying scene
+    this.paused = false;
+    this.physics.resume();
+  }
+
+  /** Abandon the expedition: bank the partial haul EXACTLY like death (voluntary death, no corpse).
+   *  Routes through finish(true) so banking, best-haul tracking, and the end screen all behave; the
+   *  deferred pendingComplete drains at the top of the next update() (which runs even while paused). */
+  abandonRun() {
+    this.pauseMenuOpen = false;
+    this.finish(true);
+  }
+
+  /** Discard the run with NO banking — used when loading a save from the pause menu (you're rewinding,
+   *  so the run never happened). Stops the scene cleanly WITHOUT calling onComplete, so main.ts owns
+   *  the subsequent civ-screen transition via its load path. */
+  discardRun() {
+    this.pauseMenuOpen = false;
+    this.finished = true; // block any in-flight finish()/ceremony from also firing onComplete
+    this.onPauseMenu?.(false);
+    this.scene.stop();
   }
 }

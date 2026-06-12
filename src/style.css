@@ -20,6 +20,26 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .runend-btn { padding: 14px 30px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
 .runend-btn:hover { background: #2ea043; }
 
+/* RC-039 — ESC pause menu. A semi-opaque backdrop over the live run with a centered flat panel
+   (jeff-ui-design). Sits above the canvas; mutually exclusive with #runend so z-index 15 is safe. */
+#pausemenu { display: none; position: fixed; inset: 0; z-index: 15;
+  background: rgba(7, 10, 16, 0.82); align-items: center; justify-content: center; }
+#pausemenu.active { display: flex; }
+.pause-panel { width: min(560px, 92vw); max-height: 92vh; overflow-y: auto;
+  background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+.pause-panel > h2 { margin: 0; font-size: 1.4rem; text-align: center; letter-spacing: 0.04em; }
+.pause-btn { width: 100%; padding: 13px 18px; font-size: 1rem; border: none; border-radius: 9px;
+  cursor: pointer; color: #fff; text-align: center; }
+.pause-primary { background: #238636; }
+.pause-primary:hover { background: #2ea043; }
+.pause-danger { background: #6e2532; border: 1px solid #8a3344; }
+.pause-danger:hover { background: #8a2c3c; }
+.pause-vol { display: flex; align-items: center; gap: 12px;
+  background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; }
+.pause-vol label { font-size: 0.9rem; opacity: 0.85; white-space: nowrap; }
+.pause-vol input[type="range"] { flex: 1; cursor: pointer; accent-color: #6cf; }
+
 .civ-wrap { width: 100%; margin: 0; padding: 16px 28px; }
 
 /* RC-024 age-up celebration — inline banner at the top of the civ screen. */
