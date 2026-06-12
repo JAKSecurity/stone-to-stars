@@ -53,7 +53,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   knight: { id: 'knight', name: 'Knight', sprite: 'knight',
     baseHp: 130, speed: 50, contactDamage: 16, drop: 'industry', xp: 11, displaySize: { w: 30, h: 40 }, armor: 1, attackProfile: 'slash' },
   gargoyle: { id: 'gargoyle', name: 'Gargoyle', sprite: 'gargoyle',
-    baseHp: 70, speed: 105, contactDamage: 12, drop: 'culture', xp: 7, displaySize: { w: 38, h: 32 }, attackProfile: 'haunt', behavior: 'standoff' },
+    // RC-040 ruling: a haunt painter must MOVE around the player to lay its trail — standoff would
+    // park it and the damaging path never forms. circler orbits the player, painting as it goes.
+    baseHp: 70, speed: 105, contactDamage: 12, drop: 'culture', xp: 7, displaySize: { w: 38, h: 32 }, attackProfile: 'haunt', behavior: 'circler' },
   dragon: { id: 'dragon', name: 'Dragon', sprite: 'dragon',
     baseHp: 320, speed: 45, contactDamage: 26, drop: 'industry', xp: 34, displaySize: { w: 58, h: 48 }, armor: 1, attackProfile: 'flamejet', enrage: true, behavior: 'standoff' },
   musketeer: { id: 'musketeer', name: 'Musketeer', sprite: 'musketeer',

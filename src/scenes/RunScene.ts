@@ -46,6 +46,17 @@ import { MUTATORS } from '../run/mutatorData';
 import { POIS, PoiDef, PoiId, ALTAR_WAKE_SCREENS, COURIER_SPEED_MULT, COURIER_DESPAWN_MS } from '../run/poiData';
 import { rollPois, shrineWave, shrineJackpot, courierJackpot } from '../run/poi';
 import { fleeVelocity } from '../run/enemyBehavior';
+import {
+  VOLLEY_COOLDOWN_MS, VOLLEY_DAMAGE_MULT,
+  SLASH_RANGE, SLASH_ARC_RAD, SLASH_WINDUP_MS, SLASH_COOLDOWN_MS,
+  BEAM_AIM_MS, BEAM_WIDTH, BEAM_COOLDOWN_MS, BEAM_DAMAGE_MULT,
+  FLAME_CONE_RANGE, FLAME_COOLDOWN_MS,
+  MORTAR_COOLDOWN_MS, MORTAR_BLAST, MORTAR_FLIGHT_MS,
+  SPAWNER_COOLDOWN_MS,
+  HAUNT_DROP_MS, HAUNT_LINGER_MS,
+  ENRAGE_MULT,
+  arcContains, beamHits, enrageActive, flamePatchPoints, spawnerMaySummon,
+} from '../run/enemyAttacks';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -58,7 +69,8 @@ const CEREMONY_MS = 3000;
 
 // Hard cap on enemy projectiles alive at once — guarantees there are never more than this many to
 // dodge, even at end-game mob density. Combined with low per-enemy fire cadence below.
-const MAX_ENEMY_BULLETS = 10;
+// RC-040: raised 10 → 16 to give the volley profile headroom (its ~700ms cadence eats the old cap).
+const MAX_ENEMY_BULLETS = 16;
 
 // Enemy projectile profiles by attack type. `speed` is pre-RUN_SCALE and deliberately slow so the
 // shots are easy to sidestep. `range` (melee only) gates firing to when the player is close.
@@ -147,6 +159,13 @@ export class RunScene extends Phaser.Scene {
     x: number; y: number; bornMs: number; lingerMs: number; radius: number;
     tickDamage: number; lastTick: Map<any, number>; gfx: Phaser.GameObjects.Arc; tint: number;
   }> = [];
+  // RC-040: enemy ground hazards (flamejet patches, haunt trail). A second patch list that mirrors
+  // `patches` but ticks the PLAYER (never enemies) on a ZONE_TICK_MS re-hit cadence. Reset in init();
+  // the gfx circles are scene-owned and reaped on shutdown like the player `patches`.
+  private enemyPatches: Array<{
+    x: number; y: number; bornMs: number; lingerMs: number; radius: number;
+    tickDamage: number; lastPlayerTick: number; gfx: Phaser.GameObjects.Arc;
+  }> = [];
   private enemyUidCounter = 0;
   // RC-026 POIs: the seeded dungeon rng (kept from create() for POI rolls/placement/wave/jackpot),
   // the placed POIs, and the shrine-wave tracking. Indicators are one reused screen-fixed text per
@@ -214,6 +233,7 @@ export class RunScene extends Phaser.Scene {
     this.ceremony = false; this.ceremonyMs = 0;
     this.lobs = [];
     this.patches = [];
+    this.enemyPatches = []; // RC-040: reset enemy ground hazards each run
     this.enemyUidCounter = 0;
     this.kills = 0;            // RC-022 B3: reset the per-run kill counter
     this.lastFlashMs = -Infinity; // RC-022 B6: reset the muzzle-flash throttle
@@ -673,6 +693,8 @@ export class RunScene extends Phaser.Scene {
       this.updateEnemyMovement(e, dt);
     });
     this.updateEnemyFire(dt);
+    this.updateEnemyProfiles(dt); // RC-040: telegraphed attack profiles (slash/beam/mortar/…)
+    this.updateEnemyPatches();    // RC-040: enemy ground hazards tick the player
 
     // RC-038 containment failsafe: ~once a second, any enemy that has drifted outside the playable
     // field (knockback/tunneling, whatever the cause) is hard-reset back inside via body.reset —
@@ -1136,12 +1158,23 @@ export class RunScene extends Phaser.Scene {
     this.enemies.add(enemy);
     enemy.setData('uid', `e${++this.enemyUidCounter}`); // RC-031: stable id for chain hit-memory
     enemy.setData('hp', def.baseHp);
+    enemy.setData('maxHp', def.baseHp); // RC-040: enrage reads hp/maxHp (boss overrides both below)
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
     enemy.setData('speed', def.speed * RUN_SCALE * this.mutFx.effects.enemySpeedMult);
     enemy.setData('contactDamage', def.contactDamage);
     enemy.setData('armor', (def.armor ?? 0) + this.mutFx.effects.enemyArmorAdd);
     enemy.setData('attack', def.attack);
+    // RC-040 attack profile + enrage. profileMs counts down to the next telegraphed attack (staggered
+    // like fireMs so co-spawned mobs don't act in unison). enrageRateMult divides cooldowns and
+    // multiplies speed once the mob enrages (1 = not yet). baseSpeed is the un-enraged speed so the
+    // enrage speed boost is applied once, not compounded per frame.
+    enemy.setData('attackProfile', def.attackProfile);
+    enemy.setData('enrage', def.enrage === true);
+    enemy.setData('spawns', def.spawns);
+    enemy.setData('enraged', false);
+    enemy.setData('enrageRateMult', 1);
+    if (def.attackProfile) enemy.setData('profileMs', Phaser.Math.Between(600, 2200));
     // RC-018 movement archetype + per-enemy mutable state.
     enemy.setData('behavior', def.behavior ?? 'chase');
     enemy.setData('split', def.split);
@@ -1304,7 +1337,8 @@ export class RunScene extends Phaser.Scene {
         const inRange = atk === 'ranged' ? onCamera : d < (prof as typeof ENEMY_SHOT.melee).range;
         if (inRange && this.enemyBullets.countActive(true) < MAX_ENEMY_BULLETS) {
           this.fireEnemyShot(e, atk);
-          fireMs = prof.cooldownMs + Phaser.Math.Between(-300, 700);
+          // RC-040: enraged mobs fire faster — divide the cadence by the rate mult (1 when calm).
+          fireMs = (prof.cooldownMs + Phaser.Math.Between(-300, 700)) / (e.getData('enrageRateMult') ?? 1);
         } else {
           fireMs = 300; // capped or out of range — try again shortly
         }
@@ -1324,6 +1358,287 @@ export class RunScene extends Phaser.Scene {
     b.body.setVelocity(Math.cos(angle) * prof.speed * RUN_SCALE, Math.sin(angle) * prof.speed * RUN_SCALE);
     this.time.delayedCall(prof.lifeMs, () => b.destroy());
   }
+
+  // ========================= RC-040 enemy attack profiles =========================
+  // updateEnemyProfiles dispatches per-profile telegraphed attacks (mirror of updateEnemyFire).
+  // Every profile is asleep-gated and (except slash, which needs proximity anyway) held while the
+  // shooter is off-camera, matching the RC-037 fire gate. Per-enemy state lives on enemy data
+  // (profileMs countdown, telegraph objects, spawner child uids) so it dies with the sprite.
+
+  /** True if the enemy is inside the camera worldView inset 24px — the RC-037 off-screen fire gate. */
+  private enemyOnCamera(e: any): boolean {
+    const v = this.cameras.main.worldView;
+    return e.x >= v.x + 24 && e.x <= v.right - 24 && e.y >= v.y + 24 && e.y <= v.bottom - 24;
+  }
+
+  /** Apply `amount` HP damage to the player with the standard hit feedback (flash + shake + death
+   *  check). Shared by every player-damaging enemy attack (slash/beam/mortar/enemy patches). */
+  private damagePlayer(amount: number) {
+    if (amount <= 0 || this.finished || this.ceremony) return;
+    this.stats.hp -= amount;
+    playSfx('player-hit');
+    this.cameras.main.flash(90, 130, 0, 0);
+    this.player.setTintFill(0xff3333);
+    this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
+    if (this.stats.hp <= 0) this.finish(true);
+  }
+
+  /** Spawn a lingering enemy ground hazard at (x,y): a hostile-tinted circle that ticks the PLAYER
+   *  (never enemies) every ZONE_TICK_MS. Mirrors spawnPatch but for the enemy-patch list. */
+  private spawnEnemyPatch(x: number, y: number, radius: number, lingerMs: number, tickDamage: number) {
+    const gfx = this.add.circle(x, y, radius, 0xff5522, 0.32).setDepth(6);
+    gfx.setStrokeStyle(2, 0xff2200, 0.4);
+    this.enemyPatches.push({ x, y, bornMs: this.elapsed, lingerMs, radius, tickDamage, lastPlayerTick: -Infinity, gfx });
+  }
+
+  /** Per-frame: enemy ground hazards (flamejet/haunt) fade, expire, and tick the player on a
+   *  ZONE_TICK_MS re-hit cadence while he stands in them. Mirror of the player `patches` tick. */
+  private updateEnemyPatches() {
+    for (let i = this.enemyPatches.length - 1; i >= 0; i--) {
+      const p = this.enemyPatches[i];
+      const age = this.elapsed - p.bornMs;
+      if (age >= p.lingerMs) { p.gfx.destroy(); this.enemyPatches.splice(i, 1); continue; }
+      p.gfx.setAlpha(0.30 * (1 - age / p.lingerMs) + 0.08);
+      if (withinRadius(p.x, p.y, this.player.x, this.player.y, p.radius)
+        && this.elapsed - p.lastPlayerTick >= ZONE_TICK_MS) {
+        p.lastPlayerTick = this.elapsed;
+        this.damagePlayer(p.tickDamage);
+      }
+    }
+  }
+
+  /** Per-frame profile dispatch. Each profiled, awake, on-camera (slash exempt) enemy counts down
+   *  profileMs and runs its telegraphed attack; enrage is evaluated here too (and in the damage
+   *  path) so it triggers even for non-firing profiles. */
+  private updateEnemyProfiles(dt: number) {
+    for (const e of this.enemies.getChildren() as any[]) {
+      if (!e.active) continue;
+      const profile = e.getData('attackProfile') as string | undefined;
+      if (e.getData('asleep')) continue;
+      // RC-040: enrage can fire for any enraging def regardless of profile.
+      if (e.getData('enrage') && !e.getData('enraged')) this.maybeEnrage(e);
+      if (!profile) continue;
+      // Off-camera gate (RC-037 parity) for everything except slash, which already requires the
+      // player to be in melee range, so a distant slash never fires anyway.
+      if (profile !== 'slash' && !this.enemyOnCamera(e)) continue;
+
+      let ms = (e.getData('profileMs') ?? 0) - dt;
+      if (ms > 0) { e.setData('profileMs', ms); continue; }
+      const rate = e.getData('enrageRateMult') ?? 1;
+      const cd = this.runEnemyProfile(e, profile);
+      // cd < 0 means the profile declined to act this tick (e.g. player out of slash range, spawner
+      // capped) — retry shortly rather than burning the full cooldown.
+      ms = cd < 0 ? 250 : cd / rate;
+      e.setData('profileMs', ms);
+    }
+  }
+
+  /** Run one profile's attack. Returns the cooldown ms before the next attempt, or a negative value
+   *  to signal "declined — retry soon". Telegraph objects are scene-owned and reaped on shutdown. */
+  private runEnemyProfile(e: any, profile: string): number {
+    switch (profile) {
+      case 'volley': return this.profileVolley(e);
+      case 'slash': return this.profileSlash(e);
+      case 'beam': return this.profileBeam(e);
+      case 'flamejet': return this.profileFlamejet(e);
+      case 'mortar': return this.profileMortar(e);
+      case 'spawner': return this.profileSpawner(e);
+      case 'haunt': return this.profileHaunt(e);
+      default: return 1000;
+    }
+  }
+
+  /** volley: the basic ranged shot at VOLLEY cadence, weaker per shot. Respects the bullet cap. */
+  private profileVolley(e: any): number {
+    if (this.enemyBullets.countActive(true) >= MAX_ENEMY_BULLETS) return -1;
+    const dmg = Math.round(e.getData('contactDamage') * ENEMY_SHOT.ranged.damageMult * VOLLEY_DAMAGE_MULT);
+    this.fireEnemyBullet(e.x, e.y, this.player.x, this.player.y, ENEMY_SHOT.ranged.speed, dmg,
+      ENEMY_SHOT.ranged.color, ENEMY_SHOT.ranged.radius, ENEMY_SHOT.ranged.lifeMs);
+    return VOLLEY_COOLDOWN_MS;
+  }
+
+  /** Generic enemy projectile (used by volley). Mirrors fireEnemyShot but with explicit params. */
+  private fireEnemyBullet(sx: number, sy: number, tx: number, ty: number,
+    speed: number, damage: number, color: number, radius: number, lifeMs: number) {
+    const angle = Phaser.Math.Angle.Between(sx, sy, tx, ty);
+    const b = this.add.circle(sx, sy, radius, color).setDepth(5) as any;
+    b.setStrokeStyle(2, 0x000000, 0.45);
+    this.physics.add.existing(b);
+    this.enemyBullets.add(b);
+    b.setData('damage', damage);
+    b.body.setVelocity(Math.cos(angle) * speed * RUN_SCALE, Math.sin(angle) * speed * RUN_SCALE);
+    this.time.delayedCall(lifeMs, () => { if (b.active) b.destroy(); });
+  }
+
+  /** slash: a 120° arc wind-up telegraph locked to the facing toward the player, then a hit if the
+   *  player is still inside the arc. Declines (retry) when the player is out of range. */
+  private profileSlash(e: any): number {
+    const range = SLASH_RANGE * RUN_SCALE;
+    const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+    if (d > range) return -1; // player not in melee reach — wait
+    const facing = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+    // Telegraph: a red arc sector locked to the windup-start facing, pulsing for SLASH_WINDUP_MS.
+    const g = this.add.graphics().setDepth(7);
+    const draw = (alpha: number) => {
+      g.clear();
+      g.fillStyle(0xff3322, alpha);
+      g.slice(e.x, e.y, range, facing - SLASH_ARC_RAD / 2, facing + SLASH_ARC_RAD / 2, false);
+      g.fillPath();
+    };
+    draw(0.22);
+    const pulse = this.tweens.addCounter({
+      from: 0.18, to: 0.42, duration: 200, yoyo: true, repeat: -1,
+      onUpdate: (tw) => { if (g.active) draw(tw.getValue() ?? 0.22); },
+    });
+    this.time.delayedCall(SLASH_WINDUP_MS, () => {
+      pulse.stop();
+      if (!e.active || !g.active) { g.destroy(); return; }
+      // The hit: solid flash, then damage if the player is inside the LOCKED arc.
+      g.clear();
+      g.fillStyle(0xff5533, 0.55);
+      g.slice(e.x, e.y, range, facing - SLASH_ARC_RAD / 2, facing + SLASH_ARC_RAD / 2, false);
+      g.fillPath();
+      if (arcContains(e.x, e.y, facing, range, SLASH_ARC_RAD, this.player.x, this.player.y)) {
+        this.damagePlayer(e.getData('contactDamage') * 1.2);
+      }
+      this.tweens.add({ targets: g, alpha: 0, duration: 160, onComplete: () => g.destroy() });
+    });
+    return SLASH_COOLDOWN_MS + SLASH_WINDUP_MS;
+  }
+
+  /** beam: a thin aim line locked through the player's aim-start position glows for BEAM_AIM_MS,
+   *  then fires a thick beam; a hit along the locked line deals ranged damage × BEAM_DAMAGE_MULT. */
+  private profileBeam(e: any): number {
+    const dir = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+    const len = Math.hypot(this.scale.width, this.scale.height); // screen diagonal
+    const ox = e.x, oy = e.y; // lock the origin too (enemy may drift during the aim)
+    const ex = ox + Math.cos(dir) * len, ey = oy + Math.sin(dir) * len;
+    const aim = this.add.graphics().setDepth(7);
+    aim.lineStyle(2, 0xff4422, 0.7);
+    aim.lineBetween(ox, oy, ex, ey);
+    aim.strokeLineShape(new Phaser.Geom.Line(ox, oy, ex, ey));
+    const pulse = this.tweens.add({ targets: aim, alpha: 0.3, duration: 200, yoyo: true, repeat: -1 });
+    this.time.delayedCall(BEAM_AIM_MS, () => {
+      pulse.stop();
+      aim.destroy();
+      if (!e.active) return;
+      // Fire: a thick beam for ~120ms along the LOCKED line.
+      const beam = this.add.graphics().setDepth(8);
+      beam.lineStyle(BEAM_WIDTH * RUN_SCALE, 0xff5533, 0.85);
+      beam.strokeLineShape(new Phaser.Geom.Line(ox, oy, ex, ey));
+      if (beamHits(ox, oy, dir, len, BEAM_WIDTH * RUN_SCALE, this.player.x, this.player.y)) {
+        const dmg = Math.round(e.getData('contactDamage') * ENEMY_SHOT.ranged.damageMult * BEAM_DAMAGE_MULT);
+        this.damagePlayer(dmg);
+      }
+      this.tweens.add({ targets: beam, alpha: 0, duration: 120, onComplete: () => beam.destroy() });
+    });
+    return BEAM_COOLDOWN_MS + BEAM_AIM_MS;
+  }
+
+  /** flamejet: a warm-up tint, then a line of burning enemy patches dropped toward the player. */
+  private profileFlamejet(e: any): number {
+    const facing = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+    e.setTint(0xffaa33); // warm-up flash
+    this.time.delayedCall(400, () => {
+      if (!e.active) return;
+      e.clearTint();
+      for (const pt of flamePatchPoints(e.x, e.y, facing, FLAME_CONE_RANGE * RUN_SCALE)) {
+        this.spawnEnemyPatch(pt.x, pt.y, 26 * RUN_SCALE, 1500, 10);
+      }
+    });
+    return FLAME_COOLDOWN_MS + 400;
+  }
+
+  /** mortar: lob an enemy-tinted shell at the player's CURRENT position with a ground target circle
+   *  during flight; on land, a blast radius damages the PLAYER only + a ring visual. */
+  private profileMortar(e: any): number {
+    const tx = this.player.x, ty = this.player.y; // locked landing point
+    const blast = MORTAR_BLAST * RUN_SCALE;
+    // Capture the blast damage at FIRE time — the shell is committed, so it lands for full damage
+    // even if the firing enemy dies mid-flight (reading e.getData at landing would yield 0 then).
+    const blastDamage = e.getData('contactDamage') * 1.0;
+    // Target telegraph on the ground at the landing point for the flight duration.
+    const target = this.add.circle(tx, ty, blast, 0xff3322, 0.18).setDepth(6);
+    target.setStrokeStyle(2, 0xff4422, 0.6);
+    // The lobbed shell: an enemy-tinted projectile arcing from the enemy to the target.
+    const shell = this.add.circle(e.x, e.y, 8 * RUN_SCALE, 0xff6633).setDepth(15) as any;
+    shell.setStrokeStyle(2, 0x000000, 0.4);
+    const start = { x: e.x, y: e.y };
+    const state = { t: 0 };
+    this.tweens.add({
+      targets: state, t: 1, duration: MORTAR_FLIGHT_MS, ease: 'Linear',
+      onUpdate: () => {
+        if (!shell.active) return;
+        const g = lobGroundPosition(start, { x: tx, y: ty }, state.t);
+        shell.setPosition(g.x, g.y - lobArcHeight(state.t) * RUN_SCALE);
+        const apex = 1 + 0.5 * (lobArcHeight(state.t) / LOB_PEAK_HEIGHT);
+        shell.setRadius(8 * RUN_SCALE * apex);
+      },
+      onComplete: () => {
+        shell.destroy();
+        target.destroy();
+        // Land: ring + blast → player only.
+        const ring = this.add.circle(tx, ty, blast, 0xff5522, 0.4).setDepth(24).setScale(0.15);
+        this.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 260, ease: 'Power2', onComplete: () => ring.destroy() });
+        this.cameras.main.shake(120, 0.005);
+        if (withinRadius(tx, ty, this.player.x, this.player.y, blast)) {
+          this.damagePlayer(blastDamage);
+        }
+      },
+    });
+    return MORTAR_COOLDOWN_MS + MORTAR_FLIGHT_MS;
+  }
+
+  /** spawner: summon a minion near the spawner if under the alive cap. Tracks child uids on the
+   *  spawner data (pruned against the live enemy group each attempt). */
+  private profileSpawner(e: any): number {
+    const spawns = e.getData('spawns') as string | undefined;
+    if (!spawns || !ENEMIES[spawns]) return SPAWNER_COOLDOWN_MS;
+    const liveUids = new Set((this.enemies.getChildren() as any[]).filter((c) => c.active).map((c) => c.getData('uid')));
+    let kids = (e.getData('childUids') as string[] | undefined) ?? [];
+    kids = kids.filter((uid) => liveUids.has(uid)); // prune dead children
+    if (!spawnerMaySummon(kids.length)) { e.setData('childUids', kids); return -1; }
+    const ang = Math.random() * Math.PI * 2, r = 60;
+    const child = this.spawnEnemyAt(ENEMIES[spawns], e.x + Math.cos(ang) * r, e.y + Math.sin(ang) * r);
+    child.setData('asleep', false);
+    this.wakeEnemy(child); // awake + aggroed
+    kids.push(child.getData('uid'));
+    e.setData('childUids', kids);
+    // Brief summon tint on the spawner.
+    e.setTint(0x66ff99);
+    this.time.delayedCall(180, () => { if (e.active) e.clearTint(); });
+    return SPAWNER_COOLDOWN_MS;
+  }
+
+  /** haunt: drop a small damaging patch at the enemy's position while it is moving (it circles the
+   *  player, so the trail forms a damaging ring). Holds the drop while stationary. */
+  private profileHaunt(e: any): number {
+    const v = e.body?.velocity;
+    const moving = v && (Math.abs(v.x) + Math.abs(v.y)) > 1;
+    if (!moving) return -1; // parked — no trail to lay
+    this.spawnEnemyPatch(e.x, e.y, 20 * RUN_SCALE, HAUNT_LINGER_MS, 8);
+    return HAUNT_DROP_MS;
+  }
+
+  /** RC-040: trigger enrage once HP drops below the threshold — +ENRAGE_MULT speed, faster cadence
+   *  (via enrageRateMult read by the fire/profile ticks), red tint. Idempotent (guarded by data). */
+  private maybeEnrage(e: any) {
+    if (e.getData('enraged') || !e.getData('enrage')) return;
+    if (!enrageActive(e.getData('hp'), e.getData('maxHp'))) return;
+    e.setData('enraged', true);
+    e.setData('enrageRateMult', ENRAGE_MULT);
+    e.setData('speed', (e.getData('speed') as number) * ENRAGE_MULT);
+    e.setTint(0xff5544);
+  }
+
+  /** Clear a hit-flash tint, but re-apply the enrage red if the mob is enraged (so the hit-flash
+   *  doesn't wipe the persistent enrage tint). Safe after destroy (guards on active). */
+  private restoreEnemyTint(e: any) {
+    if (!e.active) return;
+    if (e.getData('enraged')) e.setTint(0xff5544);
+    else e.clearTint();
+  }
+  // ======================= end RC-040 enemy attack profiles =======================
 
   private hitPlayerProjectile(bullet: any) {
     if (!bullet.active) return;
@@ -1435,7 +1750,7 @@ export class RunScene extends Phaser.Scene {
     if (armor > 0 && !ignoresArmor) {
       enemy.setData('armor', armor - 1);
       enemy.setTintFill(0x66ccff);
-      this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
+      this.time.delayedCall(60, () => this.restoreEnemyTint(enemy));
       const blk = this.add.text(enemy.x, enemy.y - 8, '⛊', {
         fontSize: '14px', color: '#9fe0ff', stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5).setDepth(30);
@@ -1446,7 +1761,7 @@ export class RunScene extends Phaser.Scene {
 
     // --- Juice: hit-flash ---
     enemy.setTintFill(0xffffff);
-    this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
+    this.time.delayedCall(60, () => this.restoreEnemyTint(enemy));
 
     // --- Juice: floating damage number (RC-031: heavy hits read bigger + gold) ---
     const heavy = damage >= 50;
@@ -1537,6 +1852,9 @@ export class RunScene extends Phaser.Scene {
     } else {
       playSfx('enemy-hit'); // RC-020
       enemy.setData('hp', hp);
+      // RC-040: a non-fatal hit may cross the enrage threshold — trigger it now (the profile tick
+      // also checks, but this makes the tint/speed boost land on the hit that crossed the line).
+      if (enemy.getData('enrage') && !enemy.getData('enraged')) this.maybeEnrage(enemy);
     }
   }
 
