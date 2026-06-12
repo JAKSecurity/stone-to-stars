@@ -233,7 +233,7 @@ export function renderCivScreen(
     if (placed) {
       const def = BUILDINGS[placed.id];
       cell.innerHTML = '';
-      cell.appendChild(spriteCanvas(placed.id, 160));
+      cell.appendChild(spriteCanvas(placed.id, 120));
       const lvl = document.createElement('span');
       lvl.className = 'lvl';
       lvl.textContent = `${def.name} L${placed.level}`;
