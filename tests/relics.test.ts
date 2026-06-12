@@ -2,6 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { RELICS } from '../src/run/relicData';
 import { TECHS } from '../src/tech/techData';
 import { TRADITIONS } from '../src/civics/traditionData';
+import {
+  unlockedRelics, relicsUnlockedByTech, relicForTradition,
+  foodDropChance, foodHeal, rollFoodDrop, rollBonusGem,
+  bloodRushBonus, secondWindRevive, regenBudget, regenTick,
+} from '../src/run/relics';
+import {
+  FOOD_DROP_CHANCE, FOOD_HEAL, FEAST_DROP_MULT, FEAST_HEAL_MULT,
+  BLOOD_RUSH_FIRE_BONUS, PROSPECTOR_CHANCE,
+} from '../src/run/relicData';
 
 describe('relic data', () => {
   it('has exactly the 6 spec relics', () => {
@@ -40,5 +49,89 @@ describe('relic data', () => {
     expect(RELICS.second_wind.unlock).toEqual({ kind: 'tech', techId: 'masonry' });
     expect(RELICS.overcharge.unlock).toEqual({ kind: 'tech', techId: 'electricity' });
     expect(RELICS.harvest_feast.unlock).toEqual({ kind: 'tradition', traditionId: 'vigor', rank: 3 });
+  });
+});
+
+describe('relic unlock resolution', () => {
+  it('tech relics unlock when the tech is researched', () => {
+    expect(unlockedRelics([], {})).toEqual([]);
+    expect(unlockedRelics(['hunting'], {})).toEqual(['blood_rush']);
+    expect(unlockedRelics(['hunting', 'currency'], {}).sort())
+      .toEqual(['blood_rush', 'prospectors_eye']);
+  });
+
+  it('tradition relic unlocks at rank >= threshold', () => {
+    expect(unlockedRelics([], { vigor: 2 })).toEqual([]);
+    expect(unlockedRelics([], { vigor: 3 })).toEqual(['harvest_feast']);
+    expect(unlockedRelics([], { vigor: 5 })).toEqual(['harvest_feast']);
+  });
+
+  it('reverse lookups for civ-screen surfacing', () => {
+    expect(relicsUnlockedByTech('hunting').map((r) => r.id)).toEqual(['blood_rush']);
+    expect(relicsUnlockedByTech('pottery')).toEqual([]);
+    expect(relicForTradition('vigor')?.id).toBe('harvest_feast');
+    expect(relicForTradition('drill')).toBeUndefined();
+  });
+});
+
+describe('food drops (healing layer A)', () => {
+  it('chance and heal: 2%/5HP base, 6%/10HP with harvest_feast', () => {
+    expect(foodDropChance(false)).toBeCloseTo(FOOD_DROP_CHANCE);
+    expect(foodDropChance(true)).toBeCloseTo(FOOD_DROP_CHANCE * FEAST_DROP_MULT);
+    expect(foodHeal(false)).toBe(FOOD_HEAL);
+    expect(foodHeal(true)).toBe(FOOD_HEAL * FEAST_HEAL_MULT);
+  });
+
+  it('rollFoodDrop is deterministic against the rng value', () => {
+    expect(rollFoodDrop(() => 0.019, false)).toBe(true);
+    expect(rollFoodDrop(() => 0.021, false)).toBe(false);
+    expect(rollFoodDrop(() => 0.059, true)).toBe(true);
+    expect(rollFoodDrop(() => 0.061, true)).toBe(false);
+  });
+});
+
+describe('relic mechanics helpers', () => {
+  it('rollBonusGem only procs with the relic and under the chance', () => {
+    expect(rollBonusGem(() => 0.05, true)).toBe(true);
+    expect(rollBonusGem(() => PROSPECTOR_CHANCE + 0.01, true)).toBe(false);
+    expect(rollBonusGem(() => 0.0, false)).toBe(false);
+  });
+
+  it('bloodRushBonus is the flat bonus while now < until, else 0', () => {
+    expect(bloodRushBonus(1000, 2000)).toBeCloseTo(BLOOD_RUSH_FIRE_BONUS);
+    expect(bloodRushBonus(2000, 2000)).toBe(0);
+    expect(bloodRushBonus(0, -Infinity)).toBe(0);
+  });
+
+  it('secondWindRevive returns 30% of maxHp, floored at 1', () => {
+    expect(secondWindRevive(100)).toBe(30);
+    expect(secondWindRevive(1)).toBe(1);
+  });
+});
+
+describe('regen lifetime budget (healing layer B)', () => {
+  it('budget is 25% of maxHp', () => {
+    expect(regenBudget(100)).toBe(25);
+    expect(regenBudget(200)).toBe(50);
+  });
+
+  it('regenTick heals rate*dt while under budget and below maxHp', () => {
+    expect(regenTick(0.6, 1000, 0, 100, 50)).toBeCloseTo(0.6);
+  });
+
+  it('regenTick clamps to the remaining budget, then shuts off', () => {
+    expect(regenTick(0.6, 1000, 24.7, 100, 50)).toBeCloseTo(0.3);
+    expect(regenTick(0.6, 1000, 25, 100, 50)).toBe(0);
+  });
+
+  it('regenTick never overheals past maxHp and is 0 at full HP or zero rate', () => {
+    expect(regenTick(0.6, 1000, 0, 100, 99.8)).toBeCloseTo(0.2);
+    expect(regenTick(0.6, 1000, 0, 100, 100)).toBe(0);
+    expect(regenTick(0, 1000, 0, 100, 50)).toBe(0);
+  });
+
+  it('budget tracks CURRENT maxHp: raising maxHp re-opens a spent budget', () => {
+    expect(regenTick(0.6, 1000, 25, 100, 50)).toBe(0);
+    expect(regenTick(0.6, 1000, 25, 130, 50)).toBeCloseTo(0.6);
   });
 });
