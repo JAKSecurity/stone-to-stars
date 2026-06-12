@@ -26,7 +26,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
     archetype: 'boomerang', onHit: { pierce: 5 }, cooldownMs: 700, damage: 16, count: 1, spread: 0, speed: 300,
     maxLevel: ml.iron, levelScaling: { damage: 5 } },
   flame_jet:    { id: 'flame_jet', name: 'Flame Jet', tier: 'iron', projectileSprite: 'shot_flame',
-    archetype: 'trail', cooldownMs: 450, damage: 9, count: 1, spread: 0, speed: 0,
+    archetype: 'spread', cooldownMs: 450, damage: 10, count: 3, spread: 0.5, speed: 340,
     maxLevel: ml.iron, levelScaling: { damage: 4 } },
 
   // --- Classical (maxLevel 3) ---

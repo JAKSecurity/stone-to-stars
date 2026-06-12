@@ -71,6 +71,9 @@ Four concrete playtest tweaks folded into this balance ticket and shipped on the
 Note: a separate, bigger balance problem — **science-token starvation** (playtest #12) — is tracked
 as its own ticket **RC-033** (needs faucet-vs-sink measurement, not a quick tweak).
 
+## 2026-06-11 playtest notes
+- flame_jet reverted trail→spread (3-fireball cone) — trail cannot be a STARTING weapon (standoff enemies unreachable); trail verb lives on flamethrower (industrial) where it's drafted, not forced.
+
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §6
 - KNOWN_ISSUES.md #2, #3, #4. Depends on RC-008 (content present). Decomposed from RC-005.
