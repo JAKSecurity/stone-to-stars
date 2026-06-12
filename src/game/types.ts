@@ -196,6 +196,8 @@ export interface RunModifiers {
                             // optional so callers building bare modifiers default to 'club' via initialWeapons).
   actives: string[];    // tech-unlocked active-item ids
   activeItem?: string;  // the one chosen pre-run (validated against `actives`)
+  relics?: string[];    // RC-025: relic ids the civ has unlocked (optional — bare-modifier
+                        // callers and old saves default to []; RunScene reads `?? []`)
 }
 
 export interface RunResult {

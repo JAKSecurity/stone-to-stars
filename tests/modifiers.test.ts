@@ -15,6 +15,7 @@ describe('computeRunModifiers', () => {
       pickupRadius: 60, moveSpeedMult: 1.0, fireRateMult: 1.0,
       draftRerolls: 0, startWeaponLevel: 1, startWeapon: 'club',
       actives: [], activeItem: undefined,
+      relics: [],
     });
   });
 
@@ -65,5 +66,21 @@ describe('computeRunModifiers', () => {
     const mods = computeRunModifiers(civ);
     expect(mods.actives).toEqual(expect.arrayContaining(['net', 'poison_gas']));
     expect(mods.activeItem).toBe('poison_gas');
+  });
+});
+
+describe('RC-025 relic unlocks flow into RunModifiers', () => {
+  it('researched gate-techs surface their relics', () => {
+    const civ = { ...newCivState(), researched: ['hunting', 'currency'] };
+    const mods = computeRunModifiers(civ);
+    expect(mods.relics?.sort()).toEqual(['blood_rush', 'prospectors_eye']);
+  });
+
+  it('vigor rank 2 yields no relics; rank 3 surfaces harvest_feast', () => {
+    const civRank2 = { ...newCivState(), traditions: { vigor: 2 } };
+    expect(computeRunModifiers(civRank2).relics).toEqual([]);
+
+    const civRank3 = { ...newCivState(), traditions: { vigor: 3 } };
+    expect(computeRunModifiers(civRank3).relics).toEqual(['harvest_feast']);
   });
 });
