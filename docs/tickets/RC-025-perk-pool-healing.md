@@ -1,5 +1,5 @@
 # RC-025: Perk pool expansion + healing pickups
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-09
 
 ## Summary
