@@ -44,5 +44,10 @@ export function applyRunResult(civ: CivState, result: RunResult, biomeId?: strin
     const haul = bundleTotal(result.collected);
     if (haul > (biomeBests[biomeId] ?? 0)) biomeBests[biomeId] = haul;
   }
-  return { ...civ, banked, lifetimeResources: lifetime, biomeBests, runs: civ.runs + 1 };
+  return {
+    ...civ, banked, lifetimeResources: lifetime, biomeBests, runs: civ.runs + 1,
+    // RC-042: a finale victory sets the persistent flag; it is never unset (spread keeps it on
+    // every later run — defeats and ordinary clears leave it alone).
+    ...(result.finaleVictory ? { lastStandWon: true } : {}),
+  };
 }

@@ -122,6 +122,14 @@ export function renderCivScreen(
   const age = getAge(civ);
   ageSpan.innerHTML = `Age: <strong>${age.charAt(0).toUpperCase()}${age.slice(1)}</strong>`;
   bar.appendChild(ageSpan);
+  // RC-042: a persistent laurel in the header strip once the Last Stand has been won.
+  if (civ.lastStandWon) {
+    const laurel = document.createElement('span');
+    laurel.className = 'laststand-laurel';
+    laurel.title = 'The Last Stand — victory achieved';
+    laurel.textContent = '🏆';
+    bar.appendChild(laurel);
+  }
   wrap.appendChild(bar);
 
   // Record strip (C5): expeditions run, lifetime resources earned, and age progress out of the ladder.

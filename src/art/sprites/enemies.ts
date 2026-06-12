@@ -1053,4 +1053,133 @@ export const JUGGERNAUT: SpriteDef = {
   ],
 };
 
-export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT, RIVETER, STEAM_TANK, DRONE, MECHA, RIFLEMAN, HALFTRACK, GUNSHIP, JUGGERNAUT];
+// RC-042 — The Last Stand invaders: classic space-invader silhouettes (blocky, symmetric,
+// rect-built for an 8-bit read) in three escalating tiers, plus a wide saucer mothership.
+// Each tier gets its own signature color so the formation rows read at a glance:
+// drone = alien green, soldier = visor cyan, elite = hot plasma orange.
+
+// The crab-type swarm body. Canvas 32x24. Alien-green blocky mass, two eye slits,
+// raised antennae and splayed side claws — the iconic invader.
+export const INVADER_DRONE: SpriteDef = {
+  id: 'invader_drone',
+  w: 32,
+  h: 24,
+  prims: [
+    // antennae
+    { kind: 'rect', x: 7, y: 0, w: 3, h: 6, rx: 1, color: PAL.radio, role: 'antenna' },
+    { kind: 'rect', x: 22, y: 0, w: 3, h: 6, rx: 1, color: PAL.radio, role: 'antenna' },
+    // head block
+    { kind: 'rect', x: 4, y: 5, w: 24, h: 7, rx: 1, color: PAL.radio, role: 'head' },
+    // wide body band
+    { kind: 'rect', x: 0, y: 11, w: 32, h: 6, rx: 1, color: PAL.radio, role: 'body' },
+    // under-body shade
+    { kind: 'rect', x: 4, y: 17, w: 24, h: 3, rx: 1, color: '#3f9a3f', role: 'belly' },
+    // eye slits — dark, square
+    { kind: 'rect', x: 9, y: 7, w: 4, h: 3, rx: 0, color: '#0d1117', role: 'eye' },
+    { kind: 'rect', x: 19, y: 7, w: 4, h: 3, rx: 0, color: '#0d1117', role: 'eye' },
+    // splayed side claws
+    { kind: 'poly', points: [[0, 17], [5, 17], [3, 23], [0, 21]], color: '#3f9a3f', role: 'claw' },
+    { kind: 'poly', points: [[32, 17], [27, 17], [29, 23], [32, 21]], color: '#3f9a3f', role: 'claw' },
+    // legs
+    { kind: 'rect', x: 10, y: 20, w: 4, h: 4, rx: 0, color: '#3f9a3f', role: 'leg' },
+    { kind: 'rect', x: 18, y: 20, w: 4, h: 4, rx: 0, color: '#3f9a3f', role: 'leg' },
+  ],
+};
+
+// The squid-type beam gunner. Canvas 34x26. Visor-cyan dome over a body band, dangling
+// tentacles, and a glowing laser emitter at the skirt — the plasma-lance silhouette.
+export const INVADER_SOLDIER: SpriteDef = {
+  id: 'invader_soldier',
+  w: 34,
+  h: 26,
+  prims: [
+    // dome head
+    { kind: 'poly', points: [[5, 10], [11, 2], [23, 2], [29, 10]], color: PAL.visor, role: 'dome' },
+    // dome glow stripe
+    { kind: 'rect', x: 12, y: 4, w: 10, h: 3, rx: 1, color: PAL.laser, role: 'dome-glow' },
+    // body band
+    { kind: 'rect', x: 3, y: 10, w: 28, h: 7, rx: 1, color: PAL.visor, role: 'body' },
+    // eye slits
+    { kind: 'rect', x: 9, y: 12, w: 4, h: 3, rx: 0, color: '#0d1117', role: 'eye' },
+    { kind: 'rect', x: 21, y: 12, w: 4, h: 3, rx: 0, color: '#0d1117', role: 'eye' },
+    // skirt shade
+    { kind: 'rect', x: 5, y: 17, w: 24, h: 3, rx: 1, color: '#1f8cb0', role: 'skirt' },
+    // tentacles — alternating lengths
+    { kind: 'rect', x: 5, y: 20, w: 3, h: 6, rx: 1, color: '#1f8cb0', role: 'tentacle' },
+    { kind: 'rect', x: 12, y: 20, w: 3, h: 4, rx: 1, color: '#1f8cb0', role: 'tentacle' },
+    { kind: 'rect', x: 19, y: 20, w: 3, h: 6, rx: 1, color: '#1f8cb0', role: 'tentacle' },
+    { kind: 'rect', x: 26, y: 20, w: 3, h: 4, rx: 1, color: '#1f8cb0', role: 'tentacle' },
+    // beam emitter under the skirt
+    { kind: 'circle', cx: 17, cy: 22, r: 2, color: PAL.laser, role: 'emitter' },
+    { kind: 'circle', cx: 17, cy: 22, r: 1, color: '#ffffff', role: 'emitter-glint' },
+  ],
+};
+
+// The octopus-type mortar bombardier. Canvas 38x30. Hot plasma-orange mass with a spiked
+// crest, ember pupils, and a glowing belly mortar pod — the heavy of the formation rows.
+export const INVADER_ELITE: SpriteDef = {
+  id: 'invader_elite',
+  w: 38,
+  h: 30,
+  prims: [
+    // crest spikes
+    { kind: 'poly', points: [[8, 6], [11, 0], [14, 6]], color: PAL.gunfire, role: 'crest' },
+    { kind: 'poly', points: [[16, 5], [19, 0], [22, 5]], color: PAL.gunfire, role: 'crest' },
+    { kind: 'poly', points: [[24, 6], [27, 0], [30, 6]], color: PAL.gunfire, role: 'crest' },
+    // head block
+    { kind: 'rect', x: 5, y: 5, w: 28, h: 9, rx: 1, color: PAL.gunfire, role: 'head' },
+    // wide body band
+    { kind: 'rect', x: 2, y: 14, w: 34, h: 7, rx: 1, color: PAL.gunfire, role: 'body' },
+    // eye slits with ember pupils
+    { kind: 'rect', x: 11, y: 8, w: 5, h: 4, rx: 0, color: '#0d1117', role: 'eye' },
+    { kind: 'rect', x: 22, y: 8, w: 5, h: 4, rx: 0, color: '#0d1117', role: 'eye' },
+    { kind: 'circle', cx: 13, cy: 10, r: 1, color: PAL.ember, role: 'pupil' },
+    { kind: 'circle', cx: 24, cy: 10, r: 1, color: PAL.ember, role: 'pupil' },
+    // belly mortar pod — glowing plasma launcher
+    { kind: 'circle', cx: 19, cy: 17, r: 3, color: '#b34a14', role: 'pod-housing' },
+    { kind: 'circle', cx: 19, cy: 17, r: 2, color: PAL.molten, role: 'pod-glow' },
+    { kind: 'circle', cx: 19, cy: 17, r: 1, color: '#ffffff', role: 'pod-core' },
+    // skirt shade
+    { kind: 'rect', x: 5, y: 21, w: 28, h: 3, rx: 1, color: '#b34a14', role: 'skirt' },
+    // tentacles — outer pair longer
+    { kind: 'rect', x: 4, y: 24, w: 4, h: 6, rx: 1, color: '#b34a14', role: 'tentacle' },
+    { kind: 'rect', x: 12, y: 24, w: 4, h: 5, rx: 1, color: '#b34a14', role: 'tentacle' },
+    { kind: 'rect', x: 22, y: 24, w: 4, h: 5, rx: 1, color: '#b34a14', role: 'tentacle' },
+    { kind: 'rect', x: 30, y: 24, w: 4, h: 6, rx: 1, color: '#b34a14', role: 'tentacle' },
+  ],
+};
+
+// The screen-wide saucer boss. Canvas 120x48. A broad lens-shaped hull with a suit-white
+// command dome, a lit rim band, alternating running lights, underside fins, and a molten
+// central weapon emitter — unmistakably the finale's mothership.
+export const INVADER_MOTHERSHIP: SpriteDef = {
+  id: 'invader_mothership',
+  w: 120,
+  h: 48,
+  prims: [
+    // command dome
+    { kind: 'poly', points: [[42, 16], [52, 4], [68, 4], [78, 16]], color: PAL.suitShade, role: 'dome' },
+    // dome canopy — visor cyan
+    { kind: 'rect', x: 54, y: 7, w: 12, h: 6, rx: 2, color: PAL.visor, role: 'canopy' },
+    // main hull — wide lens
+    { kind: 'poly', points: [[0, 26], [20, 16], [100, 16], [120, 26], [100, 36], [20, 36]], color: PAL.ironDark, role: 'hull' },
+    // rim band highlight
+    { kind: 'rect', x: 14, y: 20, w: 92, h: 5, rx: 2, color: PAL.iron, role: 'rim' },
+    // running lights — alternating laser/ember
+    { kind: 'circle', cx: 20, cy: 30, r: 3, color: PAL.laser, role: 'light' },
+    { kind: 'circle', cx: 36, cy: 30, r: 3, color: PAL.ember, role: 'light' },
+    { kind: 'circle', cx: 52, cy: 30, r: 3, color: PAL.laser, role: 'light' },
+    { kind: 'circle', cx: 68, cy: 30, r: 3, color: PAL.ember, role: 'light' },
+    { kind: 'circle', cx: 84, cy: 30, r: 3, color: PAL.laser, role: 'light' },
+    { kind: 'circle', cx: 100, cy: 30, r: 3, color: PAL.ember, role: 'light' },
+    // underside fins
+    { kind: 'poly', points: [[28, 36], [36, 36], [32, 44]], color: PAL.ironDark, role: 'fin' },
+    { kind: 'poly', points: [[84, 36], [92, 36], [88, 44]], color: PAL.ironDark, role: 'fin' },
+    // central weapon emitter — molten plasma glow
+    { kind: 'circle', cx: 60, cy: 37, r: 6, color: '#0d1117', role: 'emitter-housing' },
+    { kind: 'circle', cx: 60, cy: 37, r: 4, color: PAL.molten, role: 'emitter-glow' },
+    { kind: 'circle', cx: 60, cy: 37, r: 2, color: '#ffffff', role: 'emitter-core' },
+  ],
+};
+
+export const ENEMIES: SpriteDef[] = [BEAST, SCHOLAR, CAVE_DWELLER, ROCK_GOLEM, AUTOMATON, IRON_GOLEM, HARPY, HOPLITE, CENTAUR, CYCLOPS, SKELETON, KNIGHT, GARGOYLE, DRAGON, MUSKETEER, PIKEMAN, GRENADIER, DREADNOUGHT, RIVETER, STEAM_TANK, DRONE, MECHA, RIFLEMAN, HALFTRACK, GUNSHIP, JUGGERNAUT, INVADER_DRONE, INVADER_SOLDIER, INVADER_ELITE, INVADER_MOTHERSHIP];

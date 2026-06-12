@@ -90,4 +90,30 @@ export const ENEMIES: Record<string, EnemyDef> = {
     displaySize: { w: 34, h: 34 },
     behavior: 'flee', // RC-026: runs from the player; jackpot on catch (poi.ts pays, not `drop`)
   },
+  // RC-042 — The Last Stand invaders. Space-tier stats scaled above the modern rank-and-file;
+  // spawned ONLY by the finale's formation controller (last_stand is the sole biome listing one,
+  // and availableExpeditions skips finale biomes — no leak by construction). drone: pure contact
+  // swarm body (no attack). soldier: beam profile (a locked plasma lance). elite: mortar profile
+  // (lobbed plasma bombardment). mothership: profile-less here — RunScene drives its per-phase
+  // arsenal (Dispatch 2); its boss HP = tier-8 boss base × invasion.MOTHERSHIP_HP_MULT.
+  invader_drone: {
+    id: 'invader_drone', name: 'Invader Drone', sprite: 'invader_drone',
+    baseHp: 110, speed: 95, contactDamage: 18, drop: 'science', xp: 10,
+    displaySize: { w: 32, h: 24 },
+  },
+  invader_soldier: {
+    id: 'invader_soldier', name: 'Invader Soldier', sprite: 'invader_soldier',
+    baseHp: 170, speed: 80, contactDamage: 24, drop: 'industry', xp: 15,
+    displaySize: { w: 34, h: 26 }, attackProfile: 'beam',
+  },
+  invader_elite: {
+    id: 'invader_elite', name: 'Invader Elite', sprite: 'invader_elite',
+    baseHp: 320, speed: 70, contactDamage: 30, drop: 'culture', xp: 24,
+    displaySize: { w: 38, h: 30 }, armor: 1, attackProfile: 'mortar',
+  },
+  invader_mothership: {
+    id: 'invader_mothership', name: 'Mothership', sprite: 'invader_mothership',
+    baseHp: 700, speed: 30, contactDamage: 40, drop: 'science', xp: 250,
+    displaySize: { w: 120, h: 48 }, armor: 2,
+  },
 };

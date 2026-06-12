@@ -93,3 +93,29 @@ describe('civState', () => {
     expect(after.banked.culture).toBe(before + Math.round(3 * 20 * incomeMult(4))); // × YIELD_SCALE × incomeMult(4)
   });
 });
+
+describe('RC-042 — lastStandWon flag', () => {
+  const result = (extra: object = {}) => ({
+    collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
+    survivedMs: 1, died: false, tier: 8, ...extra,
+  });
+
+  it('a fresh civ has no lastStandWon, and ordinary runs never set it', () => {
+    let civ = newCivState();
+    expect(civ.lastStandWon).toBeUndefined();
+    civ = applyRunResult(civ, result());
+    expect(civ.lastStandWon).toBeUndefined();
+  });
+
+  it('applyRunResult sets lastStandWon on a finaleVictory result', () => {
+    const civ = applyRunResult(newCivState(), result({ finaleVictory: true }));
+    expect(civ.lastStandWon).toBe(true);
+  });
+
+  it('lastStandWon is never unset by later non-victory runs (set-never-unset)', () => {
+    let civ = applyRunResult(newCivState(), result({ finaleVictory: true }));
+    civ = applyRunResult(civ, result({ died: true }));      // a later death
+    civ = applyRunResult(civ, result());                    // a later ordinary clear
+    expect(civ.lastStandWon).toBe(true);
+  });
+});

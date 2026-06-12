@@ -16,7 +16,9 @@ function toughest(table: Record<string, number>, enemies: Record<string, EnemyDe
 export function nextAgeBiomeId(biome: BiomeDef, biomes: Record<string, BiomeDef>): string | null {
   const nextAge = AGE_ORDER[AGE_ORDER.indexOf(biome.minAge) + 1];
   if (!nextAge) return null;
-  const next = Object.values(biomes).find((b) => b.minAge === nextAge);
+  // RC-042: finale biomes never seed regular runs — the Last Stand invaders stay out of the
+  // late-run escalation mix by construction (modern runs keep no next-age seed, as before RC-042).
+  const next = Object.values(biomes).find((b) => b.minAge === nextAge && !b.finale);
   return next ? next.id : null;
 }
 
