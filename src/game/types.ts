@@ -111,6 +111,16 @@ export interface EnemyDef {
   armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
                               // onHit.ignoreArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
   attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
+  // RC-040 — telegraphed attack profile. When present it REPLACES the basic `attack` (the def drops
+  // `attack`); the scene dispatches per-profile machinery (constants + geometry in src/run/enemyAttacks.ts).
+  // Low-tier enemies carry none ⇒ basic `attack` (or nothing). Profiles: volley (fast weak shots),
+  // flamejet (burning cone patches), slash (melee arc sweep), beam (locked laser line), mortar (lobbed
+  // AoE shell), spawner (summons `spawns` minions, capped), haunt (damaging trail along its own path).
+  attackProfile?: 'volley' | 'flamejet' | 'slash' | 'beam' | 'mortar' | 'spawner' | 'haunt';
+  // RC-040 — below ENRAGE_THRESHOLD HP: +60% speed and fire rate, red tint. Orthogonal to attackProfile.
+  enrage?: boolean;
+  // RC-040 — 'spawner' profile only: enemy id the spawner summons (e.g. mecha → 'drone').
+  spawns?: string;
   // RC-018 — movement archetype, orthogonal to `attack` (firing). Absent ⇒ 'chase' (default).
   // 'charger' telegraphs then dashes; 'circler' orbits/strafes; 'standoff' holds firing distance.
   // 'flee' runs away from the player (RC-026 treasure courier).
