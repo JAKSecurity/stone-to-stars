@@ -12,6 +12,7 @@ import { resolveShape } from '../run/archetypes';
 import { VFX_KITS, VfxKit, kitForHybrid } from '../run/vfxKits';
 import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
 import { PASSIVES } from '../run/passiveData';
+import { RELICS } from '../run/relicData';
 import { ACTIVES } from '../run/activeData';
 import { BASE_ACTIVE_CHARGES } from '../run/actives';
 import { WEAPONS } from '../run/weaponData';
@@ -2092,6 +2093,7 @@ export class RunScene extends Phaser.Scene {
         const p = this.passives.find((x) => x.id === o.passiveId)!;
         return `${passiveDefOf(p).icon} ${passiveDefOf(p).name} (Lv ${p.level}→${p.level + 1})`;
       }
+      case 'newRelic': return `${RELICS[o.relicId].icon} RELIC: ${RELICS[o.relicId].name}`;
     }
   }
 
@@ -2110,6 +2112,7 @@ export class RunScene extends Phaser.Scene {
       case 'levelWeapon': return weaponLevelGainText(defOf(this.equipped.find((w) => w.id === o.weaponId)!));
       case 'newPassive': return PASSIVES[o.passiveId].desc;
       case 'levelPassive': return passiveDefOf(this.passives.find((p) => p.id === o.passiveId)!).desc;
+      case 'newRelic': return RELICS[o.relicId].desc;
     }
   }
 
