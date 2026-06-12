@@ -4,6 +4,7 @@ import { WEAPONS } from './weaponData';
 import { canFuse } from './fusion';
 import { MAX_PASSIVE_SLOTS, passiveDefOf, fusePassives } from './passives';
 import { PASSIVES } from './passiveData';
+import { RELICS } from './relicData';
 
 // RC-031 draft v2 (spec §4): fusion offers lead; everything else is a weighted sidegrade mix.
 // No strictly-weaker offers by construction — the kit is player-chosen and same-age weapons
@@ -15,7 +16,8 @@ export type DraftOption =
   | { kind: 'newWeapon'; weaponId: string; replaceId?: string }
   | { kind: 'levelWeapon'; weaponId: string }
   | { kind: 'newPassive'; passiveId: string }
-  | { kind: 'levelPassive'; passiveId: string };
+  | { kind: 'levelPassive'; passiveId: string }
+  | { kind: 'newRelic'; relicId: string };
 
 export interface DraftContext {
   equipped: EquippedWeapon[];
@@ -23,11 +25,13 @@ export interface DraftContext {
   kitPool: string[];   // Expedition Kit weapon ids (RunModifiers.weapons)
   catalysts: number;   // held fusion catalysts (mini-boss drops)
   defs?: Record<string, WeaponDef>; // injectable for tests
+  relicPool?: string[]; // RC-025: relic ids the civ has unlocked (mods.relics)
+  relic?: string | null;// RC-025: relic currently held this run (slot is single)
 }
 
 const ROLL_WEIGHT: Record<DraftOption['kind'], number> = {
   fuseWeapons: 0, fusePassives: 0, // pinned, never rolled
-  levelWeapon: 3, newWeapon: 2, newPassive: 2, levelPassive: 2,
+  levelWeapon: 3, newWeapon: 2, newPassive: 2, levelPassive: 2, newRelic: 1,
 };
 
 /** All currently-valid options. Pinned fusion offers (if any) come first, in order. */
@@ -68,6 +72,12 @@ export function draftOptions(ctx: DraftContext): DraftOption[] {
   }
   for (const p of ctx.passives) {
     if (p.level < passiveDefOf(p).maxLevel) opts.push({ kind: 'levelPassive', passiveId: p.id });
+  }
+  // RC-025 relics: offered only while the (single) relic slot is empty.
+  if (!ctx.relic) {
+    for (const id of ctx.relicPool ?? []) {
+      if (RELICS[id]) opts.push({ kind: 'newRelic', relicId: id });
+    }
   }
   return opts;
 }

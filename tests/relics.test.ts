@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { RELICS } from '../src/run/relicData';
+import { draftOptions, rollDraft, DraftContext } from '../src/run/draft';
 import { TECHS } from '../src/tech/techData';
 import { TRADITIONS } from '../src/civics/traditionData';
 import {
@@ -133,5 +134,41 @@ describe('regen lifetime budget (healing layer B)', () => {
   it('budget tracks CURRENT maxHp: raising maxHp re-opens a spent budget', () => {
     expect(regenTick(0.6, 1000, 25, 100, 50)).toBe(0);
     expect(regenTick(0.6, 1000, 25, 130, 50)).toBeCloseTo(0.6);
+  });
+});
+
+describe('relic draft cards', () => {
+  const baseCtx: DraftContext = {
+    equipped: [{ id: 'club', level: 1 }], passives: [], kitPool: ['club'], catalysts: 0,
+  };
+
+  it('unlocked relics are offered while the relic slot is empty', () => {
+    const opts = draftOptions({ ...baseCtx, relicPool: ['blood_rush', 'second_wind'], relic: null });
+    const relicOpts = opts.filter((o) => o.kind === 'newRelic');
+    expect(relicOpts).toEqual([
+      { kind: 'newRelic', relicId: 'blood_rush' },
+      { kind: 'newRelic', relicId: 'second_wind' },
+    ]);
+  });
+
+  it('no relic cards once a relic is held, with an empty pool, or for unknown ids', () => {
+    expect(draftOptions({ ...baseCtx, relicPool: ['blood_rush'], relic: 'second_wind' })
+      .filter((o) => o.kind === 'newRelic')).toEqual([]);
+    expect(draftOptions({ ...baseCtx, relicPool: [], relic: null })
+      .filter((o) => o.kind === 'newRelic')).toEqual([]);
+    expect(draftOptions({ ...baseCtx, relicPool: ['nonsense'], relic: null })
+      .filter((o) => o.kind === 'newRelic')).toEqual([]);
+    // omitted fields (old callers) behave like empty pool
+    expect(draftOptions(baseCtx).filter((o) => o.kind === 'newRelic')).toEqual([]);
+  });
+
+  it('rollDraft can yield a relic card (weight 1, never pinned)', () => {
+    // with one relic option in a tiny pool, sweep rng values and assert it appears at least once.
+    const ctx = { ...baseCtx, kitPool: [], relicPool: ['blood_rush'], relic: null };
+    const kinds = new Set<string>();
+    for (let r = 0.05; r < 1; r += 0.1) {
+      for (const o of rollDraft(() => r, 3, ctx)) kinds.add(o.kind);
+    }
+    expect(kinds.has('newRelic')).toBe(true);
   });
 });
