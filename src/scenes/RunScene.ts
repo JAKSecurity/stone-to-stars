@@ -12,7 +12,10 @@ import { resolveShape } from '../run/archetypes';
 import { VFX_KITS, VfxKit, kitForHybrid } from '../run/vfxKits';
 import { addPassive, levelPassive, fusePassives, passiveDefOf, recomputeStats } from '../run/passives';
 import { PASSIVES } from '../run/passiveData';
-import { RELICS } from '../run/relicData';
+import { RELICS, BLOOD_RUSH_DURATION_MS, BRAMBLE_DAMAGE, OVERCHARGE_PERIOD_MS } from '../run/relicData';
+import {
+  rollFoodDrop, rollBonusGem, foodHeal, bloodRushBonus, secondWindRevive, regenTick,
+} from '../run/relics';
 import { ACTIVES } from '../run/activeData';
 import { BASE_ACTIVE_CHARGES } from '../run/actives';
 import { WEAPONS } from '../run/weaponData';
@@ -238,9 +241,6 @@ export class RunScene extends Phaser.Scene {
     this.bloodRushUntil = -Infinity;
     this.overchargeMs = 0;
     this.regenHealed = 0;
-    // RC-025 TEMP: these are consumed by the relic-mechanics task (Task 8); this one-line read
-    // silences noUnusedLocals until then. Task 8 deletes this line.
-    void [this.secondWindUsed, this.bloodRushUntil, this.overchargeMs, this.regenHealed, this.hasRelic];
     this.catalysts = 0;
     this.catalystTokens = [];
     this.chargesSpent = 0;
@@ -697,7 +697,8 @@ export class RunScene extends Phaser.Scene {
       if (this.weaponCooldowns[w.id] <= 0) {
         const shot = weaponShot(defOf(w), w.level, this.stats.damageMult);
         this.fireWeapon(shot, w.id);
-        this.weaponCooldowns[w.id] = shot.cooldownMs / this.stats.fireRateMult;
+        this.weaponCooldowns[w.id] =
+          shot.cooldownMs / (this.stats.fireRateMult + bloodRushBonus(this.elapsed, this.bloodRushUntil));
       }
     }
 
@@ -816,9 +817,24 @@ export class RunScene extends Phaser.Scene {
       });
     }
 
-    // RC-031 passives: regen HP over time (capped at maxHp).
-    if (this.stats.regenHps > 0 && this.stats.hp < this.stats.maxHp) {
-      this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + this.stats.regenHps * (dt / 1000));
+    // RC-031 passives regen, now drawing from the RC-025 lifetime budget (25% of CURRENT maxHp).
+    const regenned = regenTick(this.stats.regenHps, dt, this.regenHealed, this.stats.maxHp, this.stats.hp);
+    if (regenned > 0) {
+      this.stats.hp += regenned;
+      this.regenHealed += regenned;
+    }
+
+    // RC-025 Overcharge: refund one SPENT active charge per period (never exceeds the recompute max,
+    // because consumption is tracked via chargesSpent — see refreshStatsFromPassives).
+    if (this.hasRelic('overcharge')) {
+      this.overchargeMs += dt;
+      if (this.overchargeMs >= OVERCHARGE_PERIOD_MS) {
+        this.overchargeMs -= OVERCHARGE_PERIOD_MS;
+        if (this.chargesSpent > 0) {
+          this.chargesSpent -= 1;
+          this.stats.activeCharges += 1;
+        }
+      }
     }
 
     this.hud.setText(
@@ -871,6 +887,12 @@ export class RunScene extends Phaser.Scene {
       // RC-022 B5: a top-tier gem's glow rides along as it's magnetted in.
       const glow = g.getData('glow');
       if (glow?.active) glow.setPosition(g.x, g.y);
+    });
+    // RC-025: food pickups magnet exactly like gems.
+    (this.foods.getChildren() as any[]).forEach((f) => {
+      const d = Phaser.Math.Distance.Between(f.x, f.y, this.player.x, this.player.y);
+      if (d < this.stats.pickupRadius * RUN_SCALE) this.physics.moveToObject(f, this.player, speed * RUN_SCALE);
+      else f.body.setVelocity(0, 0);
     });
   }
 
@@ -1397,16 +1419,37 @@ export class RunScene extends Phaser.Scene {
     return e.x >= v.x + 24 && e.x <= v.right - 24 && e.y >= v.y + 24 && e.y <= v.bottom - 24;
   }
 
+  /** RC-025 Second Wind: once per run, a lethal hit leaves the player at 30% maxHp instead.
+   *  Returns true when it fired (caller skips finish). */
+  private trySecondWind(): boolean {
+    if (!this.hasRelic('second_wind') || this.secondWindUsed || this.finished) return false;
+    this.secondWindUsed = true;
+    this.stats.hp = secondWindRevive(this.stats.maxHp);
+    // Unmistakable feedback: white flash + banner, mirroring celebrateFusion's screen-fixed pattern.
+    this.cameras.main.flash(420, 255, 255, 255);
+    const banner = this.add.text(this.scale.width / 2, this.scale.height * 0.3,
+      `🕊️ Second Wind`, { fontSize: '40px', color: '#eef6ff', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 },
+    ).setOrigin(0.5).setDepth(60).setScrollFactor(0).setScale(0.3).setAlpha(0);
+    this.tweens.add({ targets: banner, scale: 1, alpha: 1, duration: 320, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: banner, alpha: 0, delay: 1500, duration: 600, onComplete: () => banner.destroy() });
+    return true;
+  }
+
   /** Apply `amount` HP damage to the player with the standard hit feedback (flash + shake + death
    *  check). Shared by every player-damaging enemy attack (slash/beam/mortar/enemy patches). */
-  private damagePlayer(amount: number) {
+  private damagePlayer(amount: number, attacker?: any) {
     if (amount <= 0 || this.finished || this.ceremony) return;
     this.stats.hp -= amount;
     playSfx('player-hit');
     this.cameras.main.flash(90, 130, 0, 0);
     this.player.setTintFill(0xff3333);
     this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
-    if (this.stats.hp <= 0) this.finish(true);
+    if (this.stats.hp <= 0 && !this.trySecondWind()) this.finish(true);
+    // RC-025 Bramble Mail: a surviving melee attacker takes thorn damage (after the death check so
+    // a thorn-kill's applyDamageToEnemy never runs on a finished scene's freed groups).
+    if (this.hasRelic('bramble_mail') && !this.finished && attacker?.active) {
+      this.applyDamageToEnemy(attacker, BRAMBLE_DAMAGE);
+    }
   }
 
   /** Spawn a lingering enemy ground hazard at (x,y): a hostile-tinted circle that ticks the PLAYER
@@ -1525,7 +1568,7 @@ export class RunScene extends Phaser.Scene {
       g.slice(e.x, e.y, range, facing - SLASH_ARC_RAD / 2, facing + SLASH_ARC_RAD / 2, false);
       g.fillPath();
       if (arcContains(e.x, e.y, facing, range, SLASH_ARC_RAD, this.player.x, this.player.y)) {
-        this.damagePlayer(e.getData('contactDamage') * 1.2);
+        this.damagePlayer(e.getData('contactDamage') * 1.2, e); // melee — Bramble Mail retaliates
       }
       this.tweens.add({ targets: g, alpha: 0, duration: 160, onComplete: () => g.destroy() });
     });
@@ -1676,7 +1719,7 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.flash(90, 130, 0, 0);
     this.player.setTintFill(0xff3333);
     this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
-    if (this.stats.hp <= 0) this.finish(true);
+    if (this.stats.hp <= 0 && !this.trySecondWind()) this.finish(true);
   }
 
   /** A resource id biased toward the biome's lean (but every resource can appear). */
@@ -1807,6 +1850,8 @@ export class RunScene extends Phaser.Scene {
     if (hp <= 0) {
       const ex = enemy.x, ey = enemy.y;
       this.kills += 1; // RC-022 B3: a damage-kill increments the HUD counter (ceremony wipe doesn't)
+      // RC-025 Blood Rush: every damage-kill (re)starts the fire-rate burst window.
+      if (this.hasRelic('blood_rush')) this.bloodRushUntil = this.elapsed + BLOOD_RUSH_DURATION_MS;
       // RC-026: if this was a shrine guardian, retire it from the wave set — the last one pays out.
       this.onShrineWaveDeath(enemy.getData('uid'));
       // RC-026: catching the courier (by damage) bursts its mixed jackpot at the death point. The
@@ -1824,6 +1869,14 @@ export class RunScene extends Phaser.Scene {
       }
       // RC-017: one gem per kill, carrying a tier-scaled value (value, not swarm).
       this.dropGem(ex, ey, enemy.getData('drop'));
+      // RC-025 Prospector's Eye: a proc duplicates the kill's gem nearby.
+      if (rollBonusGem(() => Math.random(), this.hasRelic('prospectors_eye'))) {
+        this.dropGem(ex + Phaser.Math.Between(-18, 18), ey + Phaser.Math.Between(-18, 18), enemy.getData('drop'));
+      }
+      // RC-025 healing layer A: rare food drop on kill (boosted by Harvest Feast).
+      if (rollFoodDrop(() => Math.random(), this.hasRelic('harvest_feast'))) {
+        this.dropFood(ex, ey);
+      }
       // RC-019: a mini-boss kill drops the guaranteed jackpot — a gem burst + one upgraded gem.
       if (enemy.getData('isBoss')) {
         const tier = gemTierForExpeditionTier(this.expedition.tier);
@@ -1921,7 +1974,11 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.shake(120, 0.008);
     this.player.setTintFill(0xff3333);
     this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
-    if (this.stats.hp <= 0) this.finish(true);
+    if (this.stats.hp <= 0 && !this.trySecondWind()) this.finish(true);
+    // RC-025 Bramble Mail: contact attackers that survive the touch (bosses) take thorn damage.
+    if (this.hasRelic('bramble_mail') && !this.finished && enemy?.active) {
+      this.applyDamageToEnemy(enemy, BRAMBLE_DAMAGE);
+    }
   }
 
   private dropGem(x: number, y: number, resource: Resource, opts?: { valueOverride?: number; tierOverride?: GemTier }) {
@@ -1985,8 +2042,20 @@ export class RunScene extends Phaser.Scene {
     gem.destroy();
   }
 
-  /** RC-025: food pickup heal — full mechanics land with the relic mechanics task. */
+  /** RC-025: spawn a food pickup (healing layer A), clamped into the playable field like gems. */
+  private dropFood(x: number, y: number) {
+    const cg = clampToPlayable(x, y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    const food = this.add.image(cg.x, cg.y, 'food_ration') as any;
+    food.setDisplaySize(16 * RUN_SCALE, 16 * RUN_SCALE);
+    food.setDepth(8);
+    this.physics.add.existing(food);
+    this.foods.add(food);
+  }
+
+  /** RC-025: eat on touch — heals 5 HP (×2 with Harvest Feast), capped at maxHp. */
   private collectFood(food: any) {
+    this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + foodHeal(this.hasRelic('harvest_feast')));
+    playSfx('gem-pickup', { semitones: 7 }); // distinct upward chime vs. gem pitches
     food.destroy();
   }
 
