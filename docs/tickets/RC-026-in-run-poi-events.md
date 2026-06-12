@@ -85,3 +85,7 @@ shrine wave count + culture jackpot, courier flee direction + corner-catchabilit
 jackpot + stealth catch, altar catalyst + wake sweep, win exemption + ceremony forfeit, Horde count
 exemption for POI waves/courier, and the splitter-children ruling. Zero console errors;
 instrumentation reverted (`git diff` empty for src); 353 tests + build green.
+
+## Art ratification (2026-06-11)
+Jeff ratified all three POI sprites (shrine, altar, courier) at the evening playtest — "art is
+fine, no issues." The RC-026 art gate is closed; shapes ship as authored.
