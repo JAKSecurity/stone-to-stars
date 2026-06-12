@@ -50,6 +50,8 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-030 | Polish defects: fresh-save palette message + favicon | Delivered | P3 | C3 | docs/tickets/RC-030-polish-defects.md |
 | RC-031 | Weapon system redesign — Forge & Fuse meaningful build choices | Delivered | P1 | C3 | docs/tickets/RC-031-weapon-draft-rework.md |
 | RC-032 | Camp scale & city growth-by-age | Open | P2 | C3 | docs/tickets/RC-032-camp-scale-city-growth.md |
+| RC-041 | Space age content (techs/buildings/weapon/hero) | Open | P2 | C3 | docs/tickets/RC-041-space-age-content.md |
+| RC-042 | The Last Stand finale (invasion run + victory) | Open | P2 | C4 | docs/tickets/RC-042-last-stand-finale.md |
 | RC-033 | Resource economy rebalance — science starvation | Delivered | P2 | C3 | docs/tickets/RC-033-resource-economy-rebalance.md |
 | RC-034 | Procedural dungeon expeditions — explore & clear (Diablo-scale) | Delivered | P2 | C3 | docs/tickets/RC-034-procedural-dungeon-expeditions.md |
 | RC-035 | Boss contact-kill skips the jackpot (climax can be no-sold) | Delivered | P3 | C3 | docs/tickets/RC-035-boss-contact-kill-skips-jackpot.md |
