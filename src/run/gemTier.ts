@@ -1,4 +1,5 @@
 import { Resource } from '../game/types';
+import { rewardValueForTier } from '../game/economy';
 
 export type GemTier = 'chipped' | 'cut' | 'brilliant';
 
@@ -24,20 +25,22 @@ export function bumpTier(tier: GemTier): GemTier {
 }
 
 /** RC-022 B5 — value bracket for at-a-glance gem readability, independent of the cosmetic
- *  expedition tier above. A run's per-kill gems are low; boss-jackpot gems are high. The brackets
- *  are chosen so a tier-0 base value (~1) reads `minor`, a mid-run kill reads `solid`, and a boss
- *  jackpot's big gem (10s) reads `major` — the unmistakable one that gets the glow. */
+ *  expedition tier above. Thresholds are RELATIVE to `rewardValueForTier(tier)` so ordinary
+ *  kill/deposit drops (≈1×base) stay `minor` at every run tier; shrine/courier jackpots (≈3×base)
+ *  hit `major`; boss jackpot burst gems (≈4×base) and the big gem (≈20×base) are unmistakably
+ *  `major`. Fixed absolute thresholds broke at tier ≥ 2 where base ≈ 10+. */
 export type GemValueTier = 'minor' | 'solid' | 'major';
 
-export function gemValueTier(value: number): GemValueTier {
-  if (value >= 10) return 'major';
-  if (value >= 4) return 'solid';
+export function gemValueTier(value: number, tier: number): GemValueTier {
+  const base = rewardValueForTier(tier);
+  if (value >= 3 * base) return 'major';
+  if (value >= 2 * base) return 'solid';
   return 'minor';
 }
 
 /** Display-size multiplier for a gem's value tier — a jackpot reads visibly bigger than a chip. */
-export function gemDisplayScale(value: number): number {
-  switch (gemValueTier(value)) {
+export function gemDisplayScale(value: number, tier: number): number {
+  switch (gemValueTier(value, tier)) {
     case 'major': return 1.55;
     case 'solid': return 1.25;
     default: return 1.0;

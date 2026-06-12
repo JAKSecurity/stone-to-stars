@@ -1586,7 +1586,7 @@ export class RunScene extends Phaser.Scene {
     const tier = opts?.tierOverride ?? gemTierForExpeditionTier(this.expedition.tier);
     const value = opts?.valueOverride ?? rewardValueForTier(this.expedition.tier);
     // RC-022 B5: display size scales with the value tier so a jackpot reads bigger at a glance.
-    const sizePx = 14 * RUN_SCALE * gemDisplayScale(value);
+    const sizePx = 14 * RUN_SCALE * gemDisplayScale(value, this.expedition.tier);
     const gem = this.add.image(x, y, gemSpriteId(resource, tier)) as any;
     gem.setDisplaySize(sizePx, sizePx);
     this.physics.add.existing(gem);
@@ -1597,7 +1597,7 @@ export class RunScene extends Phaser.Scene {
     // Not rare: the boss jackpot AND every per-kill drop at tier 6+ qualify, so dozens can glow
     // concurrently late-game — each is one circle + one tween, cheap. Cheaper than postFX; parented
     // to follow the gem (and torn down with it) so the magnet sweep carries the glow along.
-    if (gemValueTier(value) === 'major') {
+    if (gemValueTier(value, this.expedition.tier) === 'major') {
       const tint = this.gemGlowColor(resource);
       const glow = this.add.circle(x, y, sizePx * 0.85, tint, 0.3)
         .setDepth(gem.depth - 1).setBlendMode(Phaser.BlendModes.ADD);
