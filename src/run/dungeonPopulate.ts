@@ -11,8 +11,8 @@ import { spawnTableAt } from './spawnEscalation';
 import { pickEnemy } from './expedition';
 import { runDurationForTier } from '../game/config';
 
-export const BASE_ENEMY_COUNT = 26;   // placed enemies at tier 0 ...
-export const ENEMIES_PER_TIER = 8;    // ... plus this many per age tier
+export const BASE_ENEMY_COUNT = 52;   // placed enemies at tier 0 ...
+export const ENEMIES_PER_TIER = 16;   // ... plus this many per age tier
 // Must exceed dungeonGen's AGGRO_RADIUS (720): anything placed inside the aggro ring is awake and
 // attacking at second zero — playtest showed an idle player dies at spawn with the old 420.
 export const ENEMY_SAFE_RADIUS = 900;
