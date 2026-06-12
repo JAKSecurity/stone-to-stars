@@ -51,6 +51,9 @@ import { POIS, PoiDef, PoiId, ALTAR_WAKE_SCREENS, COURIER_SPEED_MULT, COURIER_DE
 import { rollPois, shrineWave, shrineJackpot, courierJackpot } from '../run/poi';
 import { fleeVelocity } from '../run/enemyBehavior';
 import {
+  InvasionWave, FormationState, WAVES, formationStep, MOTHERSHIP_HP_MULT, mothershipPhase,
+} from '../run/invasion';
+import {
   VOLLEY_COOLDOWN_MS, VOLLEY_DAMAGE_MULT,
   SLASH_RANGE, SLASH_ARC_RAD, SLASH_WINDUP_MS, SLASH_COOLDOWN_MS,
   BEAM_AIM_MS, BEAM_WIDTH, BEAM_COOLDOWN_MS, BEAM_DAMAGE_MULT,
@@ -76,6 +79,15 @@ const CEREMONY_MS = 3000;
 // dodge, even at end-game mob density. Combined with low per-enemy fire cadence below.
 // RC-040: raised 10 → 16 to give the volley profile headroom (its ~700ms cadence eats the old cap).
 const MAX_ENEMY_BULLETS = 16;
+
+// RC-042 — The Last Stand finale tuning (scene-side; the pure wave/phase math lives in invasion.ts).
+const FINALE_BEAT_MS = 1500;               // inter-wave banner beat before the next stage spawns
+const FINALE_ARENA_SCREENS = 1.5;          // arena = viewport × this per axis (floored below)
+const FINALE_ARENA_MIN_W = 1500;           // floor so wave 5's 8-col grid always has march room
+const FINALE_ARENA_MIN_H = 1100;
+const MOTHERSHIP_DRIFT_SPEED = 40;         // px/s pre-RUN_SCALE — slow horizontal drift at the top
+const MOTHERSHIP_DRONE_PERIOD_MS = 4000;   // phase 2+: one invader_drone add per period…
+const MOTHERSHIP_MAX_DRONES = 4;           // …capped at this many concurrent live adds
 
 // Enemy projectile profiles by attack type. `speed` is pre-RUN_SCALE and deliberately slow so the
 // shots are easy to sidestep. `range` (melee only) gates firing to when the player is close.
@@ -202,6 +214,21 @@ export class RunScene extends Phaser.Scene {
   // refunding already-spent charges (infinite-charges bug).
   private chargesSpent = 0;
   private lastHeavyShakeMs = -Infinity;
+  // RC-042 — The Last Stand finale. `finale` routes init/create/update around the normal dungeon
+  // systems (spawner/POIs/deposits); the formation controller + mothership phases below replace
+  // them. finaleWave: 0 = not started, 1–5 = formation waves, 6 = mothership. All reset in init().
+  private finale = false;
+  private finaleWave = 0;
+  private finaleBeatMs = 0;                 // >0 → inter-wave banner beat counting down
+  private formation: FormationState | null = null;
+  private formationY = 0;                   // formation origin y (drops toward the player on edges)
+  private formationWaveDef: InvasionWave | null = null;
+  private formationMembers: Array<{ e: any; dx: number; dy: number }> = []; // grid offsets from origin
+  private mothershipObj: any = null;
+  private msDriftDir: 1 | -1 = 1;
+  private msAttackMs = 0;                   // countdown to the next phase attack
+  private msNextAttack: 'mortar' | 'beam' = 'mortar'; // phase-3 alternation
+  private msDroneMs = 0;                    // countdown to the next drone add (phase 2+)
 
   constructor() { super('run'); }
 
@@ -261,6 +288,19 @@ export class RunScene extends Phaser.Scene {
     this.shrineWaveIds = new Set();
     this.shrinePending = null;
     this.dungeonRng = mulberry32(0);
+    // RC-042: finale mode + all formation/mothership state.
+    this.finale = data.expedition.finale === true;
+    this.finaleWave = 0;
+    this.finaleBeatMs = 0;
+    this.formation = null;
+    this.formationY = 0;
+    this.formationWaveDef = null;
+    this.formationMembers = [];
+    this.mothershipObj = null;
+    this.msDriftDir = 1;
+    this.msAttackMs = 0;
+    this.msNextAttack = 'mortar';
+    this.msDroneMs = 0;
   }
 
   create() {
@@ -274,9 +314,16 @@ export class RunScene extends Phaser.Scene {
     this.baseStats = { ...this.stats };
     // RC-034: the run is a procedurally generated dungeon DUNGEON_SCREENS x the viewport. The seed
     // is logged so any layout bug is reproducible (generateLayout is deterministic per seed).
+    // RC-042: the finale instead uses a fixed walled arena (no barriers/obstacles — clean march
+    // lanes for the invader formation); buildTerrain below still raises the RC-038 perimeter walls.
     const seed = (Math.random() * 0xffffffff) >>> 0;
-    console.info(`[run] dungeon seed ${seed}`);
-    this.layout = generateLayout(mulberry32(seed), this.scale.width, this.scale.height);
+    if (this.finale) {
+      console.info('[run] last stand arena');
+      this.layout = this.finaleArenaLayout();
+    } else {
+      console.info(`[run] dungeon seed ${seed}`);
+      this.layout = generateLayout(mulberry32(seed), this.scale.width, this.scale.height);
+    }
     const { width, height } = this.layout;
     this.physics.world.setBounds(0, 0, width, height);
     this.cameras.main.setBounds(0, 0, width, height);
@@ -354,10 +401,19 @@ export class RunScene extends Phaser.Scene {
 
     // RC-019: the biome's toughest enemy becomes an announced mini-boss — pull it from the random
     // spawn pool (the card threat-rating still reads it from the untouched biome.spawnTable).
-    this.bossId = apexEnemyId(this.biome.spawnTable);
+    // RC-042: in the finale the "boss" is the mothership — bossId feeds the boss HP-bar label and
+    // the formation controller does ALL spawning, so the placed roster / gems / POIs are skipped.
+    this.bossId = this.finale ? 'invader_mothership' : apexEnemyId(this.biome.spawnTable);
     this.bossEnemy = null;
     this.bossHp = undefined;
     this.trickleBiome = { ...this.biome, spawnTable: bossFreeTable(this.biome.spawnTable, this.bossId) };
+
+    if (this.finale) {
+      // RC-042: open on a banner beat — wave 1 spawns when it elapses (updateFinale).
+      this.finaleBeatMs = FINALE_BEAT_MS;
+      this.showFinaleBanner('🛸 Wave 1/5');
+      return;
+    }
 
     // RC-034: the whole roster is placed at generation — no trickle. Mobs sleep until aggro'd;
     // the apex mini-boss is pre-placed at the far end with its RC-019 stats, announced on aggro.
@@ -708,6 +764,9 @@ export class RunScene extends Phaser.Scene {
     }
 
     (this.enemies.getChildren() as any[]).forEach((e) => {
+      // RC-042: formation members + the mothership are positioned by the finale controller below —
+      // the chase/behavior movement must not fight it.
+      if (e.getData('finaleControlled')) return;
       if (e.getData('asleep')) {
         const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
         if (d > AGGRO_RADIUS) { e.body.setVelocity(0, 0); return; }
@@ -718,6 +777,7 @@ export class RunScene extends Phaser.Scene {
     this.updateEnemyFire(dt);
     this.updateEnemyProfiles(dt); // RC-040: telegraphed attack profiles (slash/beam/mortar/…)
     this.updateEnemyPatches();    // RC-040: enemy ground hazards tick the player
+    if (this.finale) this.updateFinale(dt); // RC-042: formation march / mothership phases / victory
 
     // RC-038 containment failsafe: ~once a second, any enemy that has drifted outside the playable
     // field (knockback/tunneling, whatever the cause) is hard-reset back inside via body.reset —
@@ -841,16 +901,18 @@ export class RunScene extends Phaser.Scene {
       `HP ${Math.ceil(this.stats.hp)}/${this.stats.maxHp}  Lv${this.stats.level}  ` +
       `🧭${this.collected.exploration} 🔬${this.collected.science} 🏭${this.collected.industry} 🎭${this.collected.culture}  ` +
       `☠ ${this.kills}  ·  ${this.enemies.countActive(true)} left\n` +
-      this.loadoutHudLine(),
+      this.finaleHudTag() + this.loadoutHudLine(),
     );
     // RC-022 B3: XP bar fill tracks progress to the next level (shares xpForLevel via xpProgress).
     this.xpBarFill.width = this.xpBarBg.width * xpProgress(this.stats);
 
     // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
     // RC-026: the treasure courier is exempt — you can clear the dungeon while it's still fleeing.
+    // RC-042: NOT in the finale — the field is legitimately empty between waves (and before wave 1);
+    // the finale's victory ceremony is started explicitly by updateFinale on mothership death.
     const remaining = (this.enemies.getChildren() as any[])
       .filter((e) => e.active && !e.getData('poiCourier')).length;
-    if (remaining === 0) this.startCeremony();
+    if (remaining === 0 && !this.finale) this.startCeremony();
   }
 
   /** RC-025: does the (single) relic slot hold this relic? */
@@ -1711,6 +1773,194 @@ export class RunScene extends Phaser.Scene {
   }
   // ======================= end RC-040 enemy attack profiles =======================
 
+  // ========================= RC-042 The Last Stand finale =========================
+  // The finale replaces the dungeon's placed roster with 5 authored invader waves (invasion.WAVES)
+  // marching as a space-invaders block, then the mothership. The pure math (formationStep /
+  // mothershipPhase) lives in invasion.ts; this section spawns via the existing spawnEnemyAt path
+  // (so gems/xp/profiles/kill feel all reuse the standard machinery) and positions members each
+  // frame. Members carry data 'finaleControlled' so the chase-movement loop leaves them alone.
+
+  /** The finale's fixed walled arena: viewport × FINALE_ARENA_SCREENS (floored so wave 5's widest
+   *  grid always has lateral march room), no barriers/obstacles, player start at the bottom center
+   *  — the invasion descends from the top. buildTerrain raises the RC-038 perimeter walls from it. */
+  private finaleArenaLayout(): DungeonLayout {
+    const width = Math.round(Math.max(this.scale.width * FINALE_ARENA_SCREENS, FINALE_ARENA_MIN_W));
+    const height = Math.round(Math.max(this.scale.height * FINALE_ARENA_SCREENS, FINALE_ARENA_MIN_H));
+    return {
+      width, height,
+      start: { x: width / 2, y: height - WALL_THICKNESS - 140 },
+      barriers: [], obstacles: [],
+    };
+  }
+
+  /** HUD second-line prefix during the finale: which stage the player is facing. */
+  private finaleHudTag(): string {
+    if (!this.finale) return '';
+    return this.finaleWave >= 6 ? '🛸 MOTHERSHIP   ' : `🛸 Wave ${Math.max(1, this.finaleWave)}/5   `;
+  }
+
+  /** Screen-fixed finale stage banner (alarm-red, mirrors the boss-aggro banner's pop/fade). */
+  private showFinaleBanner(text: string) {
+    const { width, height } = this.scale;
+    const banner = this.add.text(width / 2, height * 0.22, text, {
+      fontSize: '36px', color: '#ff7b72', stroke: '#000', strokeThickness: 5, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(60).setScrollFactor(0).setAlpha(0).setScale(0.5);
+    this.tweens.add({ targets: banner, alpha: 1, scale: 1, duration: 240, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: banner, alpha: 0, delay: 1100, duration: 400, onComplete: () => banner.destroy() });
+  }
+
+  /** Per-frame finale dispatch: drain the inter-wave beat (spawning the next stage when it ends),
+   *  then drive whichever stage is live — the marching formation or the mothership. */
+  private updateFinale(dt: number) {
+    if (this.finaleBeatMs > 0) {
+      this.finaleBeatMs -= dt;
+      if (this.finaleBeatMs <= 0) {
+        if (this.finaleWave >= 5) this.spawnMothership();
+        else this.spawnFinaleWave(this.finaleWave + 1);
+      }
+      return;
+    }
+    if (this.finaleWave >= 6) this.updateMothership(dt);
+    else if (this.finaleWave >= 1) this.updateFormation(dt);
+  }
+
+  /** Spawn wave `n` (1-based) as a centered grid at the arena top. Members spawn awake (no asleep
+   *  flag → profiles fire per RC-040 once on camera) and 'finaleControlled' (positioned below). */
+  private spawnFinaleWave(n: number) {
+    this.finaleWave = n;
+    const wave = WAVES[n - 1];
+    this.formationWaveDef = wave;
+    const spacing = wave.spacing * RUN_SCALE;
+    const halfW = ((wave.cols - 1) * spacing) / 2;
+    const originX = this.layout.width / 2;
+    this.formation = { x: originX, dir: 1 };
+    this.formationY = WALL_THICKNESS + 110;
+    this.formationMembers = [];
+    wave.rows.forEach((id, r) => {
+      for (let c = 0; c < wave.cols; c++) {
+        const dx = c * spacing - halfW, dy = r * spacing;
+        const e = this.spawnEnemyAt(ENEMIES[id], originX + dx, this.formationY + dy);
+        e.setData('finaleControlled', true);
+        this.formationMembers.push({ e, dx, dy });
+      }
+    });
+  }
+
+  /** March the live wave: drop dead members from the set (empty → banner beat to the next stage),
+   *  step the origin via the pure formationStep (bounds inset so the WHOLE grid stays inside the
+   *  walls; an edge reversal drops the block toward the player), and re-seat every member at its
+   *  grid offset. body.reset keeps them normal physics bodies — bullets/contact/profiles all work. */
+  private updateFormation(dt: number) {
+    this.formationMembers = this.formationMembers.filter((m) => m.e.active);
+    if (this.formationMembers.length === 0) {
+      const next = this.finaleWave + 1;
+      this.finaleBeatMs = FINALE_BEAT_MS;
+      this.showFinaleBanner(next > 5 ? '🛸 MOTHERSHIP' : `🛸 Wave ${next}/5`);
+      if (next > 5) playSfx('boss-arrival');
+      return;
+    }
+    const wave = this.formationWaveDef!;
+    const spacing = wave.spacing * RUN_SCALE;
+    const halfW = ((wave.cols - 1) * spacing) / 2;
+    const margin = WALL_THICKNESS + 24; // matches the RC-038 spawn/sweep containment margin
+    const r = formationStep(this.formation!, dt, wave.marchSpeed * RUN_SCALE,
+      margin + halfW, this.layout.width - margin - halfW);
+    this.formation = r.s;
+    if (r.dropped) this.formationY += wave.dropPx * RUN_SCALE;
+    const originX = r.s.x;
+    for (const m of this.formationMembers) {
+      const p = clampToPlayable(originX + m.dx, this.formationY + m.dy,
+        this.layout.width, this.layout.height, margin);
+      m.e.body.reset(p.x, p.y);
+    }
+  }
+
+  /** Wave 6: the mothership — isBoss (existing HP bar/jackpot machinery), HP = tier-8 boss base ×
+   *  MOTHERSHIP_HP_MULT, rendered 2× like the apex boss, anchored near the arena top. */
+  private spawnMothership() {
+    this.finaleWave = 6;
+    const def = ENEMIES.invader_mothership;
+    const e = this.spawnEnemyAt(def, this.layout.width / 2, WALL_THICKNESS + 150);
+    const maxHp = def.baseHp * BOSS_HP_MULT * MOTHERSHIP_HP_MULT;
+    e.setData('hp', maxHp);
+    e.setData('maxHp', maxHp);
+    e.setData('isBoss', true);
+    // RC-009 parity with the apex boss: contact damage on the steeper boss curve.
+    e.setData('contactDamage', Math.round(def.contactDamage * bossDamageMult(this.expedition.tier)));
+    e.setDisplaySize(def.displaySize.w * RUN_SCALE * 2, def.displaySize.h * RUN_SCALE * 2);
+    this.shrinkBody(e, 0.72);
+    e.setData('finaleControlled', true); // drift is driven below, not by the chase loop
+    this.mothershipObj = e;
+    this.bossEnemy = e;                  // existing boss HP bar update path reads this
+    this.msDriftDir = 1;
+    this.msAttackMs = 1200;              // short grace before the first volley
+    this.msNextAttack = 'mortar';
+    this.msDroneMs = MOTHERSHIP_DRONE_PERIOD_MS;
+    playSfx('boss-arrival');
+    this.createBossHpBar();              // label reads ENEMIES[this.bossId].name = "Mothership"
+  }
+
+  /** Drive the mothership: death → victory ceremony; otherwise slow top-band drift, phase attacks
+   *  (1: mortar volleys, 2: beam sweeps + drone adds, 3: both alternating, faster, enrage tint —
+   *  the RC-040 conventions), all via the existing profile helpers. */
+  private updateMothership(dt: number) {
+    const ship = this.mothershipObj;
+    if (!ship?.active) {
+      // Mothership down — victory. The ceremony machinery does exactly what the spec asks for
+      // (wipe leftover adds into gems, world-radius gem vacuum, zone-cleared fanfare, then
+      // finish(false) — which carries finaleVictory in the finale). The auto remaining===0
+      // trigger is suppressed for the finale, so this is the only entry point.
+      this.startCeremony();
+      return;
+    }
+    const phase = mothershipPhase(ship.getData('hp') / ship.getData('maxHp'));
+    // Phase 3 = enrage, once: RC-040 tint + rate conventions (restoreEnemyTint keeps the red
+    // through hit-flashes because 'enraged' is set).
+    if (phase === 3 && !ship.getData('enraged')) {
+      ship.setData('enraged', true);
+      ship.setData('enrageRateMult', ENRAGE_MULT);
+      ship.setTint(0xff5544);
+    }
+    // Slow horizontal drift across the top band, reversing inside the walls.
+    const driftMargin = WALL_THICKNESS + 24 + ship.displayWidth / 2;
+    if (ship.x <= driftMargin) this.msDriftDir = 1;
+    else if (ship.x >= this.layout.width - driftMargin) this.msDriftDir = -1;
+    ship.body.setVelocity(this.msDriftDir * MOTHERSHIP_DRIFT_SPEED * RUN_SCALE, 0);
+    const rate = ship.getData('enrageRateMult') ?? 1;
+    // Phase attacks reuse the RC-040 profile helpers (telegraphs, locked aims, player-only damage).
+    // Gated on-camera per RC-037 — the ship holds top-of-arena, so it never snipes from off-screen.
+    this.msAttackMs -= dt;
+    if (this.msAttackMs <= 0) {
+      if (!this.enemyOnCamera(ship)) {
+        this.msAttackMs = 250; // off-screen — retry shortly (RC-040 "declined" convention)
+      } else {
+        let cd: number;
+        if (phase === 1) cd = this.profileMortar(ship);
+        else if (phase === 2) cd = this.profileBeam(ship);
+        else {
+          cd = this.msNextAttack === 'mortar' ? this.profileMortar(ship) : this.profileBeam(ship);
+          this.msNextAttack = this.msNextAttack === 'mortar' ? 'beam' : 'mortar';
+        }
+        this.msAttackMs = cd / rate;
+      }
+    }
+    // Phase 2+: periodic invader_drone adds (normal chase mobs), capped concurrent.
+    if (phase >= 2) {
+      this.msDroneMs -= dt;
+      if (this.msDroneMs <= 0) {
+        const adds = (this.enemies.getChildren() as any[])
+          .filter((c) => c.active && c.getData('finaleAdd')).length;
+        if (adds < MOTHERSHIP_MAX_DRONES) {
+          const d = this.spawnEnemyAt(ENEMIES.invader_drone,
+            ship.x + Phaser.Math.Between(-120, 120), ship.y + 80);
+          d.setData('finaleAdd', true);
+        }
+        this.msDroneMs = MOTHERSHIP_DRONE_PERIOD_MS / rate;
+      }
+    }
+  }
+  // ======================= end RC-042 The Last Stand finale =======================
+
   private hitPlayerProjectile(bullet: any) {
     if (!bullet.active) return;
     this.stats.hp -= bullet.getData('damage') ?? 0;
@@ -2333,6 +2583,10 @@ export class RunScene extends Phaser.Scene {
       tier: this.expedition.tier,
       mutators: [...this.mutatorIds],
       rewardMult: this.mutFx.rewardMult,
+      // RC-042: surviving the finale = the mothership fell (its death is the only finish(false)
+      // path here — the auto zone-clear is finale-suppressed). Death/abandon (died) banks normally
+      // with no flag, so the Last Stand stays replayable until won.
+      ...(this.finale && !died ? { finaleVictory: true } : {}),
     };
   }
 
