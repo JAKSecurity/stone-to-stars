@@ -71,6 +71,21 @@ Four concrete playtest tweaks folded into this balance ticket and shipped on the
 Note: a separate, bigger balance problem — **science-token starvation** (playtest #12) — is tracked
 as its own ticket **RC-033** (needs faucet-vs-sink measurement, not a quick tweak).
 
+## 2026-06-11 playtest notes
+- flame_jet reverted trail→spread (3-fireball cone) — trail cannot be a STARTING weapon (standoff enemies unreachable); trail verb lives on flamethrower (industrial) where it's drafted, not forced.
+
+### Playtest balance batch — 2026-06-11 (this commit)
+Three constant tweaks from Jeff's live playtest session:
+
+1. **2× dungeon density** — `BASE_ENEMY_COUNT` 26 → 52, `ENEMIES_PER_TIER` 8 → 16 (`src/run/dungeonPopulate.ts`). Dungeon felt thin; per-kill gem values unchanged so doubled per-clear income is intentional for now.
+2. **50× boss HP** — `BOSS_HP_MULT` 5 → 50 (`src/run/bossEvent.ts`). Well-upgraded players melted the boss at 5× base; bumped 10× (to 50× effective) to make it a real fight.
+3. **Field Medic regen −75%** — `field_medic.effectPerLevel.regenHps` 0.8 → 0.2 and Heartwood fusion `regenHps` 0.7 → 0.2 (`src/run/passiveData.ts`). Passive regen was too powerful a crutch at high stacks; desc strings updated to match.
+
+**Deferred intent (Jeff pre-approved direction, not yet the moment):** when the doubled-density economy runs hot, halve per-kill gem values to rebalance.
+
+## 2026-06-12 balance — enemy damage tier scaling
+Implemented linear damage scaling by expedition tier (balance(RC-009) commit). Pure fns `enemyDamageMult` (×1→×3) and `bossDamageMult` (×1→×6) in `src/run/enemyAttacks.ts`; applied at `spawnEnemyAt` contactDamage and overridden to boss curve in the isBoss block. Flat patch damages (flamejet 10→10×mult, haunt 8→8×mult) also scaled. Numeric sanity: tier-0 beast contact 10→10; tier-7 juggernaut (34 base) contact 34×3=102; tier-7 apex juggernaut 34×6=204.
+
 ## References
 - Spec: `docs/superpowers/specs/2026-06-06-iron-age-slice-design.md` §6
 - KNOWN_ISSUES.md #2, #3, #4. Depends on RC-008 (content present). Decomposed from RC-005.

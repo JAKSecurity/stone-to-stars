@@ -115,3 +115,17 @@ export function standoffVelocity(
   if (dist < min) return { vx: -dirX * speed, vy: -dirY * speed };
   return { vx: 0, vy: 0 };
 }
+
+// ---- Flee (RC-026 treasure courier): run directly away from the player. The scene applies
+// routeAround on top (same as chase) so the courier slides along barriers instead of pinning. ----
+
+/** Velocity pointing AWAY from (px,py) for an enemy at (ex,ey), magnitude `speed`.
+ *  Zero-distance degenerate case picks +x so the courier never freezes under the player. */
+export function fleeVelocity(
+  px: number, py: number, ex: number, ey: number, speed: number,
+): BehaviorVel {
+  const dx = ex - px, dy = ey - py;
+  const d = Math.hypot(dx, dy);
+  if (d === 0) return { vx: speed, vy: 0 };
+  return { vx: (dx / d) * speed, vy: (dy / d) * speed };
+}

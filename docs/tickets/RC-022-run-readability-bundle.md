@@ -94,6 +94,18 @@ Verification: 338 vitest green (326 baseline + 12 new pure tests across runStats
 glowing next to a basic one (value 40 / w43 with glow vs value 3 / w28 no glow), and muzzle flashes
 during auto-fire.
 
+## Update — 2026-06-11 (playtest bug fix: gem value tier relative thresholds)
+Fixed a regression found during playtest: `gemValueTier` used absolute thresholds (`solid ≥ 4`,
+`major ≥ 10`) but gem values scale as `rewardValueForTier(tier)` ≈ INCOME_G^tier × REWARD_MULT.
+At tier ≥ 2 the base reward already exceeds 10, so every ordinary drop hit `major` — the entire
+map glowed and jackpots no longer stood out.
+
+Fix: `gemValueTier(value, tier)` now computes `base = rewardValueForTier(tier)` and applies
+relative thresholds: `minor` (< 2×base), `solid` (< 3×base), `major` (≥ 3×base). `gemDisplayScale`
+takes the same `tier` arg. Both RunScene call sites (`dropGem` size and glow check) updated.
+Tests rewritten to assert the relative spec and include an explicit regression case — "a normal kill
+drop (1×base) is minor at BOTH tier 0 and tier 4". 362 vitest green, build green.
+
 ### Remaining on RC-022 (subjective polish only)
 - **B3 weapon-slot ICONS:** weapon slots are still rendered as text (`Name Lv`), not pictographic
   icons-with-pips. Functional readability is met; sprite-icon slots are a cosmetic upgrade.

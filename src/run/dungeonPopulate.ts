@@ -11,8 +11,8 @@ import { spawnTableAt } from './spawnEscalation';
 import { pickEnemy } from './expedition';
 import { runDurationForTier } from '../game/config';
 
-export const BASE_ENEMY_COUNT = 26;   // placed enemies at tier 0 ...
-export const ENEMIES_PER_TIER = 8;    // ... plus this many per age tier
+export const BASE_ENEMY_COUNT = 52;   // placed enemies at tier 0 ...
+export const ENEMIES_PER_TIER = 16;   // ... plus this many per age tier
 // Must exceed dungeonGen's AGGRO_RADIUS (720): anything placed inside the aggro ring is awake and
 // attacking at second zero — playtest showed an idle player dies at spawn with the old 420.
 export const ENEMY_SAFE_RADIUS = 900;
@@ -33,8 +33,9 @@ export function pickBiasedResource(rng: Rng, bias: Partial<Record<Resource, numb
   return RESOURCES[RESOURCES.length - 1];
 }
 
-/** A random point inside the walls and outside every barrier band (margin-padded). */
-function openPoint(rng: Rng, layout: DungeonLayout, margin: number): { x: number; y: number } {
+/** A random point inside the walls and outside every barrier band (margin-padded). Exported so
+ *  RC-026 POI placement can sample obstacle-safe far-quadrant points with the same seeded rng. */
+export function openPoint(rng: Rng, layout: DungeonLayout, margin: number): { x: number; y: number } {
   for (let tries = 0; tries < 60; tries++) {
     const x = rngInt(rng, WALL_THICKNESS + margin, layout.width - WALL_THICKNESS - margin);
     const y = rngInt(rng, WALL_THICKNESS + margin, layout.height - WALL_THICKNESS - margin);
@@ -60,9 +61,10 @@ export function enemyPlacements(
   rng: Rng, layout: DungeonLayout, tier: number,
   trickleBiome: BiomeDef, bossId: string,
   biomes: Record<string, BiomeDef>, enemies: Record<string, EnemyDef>,
+  countMult = 1, // RC-029 Horde: scales the placed roster only (POI waves/courier exempt). 1 = unchanged.
 ): EnemyPlacement[] {
   const out: EnemyPlacement[] = [];
-  const total = BASE_ENEMY_COUNT + ENEMIES_PER_TIER * tier;
+  const total = Math.round((BASE_ENEMY_COUNT + ENEMIES_PER_TIER * tier) * countMult);
   const depthScale = Math.hypot(layout.width, layout.height) * 0.75;
   for (let i = 0; i < total; i++) {
     let x = 0, y = 0;

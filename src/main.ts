@@ -9,20 +9,22 @@ import { heroSpriteFor } from './game/heroByAge';
 import { build, upgradeBuilding, moveBuilding } from './camp/camp';
 import { buyTradition } from './civics/traditions';
 import { computeRunModifiers } from './run/modifiers';
-import { renderCivScreen } from './ui/civScreen';
+import { renderCivScreen, slotCard } from './ui/civScreen';
 import { renderExpeditionScreen } from './ui/expeditionScreen';
 import { renderRunEndScreen } from './ui/runEndScreen';
 import { RunScene } from './scenes/RunScene';
+import { SLOTS } from './state/saveSlots';
 import { registerTextures } from './art/phaserTextures';
 // RC-020 audio: additive integration. The audio module stands alone; these are the
 // only call-sites outside the hot run/weapon files (the remaining in-run hooks are
 // documented in src/audio/README.md for post-merge wiring).
-import { playSfx, startAmbient, mountAudioControls, unlockAudioOnFirstGesture } from './audio';
+import { playSfx, startAmbient, mountAudioControls, unlockAudioOnFirstGesture, bindVolumeSlider } from './audio';
 
 const civEl = document.getElementById('civ')!;
 const runEl = document.getElementById('run')!;
 const expEl = document.getElementById('expedition')!;
 const runEndEl = document.getElementById('runend')!;
+const pauseEl = document.getElementById('pausemenu')!;
 
 let civ: CivState = load() ?? newCivState();
 
@@ -100,7 +102,7 @@ function startRun() {
   civEl.classList.add('hidden');
   expEl.classList.add('active');
   renderExpeditionScreen(expEl, civ, {
-    onPick: (expedition: Expedition) => launchExpedition(expedition),
+    onPick: (expedition: Expedition, mutators: string[]) => launchExpedition(expedition, mutators),
     onKitChange: (kit, startWeapon) => { civ = { ...civ, kit, startWeapon }; persist(); startRun(); }, // re-render with new kit
     onSelectActive: (id) => { civ = { ...civ, activeItem: id }; persist(); startRun(); }, // re-render with new active
     onBack: () => { expEl.classList.remove('active'); showCiv(); },
@@ -109,7 +111,7 @@ function startRun() {
 
 let lastBiomeId: string | undefined; // for per-biome best tracking (RC-027)
 
-function launchExpedition(expedition: Expedition) {
+function launchExpedition(expedition: Expedition, mutators: string[] = []) {
   lastBiomeId = expedition.biomeId;
   expEl.classList.remove('active');
   runEl.classList.add('active');
@@ -121,9 +123,101 @@ function launchExpedition(expedition: Expedition) {
   game.scene.start('run', {
     modifiers,
     expedition,
+    mutators,
     heroSprite: heroSpriteFor(getAge(civ)),
     onComplete: (result: RunResult) => onRunComplete(result),
+    // RC-039: the scene drives the pause overlay's visibility (ESC opens/closes; abandon/finish hide).
+    onPauseMenu: (open: boolean) => { if (open) renderPauseMenu(); else hidePauseMenu(); },
   });
+}
+
+/** RC-039: the run scene casts back to so its public pause methods (Resume / Abandon / discard). */
+function runScene(): RunScene {
+  return game.scene.getScene('run') as RunScene;
+}
+
+function hidePauseMenu() {
+  pauseEl.classList.remove('active');
+  pauseEl.replaceChildren();
+}
+
+/**
+ * RC-039: the ESC pause overlay over the live run. Flat, always-visible controls (jeff-ui-design):
+ * Resume, a save-slots row (reusing the civ screen's slotCard), volume, and Abandon. Save mid-run
+ * saves the pre-run civ (runs never persist — harmless + predictable). Load DISCARDS the run with no
+ * banking (you're rewinding) then adopts the slot. Abandon banks the haul like death.
+ */
+function renderPauseMenu() {
+  pauseEl.replaceChildren();
+  pauseEl.classList.add('active');
+
+  const panel = document.createElement('div');
+  panel.className = 'pause-panel';
+
+  const h = document.createElement('h2');
+  h.textContent = 'Paused';
+  panel.appendChild(h);
+
+  // Resume — closes via the scene so its pause state + physics resume in lockstep with the overlay.
+  const resume = document.createElement('button');
+  resume.className = 'pause-btn pause-primary';
+  resume.textContent = '▶ Resume expedition';
+  resume.onclick = () => runScene().closePauseMenu();
+  panel.appendChild(resume);
+
+  // Save slots row — reuse the civ screen's slotCard. Save persists the (pre-run) civ; Load discards
+  // the live run without banking, then adopts the slot and shows the city screen.
+  const slotsWrap = document.createElement('div');
+  slotsWrap.className = 'panel saveslots';
+  slotsWrap.innerHTML = '<h2>Save / Load</h2>';
+  const grid = document.createElement('div');
+  grid.className = 'slotgrid';
+  const onSlotReplaced = (next: CivState, slotChanged: boolean) => {
+    if (!slotChanged) {
+      // Save: civ unchanged, only the slot card needs to reflect the new save — re-render in place.
+      civ = next; persist(); renderPauseMenu();
+      return;
+    }
+    // Load: discard the live run (no banking) and adopt the slot, landing on the city screen.
+    hidePauseMenu();
+    runScene().discardRun();
+    civ = next; persist(); showCiv();
+  };
+  for (const slot of SLOTS) {
+    // slotCard's onCivReplaced fires for BOTH save (same civ object) and load (a different one).
+    // Distinguish by identity: a load hands back a civ !== the current one.
+    grid.appendChild(slotCard(slot, civ, (next) => onSlotReplaced(next, next !== civ)));
+  }
+  slotsWrap.appendChild(grid);
+  panel.appendChild(slotsWrap);
+
+  // Volume — bound to the same engine value as the bottom-right widget (shared getter/setter).
+  const volWrap = document.createElement('div');
+  volWrap.className = 'pause-vol';
+  const volLabel = document.createElement('label');
+  volLabel.textContent = '🔊 Volume';
+  volLabel.htmlFor = 'pause-volume';
+  const slider = document.createElement('input');
+  slider.id = 'pause-volume';
+  slider.type = 'range';
+  slider.min = '0'; slider.max = '100'; slider.step = '1';
+  bindVolumeSlider(slider);
+  volWrap.appendChild(volLabel);
+  volWrap.appendChild(slider);
+  panel.appendChild(volWrap);
+
+  // Abandon — confirm, then bank the partial haul exactly like death and return to the city.
+  const abandon = document.createElement('button');
+  abandon.className = 'pause-btn pause-danger';
+  abandon.textContent = '🏳 Abandon expedition → return to city';
+  abandon.onclick = () => {
+    if (!window.confirm('Abandon the expedition? Your collected haul is banked, like a death.')) return;
+    hidePauseMenu();
+    runScene().abandonRun(); // routes through finish(true) → onComplete → end screen + banking
+  };
+  panel.appendChild(abandon);
+
+  pauseEl.appendChild(panel);
 }
 
 function onRunComplete(result: RunResult) {

@@ -38,9 +38,26 @@ import {
 import { mulberry32 } from '../run/rng';
 import {
   generateLayout, DungeonLayout, Barrier,
-  WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS,
+  WALL_THICKNESS, BARRIER_THICKNESS, routeAround, AGGRO_RADIUS, clampToPlayable,
 } from '../run/dungeonGen';
-import { enemyPlacements, gemPlacements, pickBiasedResource } from '../run/dungeonPopulate';
+import { enemyPlacements, gemPlacements, pickBiasedResource, openPoint } from '../run/dungeonPopulate';
+import { combineMutators, applyHaulMult } from '../run/mutators';
+import { MUTATORS } from '../run/mutatorData';
+import { POIS, PoiDef, PoiId, ALTAR_WAKE_SCREENS, COURIER_SPEED_MULT, COURIER_DESPAWN_MS } from '../run/poiData';
+import { rollPois, shrineWave, shrineJackpot, courierJackpot } from '../run/poi';
+import { fleeVelocity } from '../run/enemyBehavior';
+import {
+  VOLLEY_COOLDOWN_MS, VOLLEY_DAMAGE_MULT,
+  SLASH_RANGE, SLASH_ARC_RAD, SLASH_WINDUP_MS, SLASH_COOLDOWN_MS,
+  BEAM_AIM_MS, BEAM_WIDTH, BEAM_COOLDOWN_MS, BEAM_DAMAGE_MULT,
+  FLAME_CONE_RANGE, FLAME_COOLDOWN_MS,
+  MORTAR_COOLDOWN_MS, MORTAR_BLAST, MORTAR_FLIGHT_MS,
+  SPAWNER_COOLDOWN_MS,
+  HAUNT_DROP_MS, HAUNT_LINGER_MS,
+  ENRAGE_MULT,
+  arcContains, beamHits, enrageActive, flamePatchPoints, spawnerMaySummon,
+  enemyDamageMult, bossDamageMult,
+} from '../run/enemyAttacks';
 
 // Sprites + movement render at 2x and the play field fills the window (the field is the canvas size).
 const RUN_SCALE = 2;
@@ -53,7 +70,8 @@ const CEREMONY_MS = 3000;
 
 // Hard cap on enemy projectiles alive at once — guarantees there are never more than this many to
 // dodge, even at end-game mob density. Combined with low per-enemy fire cadence below.
-const MAX_ENEMY_BULLETS = 10;
+// RC-040: raised 10 → 16 to give the volley profile headroom (its ~700ms cadence eats the old cap).
+const MAX_ENEMY_BULLETS = 16;
 
 // Enemy projectile profiles by attack type. `speed` is pre-RUN_SCALE and deliberately slow so the
 // shots are easy to sidestep. `range` (melee only) gates firing to when the player is close.
@@ -74,11 +92,15 @@ interface RunInit {
   expedition: Expedition;
   onComplete: (result: RunResult) => void;
   heroSprite?: string;
+  mutators?: string[]; // RC-029: ephemeral per-launch wager ids
+  // RC-039: ESC pause menu — main.ts shows/hides its DOM overlay in response to this.
+  onPauseMenu?: (open: boolean) => void;
 }
 
 export class RunScene extends Phaser.Scene {
   private mods!: RunModifiers;
   private onComplete!: (r: RunResult) => void;
+  private onPauseMenu?: (open: boolean) => void; // RC-039
   private stats = initialRunStats({
     maxHp: 100, damageMult: 1, draftChoices: 3, weapons: ['club'],
     pickupRadius: 60, moveSpeedMult: 1, fireRateMult: 1,
@@ -98,17 +120,24 @@ export class RunScene extends Phaser.Scene {
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
+  private lastSweepMs = 0; // RC-038: throttle for the ~1s containment sweep
   private equipped: EquippedWeapon[] = initialWeapons();
   private passives: EquippedPassive[] = [];
   private catalysts = 0;
   private catalystTokens: any[] = [];
   private baseStats!: RunStats; // snapshot of the run's base stats (civ mods), set in create()
+  // RC-029: ephemeral per-launch mutators. Field initializers keep restarts safe; init() reassigns both.
+  private mutatorIds: string[] = [];
+  private mutFx = combineMutators([]);
   private weaponCooldowns: Record<string, number> = {};
   private bossId = '';
   private bossEnemy: any = null;
   private trickleBiome!: BiomeDef;          // biome.spawnTable minus the boss (the random-spawn pool)
   private bossHp?: { bg: Phaser.GameObjects.Rectangle; fill: Phaser.GameObjects.Rectangle; label: Phaser.GameObjects.Text };
   private paused = false;
+  // RC-039: ESC pause menu. Distinct from `paused` (which the draft overlay also drives) so ESC
+  // only closes a pause it opened, never a draft. When true, `paused` is also true + physics paused.
+  private pauseMenuOpen = false;
   private finished = false;
   private pendingComplete: RunResult | null = null;
   private ceremony = false;
@@ -131,7 +160,21 @@ export class RunScene extends Phaser.Scene {
     x: number; y: number; bornMs: number; lingerMs: number; radius: number;
     tickDamage: number; lastTick: Map<any, number>; gfx: Phaser.GameObjects.Arc; tint: number;
   }> = [];
+  // RC-040: enemy ground hazards (flamejet patches, haunt trail). A second patch list that mirrors
+  // `patches` but ticks the PLAYER (never enemies) on a ZONE_TICK_MS re-hit cadence. Reset in init();
+  // the gfx circles are scene-owned and reaped on shutdown like the player `patches`.
+  private enemyPatches: Array<{
+    x: number; y: number; bornMs: number; lingerMs: number; radius: number;
+    tickDamage: number; lastPlayerTick: number; gfx: Phaser.GameObjects.Arc;
+  }> = [];
   private enemyUidCounter = 0;
+  // RC-026 POIs: the seeded dungeon rng (kept from create() for POI rolls/placement/wave/jackpot),
+  // the placed POIs, and the shrine-wave tracking. Indicators are one reused screen-fixed text per
+  // POI. All reset in init().
+  private dungeonRng: () => number = mulberry32(0);
+  private pois: Array<{ def: PoiDef; x: number; y: number; obj: any; consumed: boolean; indicator?: Phaser.GameObjects.Text }> = [];
+  private shrineWaveIds: Set<string> = new Set();
+  private shrinePending: { x: number; y: number } | null = null;
   private hud!: Phaser.GameObjects.Text;
   // RC-022 B3 HUD strip: a thin XP-progress bar under the HUD text, and a kill counter.
   private xpBarBg!: Phaser.GameObjects.Rectangle;
@@ -154,10 +197,19 @@ export class RunScene extends Phaser.Scene {
   init(data: RunInit) {
     this.mods = data.modifiers;
     this.onComplete = data.onComplete;
+    this.onPauseMenu = data.onPauseMenu; // RC-039
     this.expedition = data.expedition;
     this.biome = BIOMES[data.expedition.biomeId];
     this.heroSprite = data.heroSprite ?? 'hero';
     this.stats = initialRunStats(this.mods);
+    // RC-029: ephemeral per-launch mutators. Frail applies to maxHp HERE, before create()'s
+    // baseStats snapshot, so the passive recompute model treats it as part of the run's base.
+    this.mutatorIds = data.mutators ?? [];
+    this.mutFx = combineMutators(this.mutatorIds);
+    if (this.mutFx.effects.maxHpMult !== 1) {
+      this.stats.maxHp = Math.max(1, Math.round(this.stats.maxHp * this.mutFx.effects.maxHpMult));
+      this.stats.hp = this.stats.maxHp;
+    }
     this.collected = { exploration: 0, science: 0, industry: 0, culture: 0 };
     this.elapsed = 0;
     this.equipped = initialWeapons(this.mods.startWeapon); // RC-027: chosen starting weapon
@@ -178,13 +230,21 @@ export class RunScene extends Phaser.Scene {
     this.chargesSpent = 0;
     this.lastHeavyShakeMs = -Infinity;
     this.weaponCooldowns = {};
-    this.paused = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
+    this.paused = false; this.pauseMenuOpen = false; this.finished = false; this.pendingComplete = null; this.pendingDrafts = 0;
     this.ceremony = false; this.ceremonyMs = 0;
     this.lobs = [];
     this.patches = [];
+    this.enemyPatches = []; // RC-040: reset enemy ground hazards each run
     this.enemyUidCounter = 0;
     this.kills = 0;            // RC-022 B3: reset the per-run kill counter
     this.lastFlashMs = -Infinity; // RC-022 B6: reset the muzzle-flash throttle
+    // RC-026: reset all POI scene state. Destroy any stale indicator objects from a prior run
+    // before clearing the array, and re-seed the dungeon rng reference (create() reassigns it).
+    for (const p of this.pois) p.indicator?.destroy();
+    this.pois = [];
+    this.shrineWaveIds = new Set();
+    this.shrinePending = null;
+    this.dungeonRng = mulberry32(0);
   }
 
   create() {
@@ -244,6 +304,17 @@ export class RunScene extends Phaser.Scene {
     this.input.on('pointerdown', onPointer);
     this.events.once('shutdown', () => this.input.off('pointerdown', onPointer));
 
+    // RC-039: ESC toggles the pause menu. Registered as a keydown listener (not a polled key) so the
+    // edge fires once per press. Gated so it only acts when no draft overlay is up: a draft already
+    // pauses via `paused`, and ESC must not close it (v1). The handler + shutdown cleanup mirror the
+    // pointer handler above so a future restart that re-runs create() can't accumulate duplicates.
+    const onEsc = () => this.togglePauseMenu();
+    this.input.keyboard!.on('keydown-ESC', onEsc);
+    this.events.once('shutdown', () => {
+      this.input.keyboard?.off('keydown-ESC', onEsc);
+      this.onPauseMenu?.(false); // RC-039: ensure the DOM overlay is hidden if the scene tears down while paused
+    });
+
     this.physics.add.overlap(this.bullets, this.enemies, (b, e) => this.hitEnemy(b as any, e as any));
     this.physics.add.overlap(this.player, this.enemies, (_p, e) => this.hitPlayer(e as any));
     this.physics.add.overlap(this.player, this.enemyBullets, (_p, b) => this.hitPlayerProjectile(b as any));
@@ -274,7 +345,7 @@ export class RunScene extends Phaser.Scene {
     // the apex mini-boss is pre-placed at the far end with its RC-019 stats, announced on aggro.
     const placeRng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
     for (const p of enemyPlacements(placeRng, this.layout, this.expedition.tier,
-      this.trickleBiome, this.bossId, BIOMES, ENEMIES)) {
+      this.trickleBiome, this.bossId, BIOMES, ENEMIES, this.mutFx.effects.enemyCountMult)) {
       const e = this.spawnEnemyAt(ENEMIES[p.id], p.x, p.y);
       e.setData('asleep', true);
       if (p.isBoss) {
@@ -282,11 +353,207 @@ export class RunScene extends Phaser.Scene {
         e.setData('hp', maxHp);
         e.setData('maxHp', maxHp);
         e.setData('isBoss', true);
+        // RC-009: bosses use the steeper boss curve (1×→6×), not the regular curve stacked on top.
+        // Re-set contactDamage over spawnEnemyAt's regular-mult value.
+        const def = ENEMIES[p.id];
+        e.setData('contactDamage', Math.round(def.contactDamage * bossDamageMult(this.expedition.tier)));
+        // RC-019 playtest: apex boss rendered at 2× size; re-apply shrinkBody so the physics
+        // body scales with the new display size (shrinkBody uses source-frame px, so body world
+        // size = sourceW * 0.72 * scaleX — doubling scaleX via setDisplaySize doubles the body).
+        e.setDisplaySize(def.displaySize.w * RUN_SCALE * 2, def.displaySize.h * RUN_SCALE * 2);
+        this.shrinkBody(e, 0.72);
         this.bossEnemy = e;
       }
     }
     for (const g of gemPlacements(placeRng, this.layout, this.expedition.tier, this.biome)) {
       this.dropGem(g.x, g.y, g.resource);
+    }
+
+    // RC-026: roll + place this dungeon's 2 opt-in POIs with a seed-derived rng kept on the scene
+    // (shrine-wave composition and jackpot rolls reuse it, so a seed reproduces its POIs end-to-end).
+    this.dungeonRng = mulberry32((seed ^ 0x85ebca6b) >>> 0);
+    this.placePois();
+  }
+
+  /** RC-026: place each rolled POI in a far quadrant (best-of-N farthest open point ≥ 1.2 screen
+   *  widths from start), obstacle-safe via dungeonPopulate's openPoint sampler. Shrine/altar are
+   *  physics-less structures; the courier (Task 8) is spawned here as an enemy with poiCourier data. */
+  private placePois() {
+    const minDist = this.scale.width * 1.2;
+    for (const id of rollPois(this.dungeonRng)) {
+      const def = POIS[id as PoiId];
+      const { x, y } = this.farPoiPoint(minDist);
+      this.placePoi(def, x, y);
+    }
+  }
+
+  /** Materialise one POI. Shrine/altar are physics-less structures rendered here; the courier is an
+   *  enemy whose spawn + flee/despawn/jackpot lifecycle is wired in Task 8 via spawnCourierAt(). The
+   *  `pois` entry's obj is the structure image (or the courier sprite); indicators key off the stored
+   *  x/y, which all POIs carry. */
+  private placePoi(def: PoiDef, x: number, y: number) {
+    if (def.id === 'courier') {
+      const e = this.spawnCourierAt(x, y);
+      this.pois.push({ def, x, y, obj: e, consumed: false });
+      return;
+    }
+    const size = (def.id === 'shrine' || def.id === 'altar') ? 48 : 34;
+    const obj = this.add.image(x, y, def.sprite).setDepth(8);
+    obj.setDisplaySize(size * RUN_SCALE, size * RUN_SCALE);
+    this.pois.push({ def, x, y, obj, consumed: false });
+  }
+
+  /** RC-026: spawn the treasure courier as a sleeping flee enemy at the POI point. Tagged poiCourier
+   *  so it is win-exempt and pays its jackpot (not its `drop`) on catch. Its speed is set from the
+   *  PLAYER's base speed (180 × RUN_SCALE) × COURIER_SPEED_MULT — catchable with routing regardless of
+   *  the player's passives/mutators. The despawn timer starts on first wake (see wakeEnemy). */
+  private spawnCourierAt(x: number, y: number): any {
+    const e = this.spawnEnemyAt(ENEMIES.treasure_courier, x, y);
+    e.setData('asleep', true);
+    e.setData('poiCourier', true);
+    e.setData('speed', 180 * RUN_SCALE * COURIER_SPEED_MULT);
+    return e;
+  }
+
+  /** Best-of-N sample for a far-quadrant, obstacle-safe POI point. Mirrors the boss-lair sampler but
+   *  prefers the first candidate clearing `minDist` from start; falls back to the farthest seen. */
+  private farPoiPoint(minDist: number): { x: number; y: number } {
+    let best = openPoint(this.dungeonRng, this.layout, 80);
+    let bestD = Math.hypot(best.x - this.layout.start.x, best.y - this.layout.start.y);
+    for (let i = 0; i < 24; i++) {
+      const p = openPoint(this.dungeonRng, this.layout, 80);
+      const d = Math.hypot(p.x - this.layout.start.x, p.y - this.layout.start.y);
+      if (d > bestD) { bestD = d; best = p; }
+      if (bestD >= minDist) break;
+    }
+    return best;
+  }
+
+  /** RC-026: per-frame POI activation. Walking onto an unconsumed shrine summons its guardian wave
+   *  (awake + aggroed — the wager); walking onto an altar grants a free catalyst and wakes the area.
+   *  The courier is an enemy, so it has no walk-over activation here. */
+  private updatePois() {
+    const reach = 60 * RUN_SCALE;
+    for (const poi of this.pois) {
+      if (poi.consumed) continue;
+      if (poi.def.id === 'courier') { this.updateCourierDespawn(poi); continue; }
+      if (!withinRadius(this.player.x, this.player.y, poi.x, poi.y, reach)) continue;
+      if (poi.def.id === 'shrine') this.activateShrine(poi);
+      else if (poi.def.id === 'altar') this.activateAltar(poi);
+    }
+  }
+
+  /** RC-026: a live courier past its despawnAt fades out and is destroyed WITHOUT jackpot or kill
+   *  credit — it escaped. Marks the POI consumed so its edge indicator dies with it. */
+  private updateCourierDespawn(poi: { obj: any; consumed: boolean }) {
+    const e = poi.obj;
+    if (!e?.active || poi.consumed) return;
+    const despawnAt = e.getData('despawnAt');
+    if (despawnAt === undefined || this.elapsed < despawnAt) return;
+    poi.consumed = true; // stops the indicator + re-entry; the catch path also checks getData
+    this.tweens.add({ targets: e, alpha: 0, duration: 300, onComplete: () => { if (e.active) e.destroy(); } });
+  }
+
+  /** Shrine: consume the structure, then spawn the tier-scaled guardian wave awake + aggroed around
+   *  it. The wave's uids are tracked; when the last falls (applyDamageToEnemy), the culture jackpot
+   *  bursts at the shrine. Wave COMPOSITION uses the seeded dungeonRng (reproducible); only spawn
+   *  jitter uses Math.random. */
+  private activateShrine(poi: { def: PoiDef; x: number; y: number; obj: any; consumed: boolean }) {
+    poi.consumed = true;
+    poi.obj?.setTint?.(0x444444); // dark the awakened structure
+    const wave = shrineWave(this.dungeonRng, this.biome.spawnTable, this.expedition.tier);
+    this.shrineWaveIds = new Set<string>();
+    for (const id of wave) {
+      if (!ENEMIES[id]) continue;
+      const ang = Math.random() * Math.PI * 2;
+      const r = (140 + Math.random() * 120) * RUN_SCALE;
+      const e = this.spawnEnemyAt(ENEMIES[id], poi.x + Math.cos(ang) * r, poi.y + Math.sin(ang) * r);
+      e.setData('asleep', true);
+      this.wakeEnemy(e); // awake + aggroed — the wager
+      this.shrineWaveIds.add(e.getData('uid'));
+    }
+    this.shrinePending = { x: poi.x, y: poi.y };
+    playSfx('boss-arrival');
+    // Defensive: if the biome table somehow yielded no spawnable guardians, pay immediately so the
+    // shrine never silently swallows its reward (shrineWaveIds empty + shrinePending set otherwise
+    // strands the jackpot). Real biome tables always spawn a wave, so this is belt-and-suspenders.
+    if (this.shrineWaveIds.size === 0) this.payShrineJackpot();
+  }
+
+  /** Altar: consume → +1 catalyst (free fusion material) + a wake sweep over ~1.5 screens, so the
+   *  reward is paid for by a sudden surge of awakened defenders. */
+  private activateAltar(poi: { def: PoiDef; x: number; y: number; obj: any; consumed: boolean }) {
+    poi.consumed = true;
+    poi.obj?.setTint?.(0x444444);
+    this.catalysts += 1;
+    playSfx('gem-pickup', { semitones: 12 });
+    const wakeR = this.scale.width * ALTAR_WAKE_SCREENS;
+    (this.enemies.getChildren() as any[]).forEach((e) => {
+      if (e.active && withinRadius(poi.x, poi.y, e.x, e.y, wakeR)) this.wakeEnemy(e);
+    });
+    this.cameras.main.shake(140, 0.006);
+  }
+
+  /** RC-026: when a shrine-wave enemy dies, drop it from the tracking set; on the last kill, burst
+   *  the culture jackpot at the shrine. Called from applyDamageToEnemy's death branch by uid. */
+  private onShrineWaveDeath(uid: string) {
+    if (!this.shrineWaveIds.has(uid)) return;
+    this.shrineWaveIds.delete(uid);
+    if (this.shrineWaveIds.size === 0) this.payShrineJackpot();
+  }
+
+  /** Burst the shrine's culture jackpot at the pending shrine point, then clear it. No-op if no
+   *  shrine is pending. */
+  private payShrineJackpot() {
+    const at = this.shrinePending;
+    if (!at) return;
+    for (const g of shrineJackpot(this.expedition.tier)) {
+      const ang = Math.random() * Math.PI * 2, rr = 30 + Math.random() * 60;
+      this.dropGem(at.x + Math.cos(ang) * rr, at.y + Math.sin(ang) * rr, g.resource, { valueOverride: g.value });
+    }
+    this.shrinePending = null;
+    playSfx('gem-pickup', { semitones: 12 });
+  }
+
+  /** RC-026: burst the courier's big MIXED jackpot around (x, y). Shared by the damage-kill death
+   *  branch and the contact-catch path in hitPlayer (stealth catch). Composition uses dungeonRng. */
+  private payCourierJackpot(x: number, y: number) {
+    for (const g of courierJackpot(this.dungeonRng, this.expedition.tier)) {
+      const ang = Math.random() * Math.PI * 2, rr = 30 + Math.random() * 60;
+      this.dropGem(x + Math.cos(ang) * rr, y + Math.sin(ang) * rr, g.resource, { valueOverride: g.value });
+    }
+    playSfx('gem-pickup', { semitones: 12 });
+  }
+
+  /** RC-026: one reused screen-fixed icon per off-camera POI, clamped to the screen edge toward the
+   *  POI's world position. Hidden when the POI is on-camera, consumed, or its object is gone
+   *  (courier despawn, Task 8). Depth 58 sits above the HUD strip but below banners. */
+  private updatePoiIndicators() {
+    const cam = this.cameras.main;
+    const view = cam.worldView;
+    const { width, height } = this.scale;
+    const pad = 22;
+    for (const poi of this.pois) {
+      const gone = poi.consumed || (poi.obj && poi.obj.active === false);
+      const onScreen = !gone &&
+        poi.x >= view.x && poi.x <= view.x + view.width &&
+        poi.y >= view.y && poi.y <= view.y + view.height;
+      if (gone || onScreen) {
+        poi.indicator?.setVisible(false);
+        continue;
+      }
+      if (!poi.indicator) {
+        poi.indicator = this.add.text(0, 0, poi.def.icon, { fontSize: '24px', stroke: '#000', strokeThickness: 4 })
+          .setOrigin(0.5).setScrollFactor(0).setDepth(58);
+      }
+      // Screen-space vector from screen center toward the POI, scaled out to the padded edge so the
+      // icon sits on whichever edge (vertical or horizontal) the direction hits first.
+      const sx = poi.x - cam.scrollX, sy = poi.y - cam.scrollY;
+      const cx = width / 2, cy = height / 2;
+      const dx = sx - cx, dy = sy - cy;
+      const maxX = (width / 2) - pad, maxY = (height / 2) - pad;
+      const scale = Math.min(maxX / Math.max(Math.abs(dx), 1e-6), maxY / Math.max(Math.abs(dy), 1e-6));
+      poi.indicator.setVisible(true).setPosition(cx + dx * scale, cy + dy * scale);
     }
   }
 
@@ -402,6 +669,11 @@ export class RunScene extends Phaser.Scene {
     if (this.keys.up.isDown) b.setVelocityY(-speed);
     if (this.keys.down.isDown) b.setVelocityY(speed);
 
+    // RC-038: clamp the player every frame — a wall-collision bounce at the border can displace him
+    // past the perimeter; re-seat him inside the playable field before anything reads his position.
+    const pc = clampToPlayable(this.player.x, this.player.y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    if (pc.x !== this.player.x || pc.y !== this.player.y) this.player.body.reset(pc.x, pc.y);
+
     for (const w of this.equipped) {
       this.weaponCooldowns[w.id] = (this.weaponCooldowns[w.id] ?? 0) - dt;
       if (this.weaponCooldowns[w.id] <= 0) {
@@ -425,6 +697,27 @@ export class RunScene extends Phaser.Scene {
       this.updateEnemyMovement(e, dt);
     });
     this.updateEnemyFire(dt);
+    this.updateEnemyProfiles(dt); // RC-040: telegraphed attack profiles (slash/beam/mortar/…)
+    this.updateEnemyPatches();    // RC-040: enemy ground hazards tick the player
+
+    // RC-038 containment failsafe: ~once a second, any enemy that has drifted outside the playable
+    // field (knockback/tunneling, whatever the cause) is hard-reset back inside via body.reset —
+    // re-seating the body cleanly rather than nudging velocity. This is the soft-lock guard: a
+    // strayed last enemy re-enters and becomes killable, so the clear can always complete.
+    if (this.elapsed - this.lastSweepMs >= 1000) {
+      this.lastSweepMs = this.elapsed;
+      const { width: ww, height: wh } = this.layout;
+      const m = WALL_THICKNESS + 24;
+      (this.enemies.getChildren() as any[]).forEach((e) => {
+        if (!e.active) return;
+        const c = clampToPlayable(e.x, e.y, ww, wh, m);
+        if (c.x !== e.x || c.y !== e.y) e.body.reset(c.x, c.y);
+      });
+    }
+
+    // RC-026: POI proximity activation (shrine wave / altar wake) + off-screen edge indicators.
+    this.updatePois();
+    this.updatePoiIndicators();
 
     this.vacuumGems();
 
@@ -520,7 +813,10 @@ export class RunScene extends Phaser.Scene {
     this.xpBarFill.width = this.xpBarBg.width * xpProgress(this.stats);
 
     // RC-034: the dungeon is cleared when every placed enemy (and any splitter children) is dead.
-    if (this.enemies.countActive(true) === 0) this.startCeremony();
+    // RC-026: the treasure courier is exempt — you can clear the dungeon while it's still fleeing.
+    const remaining = (this.enemies.getChildren() as any[])
+      .filter((e) => e.active && !e.getData('poiCourier')).length;
+    if (remaining === 0) this.startCeremony();
   }
 
   /** RC-031 loadout HUD: second line — weapons + levels, passive icons + levels, the active
@@ -530,7 +826,11 @@ export class RunScene extends Phaser.Scene {
     const passiveStr = this.passives.map((p) => `${passiveDefOf(p).icon}${p.level}`).join('');
     const activeStr = this.activeId ? `${ACTIVES[this.activeId].icon}×${this.stats.activeCharges}` : '';
     const catalystStr = this.catalysts > 0 ? `⚗️×${this.catalysts}` : '';
-    return [loadout, passiveStr, activeStr, catalystStr].filter((s) => s).join('   ');
+    // RC-029: echo active wagers + the haul multiplier they earn.
+    const mutStr = this.mutatorIds.length
+      ? this.mutatorIds.map((id) => MUTATORS[id]?.icon ?? '?').join('') + `×${this.mutFx.rewardMult.toFixed(2)}`
+      : '';
+    return [loadout, passiveStr, activeStr, catalystStr, mutStr].filter((s) => s).join('   ');
   }
 
   /**
@@ -852,18 +1152,33 @@ export class RunScene extends Phaser.Scene {
   /** Create one enemy of `def` at (x,y) with all run-state data. Shared by edge spawns and
    *  RC-018 splitter death-spawns. */
   private spawnEnemyAt(def: EnemyDef, x: number, y: number) {
-    const enemy = this.add.image(x, y, def.sprite) as any;
+    // RC-038: single choke point — every spawn (placed roster, splitter children, shrine wave,
+    // courier, boss) flows through here, so clamping the position here keeps the whole roster inside
+    // the playable field. Margin clears the wall band plus a body's half-width.
+    const c = clampToPlayable(x, y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    const enemy = this.add.image(c.x, c.y, def.sprite) as any;
     enemy.setDisplaySize(def.displaySize.w * RUN_SCALE, def.displaySize.h * RUN_SCALE);
     this.physics.add.existing(enemy);
     this.enemies.add(enemy);
     enemy.setData('uid', `e${++this.enemyUidCounter}`); // RC-031: stable id for chain hit-memory
     enemy.setData('hp', def.baseHp);
+    enemy.setData('maxHp', def.baseHp); // RC-040: enrage reads hp/maxHp (boss overrides both below)
     enemy.setData('drop', def.drop);
     enemy.setData('xp', def.xp);
-    enemy.setData('speed', def.speed * RUN_SCALE);
-    enemy.setData('contactDamage', def.contactDamage);
-    enemy.setData('armor', def.armor ?? 0);
+    enemy.setData('speed', def.speed * RUN_SCALE * this.mutFx.effects.enemySpeedMult);
+    enemy.setData('contactDamage', Math.round(def.contactDamage * enemyDamageMult(this.expedition.tier)));
+    enemy.setData('armor', (def.armor ?? 0) + this.mutFx.effects.enemyArmorAdd);
     enemy.setData('attack', def.attack);
+    // RC-040 attack profile + enrage. profileMs counts down to the next telegraphed attack (staggered
+    // like fireMs so co-spawned mobs don't act in unison). enrageRateMult divides cooldowns and
+    // multiplies speed once the mob enrages (1 = not yet). baseSpeed is the un-enraged speed so the
+    // enrage speed boost is applied once, not compounded per frame.
+    enemy.setData('attackProfile', def.attackProfile);
+    enemy.setData('enrage', def.enrage === true);
+    enemy.setData('spawns', def.spawns);
+    enemy.setData('enraged', false);
+    enemy.setData('enrageRateMult', 1);
+    if (def.attackProfile) enemy.setData('profileMs', Phaser.Math.Between(600, 2200));
     // RC-018 movement archetype + per-enemy mutable state.
     enemy.setData('behavior', def.behavior ?? 'chase');
     enemy.setData('split', def.split);
@@ -882,6 +1197,10 @@ export class RunScene extends Phaser.Scene {
     if (!e.getData('asleep')) return;
     e.setData('asleep', false);
     if (e.getData('isBoss')) this.onBossAggro();
+    // RC-026: the courier's flee window starts the instant it first wakes — catch it before it escapes.
+    if (e.getData('poiCourier') && e.getData('despawnAt') === undefined) {
+      e.setData('despawnAt', this.elapsed + COURIER_DESPAWN_MS);
+    }
   }
 
   private onBossAggro() {
@@ -897,7 +1216,10 @@ export class RunScene extends Phaser.Scene {
 
   private createBossHpBar() {
     const { width } = this.scale;
-    const w = Math.min(520, width * 0.6), h = 16, x = (width - w) / 2, y = 18;
+    const w = Math.min(520, width * 0.6), h = 16, x = (width - w) / 2;
+    // Position below the full HUD strip (text + XP bar) so the bar never overlaps the counter.
+    const hudBottom = this.xpBarBg.getBounds().bottom;
+    const y = hudBottom + 14;
     const bg = this.add.rectangle(x, y, w, h, 0x220000, 0.85).setOrigin(0, 0).setDepth(60).setScrollFactor(0).setStrokeStyle(2, 0x000000);
     const fill = this.add.rectangle(x, y, w, h, 0xff3322, 1).setOrigin(0, 0).setDepth(61).setScrollFactor(0);
     const label = this.add.text(width / 2, y + h + 2, ENEMIES[this.bossId]?.name ?? 'Boss', {
@@ -933,6 +1255,14 @@ export class RunScene extends Phaser.Scene {
     // movement branch uses by `slowed` (1 = unaffected).
     const slowed = (e.getData('slowUntil') ?? 0) > this.elapsed ? Math.max(0, 1 - (e.getData('slowPct') ?? 0)) : 1;
     const speed = (e.getData('speed') as number) * slowed;
+    // RC-026 flee (treasure courier): steer directly AWAY from the player. routeAround targets the
+    // player, so it would route a fleeing courier THROUGH a gap toward you — wrong. Skip it; the
+    // obstacle/barrier colliders already make the courier slide along walls instead of pinning.
+    if ((e.getData('behavior') ?? 'chase') === 'flee') {
+      const v = fleeVelocity(this.player.x, this.player.y, e.x, e.y, speed);
+      e.body.setVelocity(v.vx, v.vy);
+      return;
+    }
     const waypoint = routeAround(e.x, e.y, this.player.x, this.player.y, this.layout.barriers);
     if (waypoint.x !== this.player.x || waypoint.y !== this.player.y) {
       this.physics.moveTo(e, waypoint.x, waypoint.y, speed);
@@ -1001,10 +1331,18 @@ export class RunScene extends Phaser.Scene {
       if (fireMs <= 0) {
         const prof = ENEMY_SHOT[atk];
         const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-        const inRange = atk === 'ranged' ? true : d < (prof as typeof ENEMY_SHOT.melee).range;
+        // RC-037: in the scrolled dungeon (RC-034) a ranged mob must be genuinely on-camera to fire —
+        // otherwise it snipes the player from off-screen. Gate on the shooter being inside the
+        // viewport's worldView, inset ~24px so a mob at the very edge isn't yet shooting.
+        const view = this.cameras.main.worldView;
+        const onCamera =
+          e.x >= view.x + 24 && e.x <= view.right - 24 &&
+          e.y >= view.y + 24 && e.y <= view.bottom - 24;
+        const inRange = atk === 'ranged' ? onCamera : d < (prof as typeof ENEMY_SHOT.melee).range;
         if (inRange && this.enemyBullets.countActive(true) < MAX_ENEMY_BULLETS) {
           this.fireEnemyShot(e, atk);
-          fireMs = prof.cooldownMs + Phaser.Math.Between(-300, 700);
+          // RC-040: enraged mobs fire faster — divide the cadence by the rate mult (1 when calm).
+          fireMs = (prof.cooldownMs + Phaser.Math.Between(-300, 700)) / (e.getData('enrageRateMult') ?? 1);
         } else {
           fireMs = 300; // capped or out of range — try again shortly
         }
@@ -1024,6 +1362,289 @@ export class RunScene extends Phaser.Scene {
     b.body.setVelocity(Math.cos(angle) * prof.speed * RUN_SCALE, Math.sin(angle) * prof.speed * RUN_SCALE);
     this.time.delayedCall(prof.lifeMs, () => b.destroy());
   }
+
+  // ========================= RC-040 enemy attack profiles =========================
+  // updateEnemyProfiles dispatches per-profile telegraphed attacks (mirror of updateEnemyFire).
+  // Every profile is asleep-gated and (except slash, which needs proximity anyway) held while the
+  // shooter is off-camera, matching the RC-037 fire gate. Per-enemy state lives on enemy data
+  // (profileMs countdown, telegraph objects, spawner child uids) so it dies with the sprite.
+
+  /** True if the enemy is inside the camera worldView inset 24px — the RC-037 off-screen fire gate. */
+  private enemyOnCamera(e: any): boolean {
+    const v = this.cameras.main.worldView;
+    return e.x >= v.x + 24 && e.x <= v.right - 24 && e.y >= v.y + 24 && e.y <= v.bottom - 24;
+  }
+
+  /** Apply `amount` HP damage to the player with the standard hit feedback (flash + shake + death
+   *  check). Shared by every player-damaging enemy attack (slash/beam/mortar/enemy patches). */
+  private damagePlayer(amount: number) {
+    if (amount <= 0 || this.finished || this.ceremony) return;
+    this.stats.hp -= amount;
+    playSfx('player-hit');
+    this.cameras.main.flash(90, 130, 0, 0);
+    this.player.setTintFill(0xff3333);
+    this.time.delayedCall(90, () => { if (this.player?.active) this.player.clearTint(); });
+    if (this.stats.hp <= 0) this.finish(true);
+  }
+
+  /** Spawn a lingering enemy ground hazard at (x,y): a hostile-tinted circle that ticks the PLAYER
+   *  (never enemies) every ZONE_TICK_MS. Mirrors spawnPatch but for the enemy-patch list. */
+  private spawnEnemyPatch(x: number, y: number, radius: number, lingerMs: number, tickDamage: number) {
+    const gfx = this.add.circle(x, y, radius, 0xff5522, 0.32).setDepth(6);
+    gfx.setStrokeStyle(2, 0xff2200, 0.4);
+    this.enemyPatches.push({ x, y, bornMs: this.elapsed, lingerMs, radius, tickDamage, lastPlayerTick: -Infinity, gfx });
+  }
+
+  /** Per-frame: enemy ground hazards (flamejet/haunt) fade, expire, and tick the player on a
+   *  ZONE_TICK_MS re-hit cadence while he stands in them. Mirror of the player `patches` tick. */
+  private updateEnemyPatches() {
+    for (let i = this.enemyPatches.length - 1; i >= 0; i--) {
+      const p = this.enemyPatches[i];
+      const age = this.elapsed - p.bornMs;
+      if (age >= p.lingerMs) { p.gfx.destroy(); this.enemyPatches.splice(i, 1); continue; }
+      p.gfx.setAlpha(0.30 * (1 - age / p.lingerMs) + 0.08);
+      if (withinRadius(p.x, p.y, this.player.x, this.player.y, p.radius)
+        && this.elapsed - p.lastPlayerTick >= ZONE_TICK_MS) {
+        p.lastPlayerTick = this.elapsed;
+        this.damagePlayer(p.tickDamage);
+      }
+    }
+  }
+
+  /** Per-frame profile dispatch. Each profiled, awake, on-camera (slash exempt) enemy counts down
+   *  profileMs and runs its telegraphed attack; enrage is evaluated here too (and in the damage
+   *  path) so it triggers even for non-firing profiles. */
+  private updateEnemyProfiles(dt: number) {
+    for (const e of this.enemies.getChildren() as any[]) {
+      if (!e.active) continue;
+      const profile = e.getData('attackProfile') as string | undefined;
+      if (e.getData('asleep')) continue;
+      // RC-040: enrage can fire for any enraging def regardless of profile.
+      if (e.getData('enrage') && !e.getData('enraged')) this.maybeEnrage(e);
+      if (!profile) continue;
+      // Off-camera gate (RC-037 parity) for everything except slash, which already requires the
+      // player to be in melee range, so a distant slash never fires anyway.
+      if (profile !== 'slash' && !this.enemyOnCamera(e)) continue;
+
+      let ms = (e.getData('profileMs') ?? 0) - dt;
+      if (ms > 0) { e.setData('profileMs', ms); continue; }
+      const rate = e.getData('enrageRateMult') ?? 1;
+      const cd = this.runEnemyProfile(e, profile);
+      // cd < 0 means the profile declined to act this tick (e.g. player out of slash range, spawner
+      // capped) — retry shortly rather than burning the full cooldown.
+      ms = cd < 0 ? 250 : cd / rate;
+      e.setData('profileMs', ms);
+    }
+  }
+
+  /** Run one profile's attack. Returns the cooldown ms before the next attempt, or a negative value
+   *  to signal "declined — retry soon". Telegraph objects are scene-owned and reaped on shutdown. */
+  private runEnemyProfile(e: any, profile: string): number {
+    switch (profile) {
+      case 'volley': return this.profileVolley(e);
+      case 'slash': return this.profileSlash(e);
+      case 'beam': return this.profileBeam(e);
+      case 'flamejet': return this.profileFlamejet(e);
+      case 'mortar': return this.profileMortar(e);
+      case 'spawner': return this.profileSpawner(e);
+      case 'haunt': return this.profileHaunt(e);
+      default: return 1000;
+    }
+  }
+
+  /** volley: the basic ranged shot at VOLLEY cadence, weaker per shot. Respects the bullet cap. */
+  private profileVolley(e: any): number {
+    if (this.enemyBullets.countActive(true) >= MAX_ENEMY_BULLETS) return -1;
+    const dmg = Math.round(e.getData('contactDamage') * ENEMY_SHOT.ranged.damageMult * VOLLEY_DAMAGE_MULT);
+    this.fireEnemyBullet(e.x, e.y, this.player.x, this.player.y, ENEMY_SHOT.ranged.speed, dmg,
+      ENEMY_SHOT.ranged.color, ENEMY_SHOT.ranged.radius, ENEMY_SHOT.ranged.lifeMs);
+    return VOLLEY_COOLDOWN_MS;
+  }
+
+  /** Generic enemy projectile (used by volley). Mirrors fireEnemyShot but with explicit params. */
+  private fireEnemyBullet(sx: number, sy: number, tx: number, ty: number,
+    speed: number, damage: number, color: number, radius: number, lifeMs: number) {
+    const angle = Phaser.Math.Angle.Between(sx, sy, tx, ty);
+    const b = this.add.circle(sx, sy, radius, color).setDepth(5) as any;
+    b.setStrokeStyle(2, 0x000000, 0.45);
+    this.physics.add.existing(b);
+    this.enemyBullets.add(b);
+    b.setData('damage', damage);
+    b.body.setVelocity(Math.cos(angle) * speed * RUN_SCALE, Math.sin(angle) * speed * RUN_SCALE);
+    this.time.delayedCall(lifeMs, () => { if (b.active) b.destroy(); });
+  }
+
+  /** slash: a 120° arc wind-up telegraph locked to the facing toward the player, then a hit if the
+   *  player is still inside the arc. Declines (retry) when the player is out of range. */
+  private profileSlash(e: any): number {
+    const range = SLASH_RANGE * RUN_SCALE;
+    const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
+    if (d > range) return -1; // player not in melee reach — wait
+    const facing = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+    // Telegraph: a red arc sector locked to the windup-start facing, pulsing for SLASH_WINDUP_MS.
+    const g = this.add.graphics().setDepth(7);
+    const draw = (alpha: number) => {
+      g.clear();
+      g.fillStyle(0xff3322, alpha);
+      g.slice(e.x, e.y, range, facing - SLASH_ARC_RAD / 2, facing + SLASH_ARC_RAD / 2, false);
+      g.fillPath();
+    };
+    draw(0.22);
+    const pulse = this.tweens.addCounter({
+      from: 0.18, to: 0.42, duration: 200, yoyo: true, repeat: -1,
+      onUpdate: (tw) => { if (g.active) draw(tw.getValue() ?? 0.22); },
+    });
+    this.time.delayedCall(SLASH_WINDUP_MS, () => {
+      pulse.stop();
+      if (!e.active || !g.active) { g.destroy(); return; }
+      // The hit: solid flash, then damage if the player is inside the LOCKED arc.
+      g.clear();
+      g.fillStyle(0xff5533, 0.55);
+      g.slice(e.x, e.y, range, facing - SLASH_ARC_RAD / 2, facing + SLASH_ARC_RAD / 2, false);
+      g.fillPath();
+      if (arcContains(e.x, e.y, facing, range, SLASH_ARC_RAD, this.player.x, this.player.y)) {
+        this.damagePlayer(e.getData('contactDamage') * 1.2);
+      }
+      this.tweens.add({ targets: g, alpha: 0, duration: 160, onComplete: () => g.destroy() });
+    });
+    return SLASH_COOLDOWN_MS + SLASH_WINDUP_MS;
+  }
+
+  /** beam: a thin aim line locked through the player's aim-start position glows for BEAM_AIM_MS,
+   *  then fires a thick beam; a hit along the locked line deals ranged damage × BEAM_DAMAGE_MULT. */
+  private profileBeam(e: any): number {
+    const dir = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+    const len = Math.hypot(this.scale.width, this.scale.height); // screen diagonal
+    const ox = e.x, oy = e.y; // lock the origin too (enemy may drift during the aim)
+    const ex = ox + Math.cos(dir) * len, ey = oy + Math.sin(dir) * len;
+    const aim = this.add.graphics().setDepth(7);
+    aim.lineStyle(2, 0xff4422, 0.7);
+    aim.lineBetween(ox, oy, ex, ey);
+    aim.strokeLineShape(new Phaser.Geom.Line(ox, oy, ex, ey));
+    const pulse = this.tweens.add({ targets: aim, alpha: 0.3, duration: 200, yoyo: true, repeat: -1 });
+    this.time.delayedCall(BEAM_AIM_MS, () => {
+      pulse.stop();
+      aim.destroy();
+      if (!e.active) return;
+      // Fire: a thick beam for ~120ms along the LOCKED line.
+      const beam = this.add.graphics().setDepth(8);
+      beam.lineStyle(BEAM_WIDTH * RUN_SCALE, 0xff5533, 0.85);
+      beam.strokeLineShape(new Phaser.Geom.Line(ox, oy, ex, ey));
+      if (beamHits(ox, oy, dir, len, BEAM_WIDTH * RUN_SCALE, this.player.x, this.player.y)) {
+        const dmg = Math.round(e.getData('contactDamage') * ENEMY_SHOT.ranged.damageMult * BEAM_DAMAGE_MULT);
+        this.damagePlayer(dmg);
+      }
+      this.tweens.add({ targets: beam, alpha: 0, duration: 120, onComplete: () => beam.destroy() });
+    });
+    return BEAM_COOLDOWN_MS + BEAM_AIM_MS;
+  }
+
+  /** flamejet: a warm-up tint, then a line of burning enemy patches dropped toward the player. */
+  private profileFlamejet(e: any): number {
+    const facing = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+    e.setTint(0xffaa33); // warm-up flash
+    this.time.delayedCall(400, () => {
+      if (!e.active) return;
+      e.clearTint();
+      for (const pt of flamePatchPoints(e.x, e.y, facing, FLAME_CONE_RANGE * RUN_SCALE)) {
+        // RC-009: flat patch damage scales with tier so flamejet stays relevant at end-game.
+        this.spawnEnemyPatch(pt.x, pt.y, 26 * RUN_SCALE, 1500, Math.round(10 * enemyDamageMult(this.expedition.tier)));
+      }
+    });
+    return FLAME_COOLDOWN_MS + 400;
+  }
+
+  /** mortar: lob an enemy-tinted shell at the player's CURRENT position with a ground target circle
+   *  during flight; on land, a blast radius damages the PLAYER only + a ring visual. */
+  private profileMortar(e: any): number {
+    const tx = this.player.x, ty = this.player.y; // locked landing point
+    const blast = MORTAR_BLAST * RUN_SCALE;
+    // Capture the blast damage at FIRE time — the shell is committed, so it lands for full damage
+    // even if the firing enemy dies mid-flight (reading e.getData at landing would yield 0 then).
+    const blastDamage = e.getData('contactDamage') * 1.0;
+    // Target telegraph on the ground at the landing point for the flight duration.
+    const target = this.add.circle(tx, ty, blast, 0xff3322, 0.18).setDepth(6);
+    target.setStrokeStyle(2, 0xff4422, 0.6);
+    // The lobbed shell: an enemy-tinted projectile arcing from the enemy to the target.
+    const shell = this.add.circle(e.x, e.y, 8 * RUN_SCALE, 0xff6633).setDepth(15) as any;
+    shell.setStrokeStyle(2, 0x000000, 0.4);
+    const start = { x: e.x, y: e.y };
+    const state = { t: 0 };
+    this.tweens.add({
+      targets: state, t: 1, duration: MORTAR_FLIGHT_MS, ease: 'Linear',
+      onUpdate: () => {
+        if (!shell.active) return;
+        const g = lobGroundPosition(start, { x: tx, y: ty }, state.t);
+        shell.setPosition(g.x, g.y - lobArcHeight(state.t) * RUN_SCALE);
+        const apex = 1 + 0.5 * (lobArcHeight(state.t) / LOB_PEAK_HEIGHT);
+        shell.setRadius(8 * RUN_SCALE * apex);
+      },
+      onComplete: () => {
+        shell.destroy();
+        target.destroy();
+        // Land: ring + blast → player only.
+        const ring = this.add.circle(tx, ty, blast, 0xff5522, 0.4).setDepth(24).setScale(0.15);
+        this.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 260, ease: 'Power2', onComplete: () => ring.destroy() });
+        this.cameras.main.shake(120, 0.005);
+        if (withinRadius(tx, ty, this.player.x, this.player.y, blast)) {
+          this.damagePlayer(blastDamage);
+        }
+      },
+    });
+    return MORTAR_COOLDOWN_MS + MORTAR_FLIGHT_MS;
+  }
+
+  /** spawner: summon a minion near the spawner if under the alive cap. Tracks child uids on the
+   *  spawner data (pruned against the live enemy group each attempt). */
+  private profileSpawner(e: any): number {
+    const spawns = e.getData('spawns') as string | undefined;
+    if (!spawns || !ENEMIES[spawns]) return SPAWNER_COOLDOWN_MS;
+    const liveUids = new Set((this.enemies.getChildren() as any[]).filter((c) => c.active).map((c) => c.getData('uid')));
+    let kids = (e.getData('childUids') as string[] | undefined) ?? [];
+    kids = kids.filter((uid) => liveUids.has(uid)); // prune dead children
+    if (!spawnerMaySummon(kids.length)) { e.setData('childUids', kids); return -1; }
+    const ang = Math.random() * Math.PI * 2, r = 60;
+    const child = this.spawnEnemyAt(ENEMIES[spawns], e.x + Math.cos(ang) * r, e.y + Math.sin(ang) * r);
+    child.setData('asleep', false);
+    this.wakeEnemy(child); // awake + aggroed
+    kids.push(child.getData('uid'));
+    e.setData('childUids', kids);
+    // Brief summon tint on the spawner.
+    e.setTint(0x66ff99);
+    this.time.delayedCall(180, () => { if (e.active) e.clearTint(); });
+    return SPAWNER_COOLDOWN_MS;
+  }
+
+  /** haunt: drop a small damaging patch at the enemy's position while it is moving (it circles the
+   *  player, so the trail forms a damaging ring). Holds the drop while stationary. */
+  private profileHaunt(e: any): number {
+    const v = e.body?.velocity;
+    const moving = v && (Math.abs(v.x) + Math.abs(v.y)) > 1;
+    if (!moving) return -1; // parked — no trail to lay
+    // RC-009: flat patch damage scales with tier so the haunt trail stays threatening at end-game.
+    this.spawnEnemyPatch(e.x, e.y, 20 * RUN_SCALE, HAUNT_LINGER_MS, Math.round(8 * enemyDamageMult(this.expedition.tier)));
+    return HAUNT_DROP_MS;
+  }
+
+  /** RC-040: trigger enrage once HP drops below the threshold — +ENRAGE_MULT speed, faster cadence
+   *  (via enrageRateMult read by the fire/profile ticks), red tint. Idempotent (guarded by data). */
+  private maybeEnrage(e: any) {
+    if (e.getData('enraged') || !e.getData('enrage')) return;
+    if (!enrageActive(e.getData('hp'), e.getData('maxHp'))) return;
+    e.setData('enraged', true);
+    e.setData('enrageRateMult', ENRAGE_MULT);
+    e.setData('speed', (e.getData('speed') as number) * ENRAGE_MULT);
+    e.setTint(0xff5544);
+  }
+
+  /** Clear a hit-flash tint, but re-apply the enrage red if the mob is enraged (so the hit-flash
+   *  doesn't wipe the persistent enrage tint). Safe after destroy (guards on active). */
+  private restoreEnemyTint(e: any) {
+    if (!e.active) return;
+    if (e.getData('enraged')) e.setTint(0xff5544);
+    else e.clearTint();
+  }
+  // ======================= end RC-040 enemy attack profiles =======================
 
   private hitPlayerProjectile(bullet: any) {
     if (!bullet.active) return;
@@ -1135,7 +1756,7 @@ export class RunScene extends Phaser.Scene {
     if (armor > 0 && !ignoresArmor) {
       enemy.setData('armor', armor - 1);
       enemy.setTintFill(0x66ccff);
-      this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
+      this.time.delayedCall(60, () => this.restoreEnemyTint(enemy));
       const blk = this.add.text(enemy.x, enemy.y - 8, '⛊', {
         fontSize: '14px', color: '#9fe0ff', stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5).setDepth(30);
@@ -1146,7 +1767,7 @@ export class RunScene extends Phaser.Scene {
 
     // --- Juice: hit-flash ---
     enemy.setTintFill(0xffffff);
-    this.time.delayedCall(60, () => { if (enemy.active) enemy.clearTint(); });
+    this.time.delayedCall(60, () => this.restoreEnemyTint(enemy));
 
     // --- Juice: floating damage number (RC-031: heavy hits read bigger + gold) ---
     const heavy = damage >= 50;
@@ -1164,6 +1785,11 @@ export class RunScene extends Phaser.Scene {
     if (hp <= 0) {
       const ex = enemy.x, ey = enemy.y;
       this.kills += 1; // RC-022 B3: a damage-kill increments the HUD counter (ceremony wipe doesn't)
+      // RC-026: if this was a shrine guardian, retire it from the wave set — the last one pays out.
+      this.onShrineWaveDeath(enemy.getData('uid'));
+      // RC-026: catching the courier (by damage) bursts its mixed jackpot at the death point. The
+      // contact-catch path in hitPlayer pays the same way before its destroy().
+      if (enemy.getData('poiCourier')) this.payCourierJackpot(ex, ey);
       // RC-018: stop any charger telegraph tween before the sprite is freed.
       this.stopChargerTell(enemy);
       // RC-018: a splitter bursts into weaker children at its death position.
@@ -1232,10 +1858,23 @@ export class RunScene extends Phaser.Scene {
     } else {
       playSfx('enemy-hit'); // RC-020
       enemy.setData('hp', hp);
+      // RC-040: a non-fatal hit may cross the enrage threshold — trigger it now (the profile tick
+      // also checks, but this makes the tint/speed boost land on the hit that crossed the line).
+      if (enemy.getData('enrage') && !enemy.getData('enraged')) this.maybeEnrage(enemy);
     }
   }
 
   private hitPlayer(enemy: any) {
+    // RC-026: touching the courier IS the catch (incl. the stealth-catch of a still-sleeping one).
+    // Pay its jackpot then destroy BEFORE the generic non-boss kamikaze destroy below. contactDamage
+    // is 0 so this never harms the player; no player-hit feedback — it's a reward, not a hit.
+    if (enemy.getData('poiCourier')) {
+      const ex = enemy.x, ey = enemy.y;
+      this.stopChargerTell(enemy);
+      enemy.destroy();
+      this.payCourierJackpot(ex, ey);
+      return;
+    }
     // RC-035: read contactDamage BEFORE any branch so destroy() can't null the DataManager first.
     const contactDamage = (enemy.getData('contactDamage') as number | undefined) ?? 0;
     // The boss is exempt from kamikaze destruction — it deals contact damage and stays alive.
@@ -1264,10 +1903,14 @@ export class RunScene extends Phaser.Scene {
   }
 
   private dropGem(x: number, y: number, resource: Resource, opts?: { valueOverride?: number; tierOverride?: GemTier }) {
+    // RC-038: jackpot bursts at wall-adjacent shrines/couriers scatter loot on a ring that can land
+    // in the wall band — clamp so every gem is reachable inside the playable field.
+    const cg = clampToPlayable(x, y, this.layout.width, this.layout.height, WALL_THICKNESS + 24);
+    x = cg.x; y = cg.y;
     const tier = opts?.tierOverride ?? gemTierForExpeditionTier(this.expedition.tier);
     const value = opts?.valueOverride ?? rewardValueForTier(this.expedition.tier);
     // RC-022 B5: display size scales with the value tier so a jackpot reads bigger at a glance.
-    const sizePx = 14 * RUN_SCALE * gemDisplayScale(value);
+    const sizePx = 14 * RUN_SCALE * gemDisplayScale(value, this.expedition.tier);
     const gem = this.add.image(x, y, gemSpriteId(resource, tier)) as any;
     gem.setDisplaySize(sizePx, sizePx);
     this.physics.add.existing(gem);
@@ -1278,7 +1921,7 @@ export class RunScene extends Phaser.Scene {
     // Not rare: the boss jackpot AND every per-kill drop at tier 6+ qualify, so dozens can glow
     // concurrently late-game — each is one circle + one tween, cheap. Cheaper than postFX; parented
     // to follow the gem (and torn down with it) so the magnet sweep carries the glow along.
-    if (gemValueTier(value) === 'major') {
+    if (gemValueTier(value, this.expedition.tier) === 'major') {
       const tint = this.gemGlowColor(resource);
       const glow = this.add.circle(x, y, sizePx * 0.85, tint, 0.3)
         .setDepth(gem.depth - 1).setBlendMode(Phaser.BlendModes.ADD);
@@ -1582,10 +2225,64 @@ export class RunScene extends Phaser.Scene {
     // crashes Phaser as it keeps iterating colliders over freed groups. So defer the hand-off to the
     // top of the next update(), after the physics step has fully unwound.
     this.pendingComplete = {
-      collected: { ...this.collected },
+      collected: applyHaulMult({ ...this.collected }, this.mutFx.rewardMult),
       survivedMs: this.elapsed,
       died,
       tier: this.expedition.tier,
+      mutators: [...this.mutatorIds],
+      rewardMult: this.mutFx.rewardMult,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // RC-039: ESC pause menu. Reuses the draft overlay's pause mechanics (paused flag +
+  // physics.pause/resume); main.ts owns the DOM overlay and drives the buttons via the
+  // public methods below.
+  // ---------------------------------------------------------------------------
+
+  /** ESC handler: open the pause menu, or close it if it's already open. A no-op while a draft is
+   *  open (paused but not via the pause menu), during the victory ceremony, or after the run has
+   *  finished — ESC there must not desync the pause state. */
+  private togglePauseMenu() {
+    if (this.pauseMenuOpen) { this.closePauseMenu(); return; }
+    if (this.paused || this.ceremony || this.finished) return; // draft up / wrapping up — leave alone
+    this.openPauseMenu();
+  }
+
+  private openPauseMenu() {
+    if (this.pauseMenuOpen) return; // idempotent — never stack
+    this.pauseMenuOpen = true;
+    this.paused = true;
+    this.physics.pause();
+    this.onPauseMenu?.(true);
+  }
+
+  /** Close the pause menu and resume play. Public so main.ts's Resume button can call it. Idempotent
+   *  and a no-op once the run has finished (the scene is being torn down). */
+  closePauseMenu() {
+    if (!this.pauseMenuOpen) return;
+    this.pauseMenuOpen = false;
+    this.onPauseMenu?.(false);
+    if (this.finished) return; // run already ending — don't un-pause a dying scene
+    this.paused = false;
+    this.physics.resume();
+  }
+
+  /** Abandon the expedition: bank the partial haul EXACTLY like death (voluntary death, no corpse).
+   *  Routes through finish(true) so banking, best-haul tracking, and the end screen all behave; the
+   *  deferred pendingComplete drains at the top of the next update() (which runs even while paused). */
+  abandonRun() {
+    this.pauseMenuOpen = false;
+    this.finish(true);
+  }
+
+  /** Discard the run with NO banking — used when loading a save from the pause menu (you're rewinding,
+   *  so the run never happened). Stops the scene cleanly WITHOUT calling onComplete, so main.ts owns
+   *  the subsequent civ-screen transition via its load path. */
+  discardRun() {
+    this.pauseMenuOpen = false;
+    this.finished = true; // block any in-flight finish()/ceremony from also firing onComplete
+    this.onPauseMenu?.(false);
+    this.scene.stop();
   }
 }

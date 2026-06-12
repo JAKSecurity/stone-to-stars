@@ -111,9 +111,20 @@ export interface EnemyDef {
   armor?: number;             // hits absorbed before HP damage applies (each hit strips one layer);
                               // onHit.ignoreArmor weapons bypass it. Guarantees multi-hit kills regardless of damage.
   attack?: 'ranged' | 'melee';// fires a slow projectile: 'ranged' = long reach, 'melee' = only up close
+  // RC-040 — telegraphed attack profile. When present it REPLACES the basic `attack` (the def drops
+  // `attack`); the scene dispatches per-profile machinery (constants + geometry in src/run/enemyAttacks.ts).
+  // Low-tier enemies carry none ⇒ basic `attack` (or nothing). Profiles: volley (fast weak shots),
+  // flamejet (burning cone patches), slash (melee arc sweep), beam (locked laser line), mortar (lobbed
+  // AoE shell), spawner (summons `spawns` minions, capped), haunt (damaging trail along its own path).
+  attackProfile?: 'volley' | 'flamejet' | 'slash' | 'beam' | 'mortar' | 'spawner' | 'haunt';
+  // RC-040 — below ENRAGE_THRESHOLD HP: +60% speed and fire rate, red tint. Orthogonal to attackProfile.
+  enrage?: boolean;
+  // RC-040 — 'spawner' profile only: enemy id the spawner summons (e.g. mecha → 'drone').
+  spawns?: string;
   // RC-018 — movement archetype, orthogonal to `attack` (firing). Absent ⇒ 'chase' (default).
   // 'charger' telegraphs then dashes; 'circler' orbits/strafes; 'standoff' holds firing distance.
-  behavior?: 'chase' | 'charger' | 'splitter' | 'circler' | 'standoff';
+  // 'flee' runs away from the player (RC-026 treasure courier).
+  behavior?: 'chase' | 'charger' | 'splitter' | 'circler' | 'standoff' | 'flee';
   // 'splitter' only: on death, spawn `count` children of enemy id `into` (e.g. rock_golem → cave_dwellers).
   split?: { into: string; count: number };
 }
@@ -192,6 +203,8 @@ export interface RunResult {
   survivedMs: number;
   died: boolean;
   tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
+  mutators?: string[];   // RC-029: active mutator ids this run (empty/absent = none)
+  rewardMult?: number;   // RC-029: the additive-stack multiplier applied to `collected`
 }
 
 // RC-031 — every passive is a sidegrade: at least one positive and one negative axis.

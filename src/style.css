@@ -16,8 +16,29 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .runend-res .ricon { font-size: 2rem; }
 .runend-res .rval { font-size: 1.7rem; font-weight: 700; margin-top: 4px; }
 .runend-res .rlbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; margin-top: 2px; }
+.mutline { font-size: 0.95rem; color: #e0b341; opacity: 0.9; margin: -10px 0 24px; }
 .runend-btn { padding: 14px 30px; font-size: 1.1rem; background: #238636; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
 .runend-btn:hover { background: #2ea043; }
+
+/* RC-039 — ESC pause menu. A semi-opaque backdrop over the live run with a centered flat panel
+   (jeff-ui-design). Sits above the canvas; mutually exclusive with #runend so z-index 15 is safe. */
+#pausemenu { display: none; position: fixed; inset: 0; z-index: 15;
+  background: rgba(7, 10, 16, 0.82); align-items: center; justify-content: center; }
+#pausemenu.active { display: flex; }
+.pause-panel { width: min(560px, 92vw); max-height: 92vh; overflow-y: auto;
+  background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+.pause-panel > h2 { margin: 0; font-size: 1.4rem; text-align: center; letter-spacing: 0.04em; }
+.pause-btn { width: 100%; padding: 13px 18px; font-size: 1rem; border: none; border-radius: 9px;
+  cursor: pointer; color: #fff; text-align: center; }
+.pause-primary { background: #238636; }
+.pause-primary:hover { background: #2ea043; }
+.pause-danger { background: #6e2532; border: 1px solid #8a3344; }
+.pause-danger:hover { background: #8a2c3c; }
+.pause-vol { display: flex; align-items: center; gap: 12px;
+  background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 14px; }
+.pause-vol label { font-size: 0.9rem; opacity: 0.85; white-space: nowrap; }
+.pause-vol input[type="range"] { flex: 1; cursor: pointer; accent-color: #6cf; }
 
 .civ-wrap { width: 100%; margin: 0; padding: 16px 28px; }
 
@@ -47,7 +68,7 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .resbar .age { margin-left: auto; opacity: 0.85; }
 .record { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.82rem; opacity: 0.75; padding: 6px 14px 0; }
 .record strong { opacity: 1; }
-.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 640px), 1fr)); gap: 18px; margin-top: 16px; }
 .panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
 .panel h2 { margin: 0 0 10px; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
 .techage { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.45; margin: 12px 0 5px; padding-bottom: 3px; border-bottom: 1px solid #30363d; }
@@ -62,8 +83,8 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .tech button { flex: none; }
 .tech button { cursor: pointer; }
 .tech button:disabled { cursor: not-allowed; opacity: 0.4; }
-.grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.cell { aspect-ratio: 1; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 1.4rem; }
+.grid { display: grid; grid-template-columns: repeat(5, 120px); gap: 6px; }
+.cell { aspect-ratio: 1; width: 120px; height: 120px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-size: 1.4rem; }
 .cell .lvl { font-size: 0.85rem; opacity: 0.8; text-align: center; }
 .cell.locked-tile { background: #0a0d12; border-style: dashed; border-color: #21262d; cursor: default; opacity: 0.5; }
 .cell.locked-tile .lvl { font-size: 1rem; opacity: 0.6; }
@@ -160,4 +181,10 @@ body { margin: 0; background: #0d1117; color: #e6edf3; font-family: system-ui, s
 .exp-foes { display: flex; flex-wrap: wrap; gap: 4px; margin: 9px 0 7px; }
 .exp-foes canvas { flex: none; }
 .exp-meta { font-size: 0.78rem; opacity: 0.85; }
+/* RC-029 mutator wager chips on expedition cards (flat, dense; green = selected, like .wcard.sel) */
+.mutchips { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 9px; }
+.mutchip { font-size: 0.66rem; line-height: 1; padding: 4px 7px; border: 1px solid #30363d; border-radius: 5px; background: #0d1117; color: #c9d1d9; cursor: pointer; user-select: none; }
+.mutchip:hover { background: #11161d; border-color: #6e7681; }
+.mutchip.mut-on { border-color: #3fb950; background: #11201a; color: #e6edf3; }
+.muttotal { font-size: 0.72rem; font-weight: 700; color: #3fb950; margin-left: auto; }
 .exp-back { margin-top: 16px; padding: 10px 16px; background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; cursor: pointer; }

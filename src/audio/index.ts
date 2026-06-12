@@ -206,19 +206,33 @@ export function mountAudioControls(parent?: HTMLElement): HTMLElement | null {
     sync();
   });
 
-  const onSlide = () => {
+  bindVolumeSlider(slider, sync);
+
+  panel.appendChild(btn);
+  panel.appendChild(slider);
+  host.appendChild(panel);
+  return panel;
+}
+
+/**
+ * RC-039: wire an existing `<input type="range" min=0 max=100>` to the engine master volume so any
+ * UI (the bottom-right widget here, the pause menu) drives the same persisted value. Seeds the
+ * slider from the current volume, then on input updates the engine (and toggles mute at the
+ * extremes, matching the widget). `onChange` is an optional extra callback fired after each change
+ * (the widget uses it to refresh its mute icon). Returns a re-seed function the caller can invoke
+ * to pull the slider back in sync when the value may have changed elsewhere (e.g. reopening a menu).
+ */
+export function bindVolumeSlider(slider: HTMLInputElement, onChange?: () => void): () => void {
+  const reseed = () => { slider.value = String(Math.round(getVolume() * 100)); };
+  reseed();
+  slider.addEventListener('input', () => {
     ensureAudio();
     const v = (slider.valueAsNumber || 0) / 100;
     setVolume(v);
     // The slider doubles as a mute control at its extremes.
     if (v === 0 && !isMuted()) setMuted(true);
     else if (v > 0 && isMuted()) setMuted(false);
-    sync();
-  };
-  slider.addEventListener('input', onSlide);
-
-  panel.appendChild(btn);
-  panel.appendChild(slider);
-  host.appendChild(panel);
-  return panel;
+    onChange?.();
+  });
+  return reseed;
 }

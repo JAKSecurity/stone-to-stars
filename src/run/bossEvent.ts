@@ -11,7 +11,7 @@ export function dropsCatalyst(rng: () => number): boolean {
   return rng() < CATALYST_DROP_CHANCE;
 }
 export const BOSS_TELEGRAPH_MS = 1200;      // delay between the warning/banner and the boss appearing
-export const BOSS_HP_MULT = 5;              // boss spawns with baseHp × this
+export const BOSS_HP_MULT = 50;             // boss spawns with baseHp × this (2026-06-11 playtest: well-upgraded players melted 5×, bumped 10×)
 export const BOSS_GEM_COUNT = 10;           // gems in the kill burst
 export const BOSS_GEM_VALUE_MULT = 4;       // burst gem value vs a normal kill gem
 export const BOSS_BIG_GEM_VALUE_MULT = 20;  // the single upgraded gem's value vs a normal gem

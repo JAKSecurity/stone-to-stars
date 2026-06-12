@@ -4,7 +4,7 @@ import {
   generateLayout, DungeonLayout,
   DUNGEON_SCREENS_X, DUNGEON_SCREENS_Y,
   WALL_THICKNESS, BARRIER_THICKNESS, GAP_WIDTH, START_CLEAR_RADIUS, GAP_CLEAR_RADIUS,
-  routeAround, Barrier,
+  routeAround, Barrier, clampToPlayable,
 } from '../src/run/dungeonGen';
 
 const VIEW_W = 1280, VIEW_H = 720;
@@ -119,6 +119,40 @@ describe('dungeonGen — connectivity', () => {
       expect(stats.farReached).toBeGreaterThan(0);
       expect(stats.frac).toBeGreaterThan(0.95);
     }
+  });
+});
+
+describe('dungeonGen — clampToPlayable (RC-038)', () => {
+  const W = 3840, H = 2160, M = 72; // WALL_THICKNESS(48) + 24 in the scene; arbitrary here
+
+  it('leaves an in-bounds point untouched', () => {
+    expect(clampToPlayable(1000, 800, W, H, M)).toEqual({ x: 1000, y: 800 });
+  });
+
+  it('clamps a point past the left edge to the x margin', () => {
+    expect(clampToPlayable(-100, 800, W, H, M)).toEqual({ x: M, y: 800 });
+  });
+
+  it('clamps a point past the right edge to world − margin', () => {
+    expect(clampToPlayable(W + 500, 800, W, H, M)).toEqual({ x: W - M, y: 800 });
+  });
+
+  it('clamps a point past the top edge to the y margin', () => {
+    expect(clampToPlayable(1000, -50, W, H, M)).toEqual({ x: 1000, y: M });
+  });
+
+  it('clamps a point past the bottom edge to world − margin', () => {
+    expect(clampToPlayable(1000, H + 200, W, H, M)).toEqual({ x: 1000, y: H - M });
+  });
+
+  it('clamps an off-corner point to the nearest in-bounds corner (both axes)', () => {
+    expect(clampToPlayable(-30, -30, W, H, M)).toEqual({ x: M, y: M });
+    expect(clampToPlayable(W + 30, H + 30, W, H, M)).toEqual({ x: W - M, y: H - M });
+  });
+
+  it('snaps a point exactly on the margin to itself (boundary inclusive)', () => {
+    expect(clampToPlayable(M, M, W, H, M)).toEqual({ x: M, y: M });
+    expect(clampToPlayable(W - M, H - M, W, H, M)).toEqual({ x: W - M, y: H - M });
   });
 });
 

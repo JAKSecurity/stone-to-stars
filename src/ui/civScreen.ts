@@ -233,7 +233,7 @@ export function renderCivScreen(
     if (placed) {
       const def = BUILDINGS[placed.id];
       cell.innerHTML = '';
-      cell.appendChild(spriteCanvas(placed.id, 40));
+      cell.appendChild(spriteCanvas(placed.id, 120));
       const lvl = document.createElement('span');
       lvl.className = 'lvl';
       lvl.textContent = `${def.name} L${placed.level}`;
@@ -477,7 +477,12 @@ function saveSlotsSection(civ: CivState, onCivReplaced: (civ: CivState) => void)
   return panel;
 }
 
-function slotCard(slot: SlotId, civ: CivState, onCivReplaced: (civ: CivState) => void): HTMLElement {
+/**
+ * RC-039: a single save-slot card (Save with confirm-when-occupied; Load with confirm-always). The
+ * pause menu reuses this so its slot row is the exact same markup + behavior as the civ screen — only
+ * the `onCivReplaced` differs (the pause menu's discards the live run before adopting the slot).
+ */
+export function slotCard(slot: SlotId, civ: CivState, onCivReplaced: (civ: CivState) => void): HTMLElement {
   const info = slotInfo(slot);
   const card = document.createElement('div');
   card.className = 'slotcard' + (info ? ' filled' : '');

@@ -1,4 +1,5 @@
 import { RunResult, Resource, RESOURCES } from '../game/types';
+import { MUTATORS } from '../run/mutatorData';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
@@ -38,6 +39,15 @@ export function renderRunEndScreen(root: HTMLElement, result: RunResult, onConti
     grid.appendChild(cell);
   }
   wrap.appendChild(grid);
+
+  // RC-029: when wagers were honored, name them and show the haul multiplier they earned.
+  if (result.mutators?.length && result.rewardMult && result.rewardMult > 1) {
+    const names = result.mutators.map((id) => MUTATORS[id]?.name ?? id).join(', ');
+    const div = document.createElement('div');
+    div.className = 'mutline';
+    div.textContent = `Wagers honored: ${names} — haul ×${result.rewardMult.toFixed(2)}`;
+    wrap.appendChild(div);
+  }
 
   const btn = document.createElement('button');
   btn.className = 'runend-btn';
