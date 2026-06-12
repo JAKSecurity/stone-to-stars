@@ -20,6 +20,10 @@ describe('ageUnlocks', () => {
     expect(u.techs.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('never pre-announces the tech-gated finale biome (RC-042)', () => {
+    expect(ageUnlocks('space').biomes).not.toContain('The Last Stand');
+  });
+
   it('every age contributes at least its techs', () => {
     for (const age of ['bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern', 'space'] as const) {
       expect(ageUnlocks(age).techs.length).toBeGreaterThan(0);

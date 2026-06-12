@@ -48,7 +48,10 @@ export function renderVictoryScreen(
   runline.className = 'victory-stats';
   runline.innerHTML =
     `<span class="victory-stat">⏱ Survived <strong>${fmtTime(result.survivedMs)}</strong></span>` +
-    `<span class="victory-stat">💎 Haul <strong>${total}</strong></span>`;
+    `<span class="victory-stat">☠ Kills <strong>${result.kills ?? 0}</strong></span>` +
+    `<span class="victory-stat">💎 Haul <strong>${total}</strong></span>` +
+    // The finale only ends in victory at the mothership — the full gauntlet is implied.
+    `<span class="victory-stat">🛸 <strong>All 5 waves + Mothership</strong></span>`;
   wrap.appendChild(runline);
 
   const grid = document.createElement('div');

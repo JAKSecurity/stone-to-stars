@@ -1793,10 +1793,13 @@ export class RunScene extends Phaser.Scene {
     };
   }
 
-  /** HUD second-line prefix during the finale: which stage the player is facing. */
+  /** HUD second-line prefix during the finale: which stage the player is facing. During an
+   *  inter-wave beat the cleared wave's number is stale — show the UPCOMING stage instead
+   *  (matching the banner that just announced it). */
   private finaleHudTag(): string {
     if (!this.finale) return '';
-    return this.finaleWave >= 6 ? '🛸 MOTHERSHIP   ' : `🛸 Wave ${Math.max(1, this.finaleWave)}/5   `;
+    const stage = this.finaleBeatMs > 0 ? this.finaleWave + 1 : this.finaleWave;
+    return stage >= 6 ? '🛸 MOTHERSHIP   ' : `🛸 Wave ${Math.max(1, stage)}/5   `;
   }
 
   /** Screen-fixed finale stage banner (alarm-red, mirrors the boss-aggro banner's pop/fade). */
@@ -1855,8 +1858,8 @@ export class RunScene extends Phaser.Scene {
     if (this.formationMembers.length === 0) {
       const next = this.finaleWave + 1;
       this.finaleBeatMs = FINALE_BEAT_MS;
+      // No boss-arrival sfx here — spawnMothership plays it when the ship actually appears.
       this.showFinaleBanner(next > 5 ? '🛸 MOTHERSHIP' : `🛸 Wave ${next}/5`);
-      if (next > 5) playSfx('boss-arrival');
       return;
     }
     const wave = this.formationWaveDef!;
@@ -1866,7 +1869,13 @@ export class RunScene extends Phaser.Scene {
     const r = formationStep(this.formation!, dt, wave.marchSpeed * RUN_SCALE,
       margin + halfW, this.layout.width - margin - halfW);
     this.formation = r.s;
-    if (r.dropped) this.formationY += wave.dropPx * RUN_SCALE;
+    if (r.dropped) {
+      // Classic invaders pressure the floor but never pancake: cap the descent so the LOWEST row
+      // stops at the same margin the per-member clamp uses. Once at the cap, drops are no-ops and
+      // the block keeps marching laterally — kamikaze contact resolves the wave, no soft-lock.
+      const maxY = this.layout.height - margin - (wave.rows.length - 1) * spacing;
+      this.formationY = Math.min(this.formationY + wave.dropPx * RUN_SCALE, maxY);
+    }
     const originX = r.s.x;
     for (const m of this.formationMembers) {
       const p = clampToPlayable(originX + m.dx, this.formationY + m.dy,
@@ -2583,6 +2592,7 @@ export class RunScene extends Phaser.Scene {
       tier: this.expedition.tier,
       mutators: [...this.mutatorIds],
       rewardMult: this.mutFx.rewardMult,
+      kills: this.kills,
       // RC-042: surviving the finale = the mothership fell (its death is the only finish(false)
       // path here — the auto zone-clear is finale-suppressed). Death/abandon (died) banks normally
       // with no flag, so the Last Stand stays replayable until won.

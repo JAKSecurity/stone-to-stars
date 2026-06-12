@@ -56,6 +56,7 @@ const BIOME_MOOD: Record<string, string> = {
   caverns: 'dark-dungeon', cursed_keep: 'dark-dungeon',
   colosseum: 'epic-battle',
   plague_city: 'grim-war', foundry_wastes: 'grim-war', no_mans_land: 'grim-war',
+  last_stand: 'grim-war', // RC-042 finale — tensest existing mood (shared with No Man's Land)
 };
 
 const ERA_TRACKS: Record<string, MusicTrack> = {

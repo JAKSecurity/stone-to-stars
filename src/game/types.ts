@@ -214,6 +214,7 @@ export interface RunResult {
   died: boolean;
   tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
   mutators?: string[];   // RC-029: active mutator ids this run (empty/absent = none)
+  kills?: number;        // per-run damage-kill count (the HUD ☠ counter) — victory-screen stat
   rewardMult?: number;   // RC-029: the additive-stack multiplier applied to `collected`
   finaleVictory?: boolean; // RC-042: the Last Stand mothership was destroyed — main.ts routes this
                            // to the victory screen and applyRunResult sets civ.lastStandWon.
