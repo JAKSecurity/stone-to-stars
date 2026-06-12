@@ -108,12 +108,14 @@ export function spawnerMaySummon(aliveChildren: number): boolean {
 
 // ---- RC-009: tier-based damage multipliers ----
 
-/** Regular-enemy damage multiplier by run tier: linear 1.0 (tier 0) → 3.0 (tier 7). */
+/** Regular-enemy damage multiplier by run tier: linear 1.0 (tier 0) → 3.0 (tier 7).
+ *  RC-041: tier 8 (space) clamps at the playtest-tuned modern cap — the space age has no
+ *  regular expeditions; the RC-042 finale brings its own boss multiplier. */
 export function enemyDamageMult(tier: number): number {
   return 1 + (Math.max(0, Math.min(7, tier)) / 7) * 2;
 }
 
-/** Apex-boss damage multiplier by run tier: linear 1.0 (tier 0) → 6.0 (tier 7). */
+/** Apex-boss damage multiplier by run tier: linear 1.0 (tier 0) → 6.0 (tier 7); tier 8 clamps (see above). */
 export function bossDamageMult(tier: number): number {
   return 1 + (Math.max(0, Math.min(7, tier)) / 7) * 5;
 }

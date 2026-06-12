@@ -48,7 +48,8 @@ describe('weaponData v2 integrity', () => {
   });
 
   it('each age from iron on offers at least 3 distinct archetypes', () => {
-    for (const age of AGE_ORDER.slice(2)) {
+    // RC-041: space is a deliberate mini-age with a single weapon (laser_array) — exempt.
+    for (const age of AGE_ORDER.slice(2).filter((a) => a !== 'space')) {
       const archs = new Set(defs.filter((d) => d.tier === age).map((d) => d.archetype));
       expect(archs.size, age).toBeGreaterThanOrEqual(3);
     }

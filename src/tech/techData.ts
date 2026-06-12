@@ -108,4 +108,19 @@ export const TECHS: Record<string, TechNode> = {
     unlocksBuilding:'airfield', runBonus:{ damageMult:0.18 } },
   radio: { id:'radio', name:'Radio', age:'modern',
     cost:{ science:100 }, requires:['ballistics'], runBonus:{ draftChoices:1 } },
+  // RC-041 — space: a mini 9th age (4 techs). Requirements pull from BOTH modern branches
+  // (combustion line + radio line) so the whole modern tier stays relevant.
+  rocketry: { id:'rocketry', name:'Rocketry', age:'space',
+    cost:{ industry:130, science:90 }, requires:['combustion'],
+    unlocksBuilding:'launch_pad', gatesAge:'space' },
+  computers: { id:'computers', name:'Computers', age:'space',
+    cost:{ science:120, industry:60 }, requires:['radio'],
+    unlocksBuilding:'mission_control', runBonus:{ draftChoices:1 } },
+  satellites: { id:'satellites', name:'Satellites', age:'space',
+    cost:{ science:110, exploration:60 }, requires:['rocketry'],
+    runBonus:{ weapons:['laser_array'] } },
+  // Capstone — deliberately grants nothing here: RC-042 wires it to unlock The Last Stand
+  // finale (the finale IS the payoff).
+  planetary_defense: { id:'planetary_defense', name:'Planetary Defense', age:'space',
+    cost:{ industry:150, science:140 }, requires:['computers', 'satellites'] },
 };

@@ -110,4 +110,8 @@ export const BUILDINGS: Record<string, BuildingDef> = {
     yield:{industry:13}, runBonus:{ maxHp:55, weapons:['mortar'] }, maxLevel:3 },
   airfield: { id:'airfield', age:'modern', name:'Airfield', baseCost:{science:90,industry:70},
     yield:{science:13}, runBonus:{ damageMult:0.18 }, maxLevel:3 },
+  launch_pad: { id:'launch_pad', age:'space', name:'Launch Pad', baseCost:{industry:130,science:60},
+    yield:{industry:18}, runBonus:{ damageMult:0.20 }, maxLevel:3 },
+  mission_control: { id:'mission_control', age:'space', name:'Mission Control', baseCost:{science:110,industry:70},
+    yield:{science:15}, runBonus:{ maxHp:60 }, maxLevel:3 },
 };

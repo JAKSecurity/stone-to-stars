@@ -2,9 +2,9 @@ export type Resource = 'exploration' | 'science' | 'industry' | 'culture';
 export const RESOURCES: Resource[] = ['exploration', 'science', 'industry', 'culture'];
 export type ResourceBundle = Record<Resource, number>;
 
-export type AgeId = 'stone' | 'bronze' | 'iron' | 'classical' | 'medieval' | 'renaissance' | 'industrial' | 'modern';
-/** Ascending order; index = how advanced. */
-export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern'];
+export type AgeId = 'stone' | 'bronze' | 'iron' | 'classical' | 'medieval' | 'renaissance' | 'industrial' | 'modern' | 'space';
+/** Ascending order; index = how advanced. RC-041: space is a mini 9th age (4 techs) capping the tree. */
+export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern', 'space'];
 
 // RC-031 — Forge & Fuse. A weapon's verb. Archetype presets (src/run/archetypes.ts) give each
 // archetype a trajectory + default on-hit; hybrids union their parents' shapes.

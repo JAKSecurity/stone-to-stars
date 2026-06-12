@@ -30,7 +30,7 @@ export const ARCHETYPES: Record<ArchetypeId, ArchetypePreset> = {
 // Spec §4 — age-scaled level depth: early weapons fuse fast (2 levels), late ones go deep.
 export const MAX_LEVEL_BY_AGE: Record<AgeId, number> = {
   stone: 2, bronze: 2, iron: 3, classical: 3,
-  medieval: 4, renaissance: 4, industrial: 5, modern: 5,
+  medieval: 4, renaissance: 4, industrial: 5, modern: 5, space: 6,
 };
 
 export interface WeaponShape {

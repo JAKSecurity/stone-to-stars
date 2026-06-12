@@ -6,7 +6,7 @@ import { ENEMIES } from '../src/run/enemyData';
 describe('spawnEscalation', () => {
   it('nextAgeBiomeId returns the biome of the next age, or null at the top', () => {
     expect(nextAgeBiomeId(BIOMES.wilds, BIOMES)).toBeTruthy();      // stone → a bronze+ biome
-    expect(nextAgeBiomeId(BIOMES.no_mans_land, BIOMES)).toBeNull(); // modern is the last age
+    expect(nextAgeBiomeId(BIOMES.no_mans_land, BIOMES)).toBeNull(); // space (RC-041) has no biome, so modern has no next-age seed
   });
 
   it('at progress 0 the table is the biome base table', () => {

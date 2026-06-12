@@ -33,8 +33,8 @@ describe('expedition card helpers (RC-027)', () => {
 });
 
 describe('age order', () => {
-  it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern', () => {
-    expect(AGE_ORDER).toEqual(['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern']);
+  it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern → space', () => {
+    expect(AGE_ORDER).toEqual(['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern', 'space']);
   });
 });
 

@@ -3,12 +3,12 @@ import { rewardValueForTier } from '../game/economy';
 
 export type GemTier = 'chipped' | 'cut' | 'brilliant';
 
-/** Cosmetic gem tier for a run, keyed to the expedition's age tier (an AGE_ORDER index, 0–7).
+/** Cosmetic gem tier for a run, keyed to the expedition's age tier (an AGE_ORDER index, 0–8).
  *  Early ages drop rough shards; late ages drop brilliant gems. Pure cosmetic — no balance. */
 export function gemTierForExpeditionTier(tier: number): GemTier {
   if (tier <= 2) return 'chipped';   // stone / bronze / iron
   if (tier <= 5) return 'cut';       // classical / medieval / renaissance
-  return 'brilliant';                // industrial / modern
+  return 'brilliant';                // industrial / modern / space
 }
 
 /** Sprite id for a resource gem at a tier. The 'cut' baseline keeps the original `gem_<resource>`

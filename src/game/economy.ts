@@ -37,5 +37,5 @@ export function rewardValueForTier(runTier: number): number {
   return Math.round(gemValueForTier(runTier) * REWARD_MULT);
 }
 
-/** AGE_ORDER index of an age (0 = stone ... 7 = modern). */
+/** AGE_ORDER index of an age (0 = stone ... 8 = space). */
 export function ageIndexOf(age: AgeId): number { return AGE_ORDER.indexOf(age); }

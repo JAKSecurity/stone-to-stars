@@ -12,9 +12,9 @@ import { research } from '../src/tech/tech';
 const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
 describe('camp', () => {
-  it('defines granary, mine, forge, smelter, foundry, deep_mine, classical buildings (academy, market, workshop), medieval buildings (armory, cathedral, keep), renaissance buildings (bank, gunsmith, university), industrial buildings (arsenal, factory, powerplant), and modern buildings (airfield, barracks, motor_pool)', () => {
+  it('defines granary, mine, forge, smelter, foundry, deep_mine, classical buildings (academy, market, workshop), medieval buildings (armory, cathedral, keep), renaissance buildings (bank, gunsmith, university), industrial buildings (arsenal, factory, powerplant), modern buildings (airfield, barracks, motor_pool), and space buildings (launch_pad, mission_control)', () => {
     expect(Object.keys(BUILDINGS).sort()).toEqual(
-      ['academy', 'airfield', 'armory', 'arsenal', 'bank', 'barracks', 'cathedral', 'deep_mine', 'forge', 'foundry', 'factory', 'granary', 'gunsmith', 'keep', 'market', 'mine', 'motor_pool', 'powerplant', 'smelter', 'university', 'workshop'].sort(),
+      ['academy', 'airfield', 'armory', 'arsenal', 'bank', 'barracks', 'cathedral', 'deep_mine', 'forge', 'foundry', 'factory', 'granary', 'gunsmith', 'keep', 'launch_pad', 'market', 'mine', 'mission_control', 'motor_pool', 'powerplant', 'smelter', 'university', 'workshop'].sort(),
     );
   });
 
