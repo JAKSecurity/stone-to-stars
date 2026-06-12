@@ -314,6 +314,12 @@ export class RunScene extends Phaser.Scene {
         e.setData('hp', maxHp);
         e.setData('maxHp', maxHp);
         e.setData('isBoss', true);
+        // RC-019 playtest: apex boss rendered at 2× size; re-apply shrinkBody so the physics
+        // body scales with the new display size (shrinkBody uses source-frame px, so body world
+        // size = sourceW * 0.72 * scaleX — doubling scaleX via setDisplaySize doubles the body).
+        const def = ENEMIES[p.id];
+        e.setDisplaySize(def.displaySize.w * RUN_SCALE * 2, def.displaySize.h * RUN_SCALE * 2);
+        this.shrinkBody(e, 0.72);
         this.bossEnemy = e;
       }
     }
@@ -1155,7 +1161,10 @@ export class RunScene extends Phaser.Scene {
 
   private createBossHpBar() {
     const { width } = this.scale;
-    const w = Math.min(520, width * 0.6), h = 16, x = (width - w) / 2, y = 18;
+    const w = Math.min(520, width * 0.6), h = 16, x = (width - w) / 2;
+    // Position below the full HUD strip (text + XP bar) so the bar never overlaps the counter.
+    const hudBottom = this.xpBarBg.getBounds().bottom;
+    const y = hudBottom + 14;
     const bg = this.add.rectangle(x, y, w, h, 0x220000, 0.85).setOrigin(0, 0).setDepth(60).setScrollFactor(0).setStrokeStyle(2, 0x000000);
     const fill = this.add.rectangle(x, y, w, h, 0xff3322, 1).setOrigin(0, 0).setDepth(61).setScrollFactor(0);
     const label = this.add.text(width / 2, y + h + 2, ENEMIES[this.bossId]?.name ?? 'Boss', {
