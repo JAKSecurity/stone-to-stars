@@ -38,6 +38,22 @@ From the 2026-06-10 playtest notes (#1, #2). Current state (per code map):
 - [ ] No placed building ends up on a locked tile after the ordering change (save-safe)
 - [ ] Unit tests for the tile-unlock ordering (pure); visual check of the camp screen
 
+## Resolution (2026-06-12)
+Delivered per the ratified spec
+`docs/superpowers/specs/2026-06-12-rc-032-camp-city-growth-design.md` and plan
+`docs/superpowers/plans/2026-06-12-rc-032-city-growth.md`.
+
+- **Scope #1 (sizing) was already delivered** by commit 6cb5759 during the 2026-06-11
+  playtest (cells/sprites at 120px = 3×) — this ticket's code map was stale; no size
+  changes shipped here.
+- **Scope #2**: `TILE_UNLOCK_ORDER` center-out ring ordering (5×5 kept; Stone core =
+  center + 4 orthogonals + 1 diagonal), order-aware `tileUnlocked`/`firstEmptyTile`,
+  locked tiles restyled as faint terrain (no 🔒), and an idempotent `remapCampTiles`
+  load-time migration (sorts by unlock rank — no save version bump).
+- 7 new vitest cases + ~15 row-major assertions updated (438 total green); Playwright
+  check confirmed a legacy corner save re-centers (mine→tile 12, granary→tile 7) and
+  the faint fringe renders.
+
 ## References
 - 2026-06-10 playtest notes (#1, #2)
 - `src/game/config.ts`, `src/camp/camp.ts`, `src/ui/civScreen.ts`, `src/style.css`
