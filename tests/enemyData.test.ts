@@ -77,3 +77,80 @@ describe('enemyData — RC-018 behavior archetypes', () => {
     }
   });
 });
+
+describe('enemyData — RC-040 attack-profile assignments', () => {
+  // Binding assignment table from docs/tickets/RC-040-enemy-attack-arsenal.md.
+  const PROFILES: Record<string, 'volley' | 'flamejet' | 'slash' | 'beam' | 'mortar' | 'spawner' | 'haunt'> = {
+    hoplite: 'slash',
+    cyclops: 'beam',
+    knight: 'slash',
+    gargoyle: 'haunt',
+    dragon: 'flamejet',
+    musketeer: 'volley',
+    grenadier: 'mortar',
+    dreadnought: 'mortar',
+    steam_tank: 'mortar',
+    mecha: 'spawner',
+    rifleman: 'volley',
+    gunship: 'volley',
+    halftrack: 'volley',
+    juggernaut: 'slash',
+    rock_golem: 'slash',
+    iron_golem: 'slash',
+  };
+  // Apex/heavy ids that ALSO enrage below the HP threshold.
+  const ENRAGED = new Set(['cyclops', 'dragon', 'dreadnought', 'mecha', 'juggernaut', 'iron_golem']);
+  // Every enemy the ticket leaves untouched — must carry no attackProfile.
+  const UNCHANGED = ['beast', 'scholar', 'skeleton', 'cave_dweller', 'automaton', 'harpy', 'centaur', 'pikeman', 'riveter', 'drone'];
+
+  it('every tabled enemy has its exact attackProfile', () => {
+    for (const [id, profile] of Object.entries(PROFILES)) {
+      expect(ENEMIES[id], `${id} missing from ENEMIES`).toBeDefined();
+      expect(ENEMIES[id].attackProfile, id).toBe(profile);
+    }
+  });
+
+  it('a profile REPLACES the basic attack (no def carries both)', () => {
+    for (const def of Object.values(ENEMIES)) {
+      if (def.attackProfile) expect(def.attack, `${def.id} has both attackProfile and attack`).toBeUndefined();
+    }
+  });
+
+  it('exactly the tabled apex/heavy ids enrage', () => {
+    const enraged = new Set(
+      Object.values(ENEMIES).filter((d) => d.enrage).map((d) => d.id),
+    );
+    expect(enraged).toEqual(ENRAGED);
+  });
+
+  it('every spawner declares a valid spawns id, and only spawners do', () => {
+    for (const def of Object.values(ENEMIES)) {
+      if (def.attackProfile === 'spawner') {
+        expect(def.spawns, `${def.id} spawner has no spawns id`).toBeDefined();
+        expect(ENEMIES[def.spawns!], `${def.id} spawns unknown ${def.spawns}`).toBeDefined();
+      } else {
+        expect(def.spawns, `${def.id} carries spawns but is not a spawner`).toBeUndefined();
+      }
+    }
+  });
+
+  it('mecha is the spawner and summons drones', () => {
+    expect(ENEMIES.mecha.attackProfile).toBe('spawner');
+    expect(ENEMIES.mecha.spawns).toBe('drone');
+  });
+
+  it('every attackProfile is a known profile value', () => {
+    const ALLOWED = new Set(['volley', 'flamejet', 'slash', 'beam', 'mortar', 'spawner', 'haunt']);
+    for (const def of Object.values(ENEMIES)) {
+      if (def.attackProfile) expect(ALLOWED.has(def.attackProfile), `${def.id}: ${def.attackProfile}`).toBe(true);
+    }
+  });
+
+  it('unchanged low-tier enemies carry no attackProfile and no enrage', () => {
+    for (const id of UNCHANGED) {
+      expect(ENEMIES[id], `${id} missing`).toBeDefined();
+      expect(ENEMIES[id].attackProfile, id).toBeUndefined();
+      expect(ENEMIES[id].enrage, id).toBeUndefined();
+    }
+  });
+});
