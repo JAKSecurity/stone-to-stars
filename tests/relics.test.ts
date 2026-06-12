@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { PASSIVES, PASSIVE_FUSIONS } from '../src/run/passiveData';
 import { RELICS } from '../src/run/relicData';
 import { draftOptions, rollDraft, DraftContext } from '../src/run/draft';
 import { TECHS } from '../src/tech/techData';
@@ -170,5 +171,12 @@ describe('relic draft cards', () => {
       for (const o of rollDraft(() => r, 3, ctx)) kinds.add(o.kind);
     }
     expect(kinds.has('newRelic')).toBe(true);
+  });
+});
+
+describe('regen cards disclose the 25% lifetime cap (spec §4)', () => {
+  it('field_medic and heartwood descs mention the cap', () => {
+    expect(PASSIVES.field_medic.desc).toContain('25%');
+    expect(PASSIVE_FUSIONS['field_medic+oxhide'].desc).toContain('25%');
   });
 });
