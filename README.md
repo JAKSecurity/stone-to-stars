@@ -10,7 +10,7 @@ future run deadlier in your favor. Death is never the end: whatever your civiliz
 keeps. Climb high enough and you'll face **The Last Stand** — a final wave of alien invaders and
 their mothership, with your whole civilization on the line.
 
-> **▶ Play:** _coming soon on itch.io_
+> **▶ Play now: https://jaksecurity.github.io/stone-to-stars/**
 
 ## Controls
 - **Move** — W A S D
