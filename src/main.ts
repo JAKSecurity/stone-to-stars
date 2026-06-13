@@ -16,6 +16,7 @@ import { renderVictoryScreen } from './ui/victoryScreen';
 import { RunScene } from './scenes/RunScene';
 import { SLOTS } from './state/saveSlots';
 import { registerTextures } from './art/phaserTextures';
+import { renderHelpCard, mountHelpButton, shouldAutoShowHelp } from './ui/helpCard';
 // RC-020 audio: additive integration. The audio module stands alone; these are the
 // only call-sites outside the hot run/weapon files (the remaining in-run hooks are
 // documented in src/audio/README.md for post-merge wiring).
@@ -257,4 +258,12 @@ function persist() {
   save(civ);
 }
 
+// Onboarding: a persistent ? button reopens the help card; on a first-ever visit it auto-opens
+// once. Presentational only — dismissing it returns to the civ screen underneath.
+const helpEl = document.getElementById('help')!;
+function openHelp() { renderHelpCard(helpEl, { onClose: () => {} }); }
+mountHelpButton(openHelp);
+
 showCiv();
+
+if (shouldAutoShowHelp()) openHelp();
