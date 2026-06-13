@@ -1,4 +1,4 @@
-// Public audio API for Rogue·Civ. The rest of the game talks ONLY to this module:
+// Public audio API for Stone to Stars. The rest of the game talks ONLY to this module:
 //
 //   import { playSfx, startAmbient, stopAmbient, setMuted, mountAudioControls,
 //            unlockAudioOnFirstGesture } from './audio';

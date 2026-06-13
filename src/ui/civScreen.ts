@@ -446,7 +446,7 @@ function saveSlotsSection(civ: CivState, onCivReplaced: (civ: CivState) => void)
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rogue-civ-save-${today}.json`;
+    a.download = `stone-to-stars-save-${today}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
