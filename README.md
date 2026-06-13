@@ -1,8 +1,8 @@
-# Rogue · Civ
+# Stone to Stars
 
 **Lead a civilization from the Stone Age to the stars — one desperate survivor run at a time.**
 
-Rogue·Civ fuses a survivor-style **auto-battler** with a Civ-style **tech tree**. Each
+Stone to Stars fuses a survivor-style **auto-battler** with an empire-building **tech tree**. Each
 expedition drops you into the wilds: dodge the swarm with **WASD** while your weapons fire on
 their own, and haul back the gems you collect. Spend that haul on technology and buildings that
 carry your people through the ages — Stone, Bronze, Iron… all the way to **Space** — making every
@@ -10,7 +10,7 @@ future run deadlier in your favor. Death is never the end: whatever your civiliz
 keeps. Climb high enough and you'll face **The Last Stand** — a final wave of alien invaders and
 their mothership, with your whole civilization on the line.
 
-> **▶ Play:** _coming soon at jaksecurity.com/rogue-civ_
+> **▶ Play:** _coming soon on itch.io_
 
 ## Controls
 - **Move** — W A S D
