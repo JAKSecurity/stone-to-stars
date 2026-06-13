@@ -21,6 +21,17 @@ biome-by-age fallbacks).
 - [ ] hero_space sprite appended to HERO_SPRITE_BY_AGE (art ratification at playtest)
 - [ ] Unit tests: data invariants, age sweep; full suite green
 
+## Resolution (2026-06-12)
+Delivered per spec §B1. `'space'` is the 9th age; 4 techs (rocketry/computers/
+satellites/planetary_defense), 2 buildings (launch_pad/mission_control), and the
+laser_array weapon (+17% max-level DPS over sniper, the modern piercer) all data-driven;
+hero_space + building + projectile sprites in the house style (art ratification at
+playtest). Age sweep handled via compiler-forced `Record<AgeId>` entries plus a grep audit
+(hero map, AGE_ERA music, enemyAttacks tier clamp kept at modern endpoints by design —
+space has no regular expeditions). 450 vitest green at delivery (477 after RC-042).
+planetary_defense intentionally grants nothing but the finale unlock (wired in RC-042).
+
 ## References
 - Spec: docs/superpowers/specs/2026-06-12-c4-space-age-last-stand-design.md
+- Plan: docs/superpowers/plans/2026-06-12-rc-041-space-age.md
 - C3 (Content & ages) capability
