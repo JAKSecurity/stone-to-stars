@@ -1,5 +1,5 @@
 # RC-042: The Last Stand finale (invasion run + victory)
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-12
 
 ## Summary

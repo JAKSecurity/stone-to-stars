@@ -1,5 +1,5 @@
 # RC-041: Space age content (techs/buildings/weapon/hero)
-**Status**: Open  **Priority**: P2  **Type**: Feature
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
 **Created**: 2026-06-12
 
 ## Summary
