@@ -46,6 +46,7 @@ const AGE_ERA: Record<string, string> = {
   renaissance: 'renaissance',
   industrial: 'industrial',
   modern: 'modern',
+  space: 'modern', // RC-041: space shares the modern era bed until it earns its own track
 };
 
 // Biome → mood key (in-run). Multiple biomes share a mood family.
@@ -55,6 +56,7 @@ const BIOME_MOOD: Record<string, string> = {
   caverns: 'dark-dungeon', cursed_keep: 'dark-dungeon',
   colosseum: 'epic-battle',
   plague_city: 'grim-war', foundry_wastes: 'grim-war', no_mans_land: 'grim-war',
+  last_stand: 'grim-war', // RC-042 finale — tensest existing mood (shared with No Man's Land)
 };
 
 const ERA_TRACKS: Record<string, MusicTrack> = {

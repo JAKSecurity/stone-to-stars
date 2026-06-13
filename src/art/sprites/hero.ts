@@ -358,6 +358,68 @@ export const HERO_MODERN: SpriteDef = {
   ],
 };
 
+// Space Age variant (RC-041) — space-suit hero. Same 120×150 canvas and pose family.
+// White pressure suit with suitShade joint seals, bubble helmet with cyan visor over the
+// face, chest control panel, life-support backpack, and a laser rifle (gunmetal body with
+// a glowing cyan emitter) in the spear position. First-pass art; in-game ratification by
+// Jeff at the C4 playtest.
+export const HERO_SPACE: SpriteDef = {
+  id: 'hero_space',
+  w: 120,
+  h: 150,
+  prims: [
+    // boots — white suit boots with gunmetal soles
+    { kind: 'rect', x: 49, y: 96, w: 10, h: 34, rx: 4, color: PAL.suit, role: 'boot' },
+    { kind: 'rect', x: 62, y: 96, w: 10, h: 34, rx: 4, color: PAL.suit, role: 'boot' },
+    { kind: 'rect', x: 49, y: 124, w: 10, h: 6, rx: 2, color: PAL.gunmetal, role: 'sole' },
+    { kind: 'rect', x: 62, y: 124, w: 10, h: 6, rx: 2, color: PAL.gunmetal, role: 'sole' },
+    // knee joint seals — suitShade rings
+    { kind: 'rect', x: 49, y: 108, w: 10, h: 4, rx: 2, color: PAL.suitShade, role: 'jointSeal' },
+    { kind: 'rect', x: 62, y: 108, w: 10, h: 4, rx: 2, color: PAL.suitShade, role: 'jointSeal' },
+    // laser rifle — vertical gunmetal body in the spear position, cyan emitter at the top
+    { kind: 'line', x1: 85, y1: 22, x2: 85, y2: 130, width: 4, color: PAL.gunmetal, role: 'rifle' },
+    { kind: 'rect', x: 81, y: 104, w: 9, h: 12, rx: 2, color: PAL.suitShade, role: 'rifleGrip' },
+    { kind: 'rect', x: 82, y: 56, w: 7, h: 16, rx: 2, color: PAL.asphalt, role: 'rifleCell' },
+    // emitter — visor-cyan prongs with a laser-bright core
+    { kind: 'poly', points: [[81, 24], [89, 24], [87, 14], [83, 14]], color: PAL.visor, role: 'emitter' },
+    { kind: 'rect', x: 84, y: 8, w: 3, h: 8, rx: 1, color: PAL.laser, role: 'emitterCore' },
+    // life-support backpack — peeking out on the left shoulder side
+    { kind: 'rect', x: 24, y: 60, w: 12, h: 26, rx: 3, color: PAL.suitShade, role: 'backpack' },
+    { kind: 'rect', x: 26, y: 64, w: 8, h: 4, rx: 1, color: PAL.visor, role: 'packLight' },
+    // suit torso — white trapezoid
+    { kind: 'poly', points: [[42, 60], [78, 60], [74, 100], [46, 100]], color: PAL.suit, role: 'torso' },
+    // chest control panel — gunmetal block with cyan screen + hazard button
+    { kind: 'rect', x: 50, y: 68, w: 20, h: 14, rx: 2, color: PAL.gunmetal, role: 'chestPanel' },
+    { kind: 'rect', x: 52, y: 70, w: 9, h: 7, rx: 1, color: PAL.visor, role: 'panelScreen' },
+    { kind: 'circle', cx: 66, cy: 73, r: 2, color: PAL.hazard, role: 'panelButton' },
+    { kind: 'circle', cx: 66, cy: 78, r: 2, color: PAL.radio, role: 'panelButton' },
+    // waist seal ring
+    { kind: 'rect', x: 47, y: 92, w: 26, h: 4, rx: 2, color: PAL.suitShade, role: 'waistSeal' },
+    // shoulder joint rings
+    { kind: 'rect', x: 35, y: 58, w: 14, h: 8, rx: 3, color: PAL.suitShade, role: 'pauldron' },
+    { kind: 'rect', x: 71, y: 58, w: 14, h: 8, rx: 3, color: PAL.suitShade, role: 'pauldron' },
+    // arms — white suit sleeves with suitShade wrist seals
+    { kind: 'rect', x: 33, y: 64, w: 9, h: 28, rx: 4, color: PAL.suit, role: 'arm' },
+    { kind: 'rect', x: 78, y: 62, w: 9, h: 30, rx: 4, color: PAL.suit, role: 'arm' },
+    { kind: 'rect', x: 33, y: 84, w: 9, h: 5, rx: 2, color: PAL.suitShade, role: 'wristSeal' },
+    { kind: 'rect', x: 78, y: 84, w: 9, h: 5, rx: 2, color: PAL.suitShade, role: 'wristSeal' },
+    // bubble helmet — white shell ring around the head
+    { kind: 'circle', cx: 60, cy: 40, r: 19, color: PAL.suit, role: 'helmetShell' },
+    // visor — cyan faceplate inside the shell
+    { kind: 'circle', cx: 60, cy: 41, r: 14, color: PAL.visor, role: 'visor' },
+    // visor glint — laser-bright highlight
+    { kind: 'circle', cx: 54, cy: 36, r: 4, color: PAL.laser, role: 'visorGlint' },
+    // face hint behind the visor — eyes read through the glass
+    { kind: 'circle', cx: 55, cy: 44, r: 2, color: '#1b3a4a', role: 'eye' },
+    { kind: 'circle', cx: 65, cy: 44, r: 2, color: '#1b3a4a', role: 'eye' },
+    // helmet neck seal
+    { kind: 'rect', x: 47, y: 56, w: 26, h: 5, rx: 2, color: PAL.suitShade, role: 'neckSeal' },
+    // comms antenna nub on the helmet
+    { kind: 'circle', cx: 77, cy: 32, r: 3, color: PAL.suitShade, role: 'antennaNub' },
+    { kind: 'circle', cx: 77, cy: 32, r: 1, color: PAL.hazard, role: 'antennaLight' },
+  ],
+};
+
 // Classical Age variant — Greek hoplite hero. Same 120×150 canvas and pose family.
 // Bronze-gold cuirass, toga tunic, oxblood-plumed Corinthian helm, hoplon shield, spear.
 // First-pass art; reviewed at the Classical Phase C gate.

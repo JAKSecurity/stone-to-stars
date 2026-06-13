@@ -98,4 +98,11 @@ export const WEAPONS: Record<string, WeaponDef> = {
   sniper:       { id: 'sniper', name: 'Sniper Rifle', tier: 'modern', projectileSprite: 'shot_tracer',
     archetype: 'piercer', onHit: { pierce: 3, ignoreArmor: true }, cooldownMs: 1000, damage: 90, count: 1, spread: 0, speed: 900,
     maxLevel: ml.modern, levelScaling: { damage: 26, cooldownMs: -60 } },
+
+  // --- Space (maxLevel 6) — RC-041. One weapon: the age is a mini-tier capping the tree.
+  // Beam/bolt family per spec: a piercing beam +17% over the modern piercer (sniper) at max
+  // level — same-archetype tier step, the way each age steps over the last.
+  laser_array:  { id: 'laser_array', name: 'Laser Array', tier: 'space', projectileSprite: 'shot_laser',
+    archetype: 'piercer', onHit: { pierce: 3, ignoreArmor: true }, cooldownMs: 700, damage: 52, count: 1, spread: 0, speed: 1000,
+    maxLevel: ml.space, levelScaling: { damage: 15, cooldownMs: -55 } },
 };

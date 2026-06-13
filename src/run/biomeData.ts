@@ -83,4 +83,16 @@ export const BIOMES: Record<string, BiomeDef> = {
     tint: '#14130e',
     visual: { ground: '#201d14', grid: '#46402a', speck: '#585032', obstacles: ['obs_sandbags', 'obs_barbed_wire'] },
   },
+  // RC-042 — The Last Stand finale arena. Never offered as a normal card (finale: true →
+  // availableExpeditions skips it); launched only via the expedition screen's Last Stand card.
+  // Flat dark "last city" ground with NO obstacles — the invader formation needs clean march lanes.
+  // The spawnTable exists only so apex/danger helpers stay total; the formation system ignores it.
+  last_stand: {
+    id: 'last_stand', name: 'The Last Stand', minAge: 'space', requiresTech: 'planetary_defense',
+    finale: true,
+    resourceBias: { science: 1, industry: 1 },
+    spawnTable: { invader_drone: 1 },
+    tint: '#06070d',
+    visual: { ground: '#0b0d18', grid: '#232a44', speck: '#39536e', obstacles: [] },
+  },
 };

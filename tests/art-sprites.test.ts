@@ -177,6 +177,22 @@ describe('SPRITES registry', () => {
     }
   });
 
+  it('Space building sprites are registered and valid (RC-041)', () => {
+    const spaceBuildingIds = ['launch_pad', 'mission_control'];
+    for (const id of spaceBuildingIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
+
+  it('Space projectile + hero sprites are registered and valid (RC-041)', () => {
+    const spaceSpriteIds = ['shot_laser', 'hero_space'];
+    for (const id of spaceSpriteIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
+
   it('RC-021 biome obstacle sprites are registered and valid', () => {
     const obstacleIds = [
       'obs_tree', 'obs_rock', 'obs_fallen_column', 'obs_rubble', 'obs_boulder_moss', 'obs_stump',
@@ -185,6 +201,14 @@ describe('SPRITES registry', () => {
       'obs_sandbags', 'obs_barbed_wire',
     ];
     for (const id of obstacleIds) {
+      expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
+      expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
+    }
+  });
+
+  it('RC-042 invader sprites are registered and valid', () => {
+    const invaderIds = ['invader_drone', 'invader_soldier', 'invader_elite', 'invader_mothership'];
+    for (const id of invaderIds) {
       expect(SPRITES[id], `sprite ${id} should be registered`).toBeDefined();
       expect(validateSpriteDef(SPRITES[id]), `sprite ${id}: ${validateSpriteDef(SPRITES[id]).join('; ')}`).toEqual([]);
     }

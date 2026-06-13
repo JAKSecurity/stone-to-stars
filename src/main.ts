@@ -6,12 +6,13 @@ import { load, save } from './state/saveLoad';
 import { research, getAge } from './tech/tech';
 import { TECHS } from './tech/techData';
 import { heroSpriteFor } from './game/heroByAge';
-import { build, upgradeBuilding, moveBuilding } from './camp/camp';
+import { build, upgradeBuilding, moveBuilding, remapCampTiles } from './camp/camp';
 import { buyTradition } from './civics/traditions';
 import { computeRunModifiers } from './run/modifiers';
 import { renderCivScreen, slotCard } from './ui/civScreen';
 import { renderExpeditionScreen } from './ui/expeditionScreen';
 import { renderRunEndScreen } from './ui/runEndScreen';
+import { renderVictoryScreen } from './ui/victoryScreen';
 import { RunScene } from './scenes/RunScene';
 import { SLOTS } from './state/saveSlots';
 import { registerTextures } from './art/phaserTextures';
@@ -25,8 +26,9 @@ const runEl = document.getElementById('run')!;
 const expEl = document.getElementById('expedition')!;
 const runEndEl = document.getElementById('runend')!;
 const pauseEl = document.getElementById('pausemenu')!;
+const victoryEl = document.getElementById('victory')!; // RC-042 finale victory screen
 
-let civ: CivState = load() ?? newCivState();
+let civ: CivState = remapCampTiles(load() ?? newCivState());
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -60,6 +62,7 @@ function showCiv(celebrate?: { from: AgeId; to: AgeId }) {
   runEl.classList.remove('active');
   expEl.classList.remove('active');
   runEndEl.classList.remove('active');
+  victoryEl.classList.remove('active');
   civEl.classList.remove('hidden');
   startAmbient('civ', getAge(civ)); // RC-020: era music for the current age (no-op until first gesture)
   renderCivScreen(civEl, civ, {
@@ -224,6 +227,22 @@ function onRunComplete(result: RunResult) {
   playSfx(result.died ? 'run-end-death' : 'run-end-cleared'); // RC-020
   game.scene.stop('run');
   runEl.classList.remove('active');
+  // RC-042: a finale victory routes to the dedicated victory screen instead of the run-end summary.
+  // Bank up front (applyRunResult also sets lastStandWon) so the lifetime stats shown are current;
+  // Continue adopts the banked civ and returns to the city — the sandbox continues.
+  if (result.finaleVictory) {
+    const after = applyRunResult(civ, result, lastBiomeId);
+    victoryEl.classList.add('active');
+    renderVictoryScreen(victoryEl, result, after, {
+      onContinue: () => {
+        victoryEl.classList.remove('active');
+        civ = after;
+        persist();
+        showCiv();
+      },
+    });
+    return;
+  }
   // Show the end-of-run summary; banking happens when the player chooses to return to base.
   runEndEl.classList.add('active');
   renderRunEndScreen(runEndEl, result, () => {

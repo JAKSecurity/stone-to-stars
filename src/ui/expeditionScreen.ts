@@ -1,7 +1,7 @@
 import { CivState, Expedition, Resource, RESOURCES } from '../game/types';
 import { BIOMES } from '../run/biomeData';
 import { ENEMIES } from '../run/enemyData';
-import { availableExpeditions, apexEnemyId, biomeDanger } from '../run/expedition';
+import { availableExpeditions, apexEnemyId, biomeDanger, lastStandUnlocked } from '../run/expedition';
 import { incomeMult } from '../game/economy';
 import { computeRunModifiers, unlockedWeapons } from '../run/modifiers';
 import { WEAPONS } from '../run/weaponData';
@@ -146,6 +146,19 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
   }
 
   wrap.appendChild(wsec);
+
+  // --- RC-042 finale card: pinned ABOVE the biome cards once planetary_defense is researched.
+  //     Alarm-red, no mutator/wager chips (kit/active rules apply as normal — the run launch path
+  //     is the same onPick). Subtitle flips to the replay line once the civ has won. ---
+  if (lastStandUnlocked(civ)) {
+    const finale = document.createElement('button');
+    finale.className = 'finale-card';
+    finale.innerHTML =
+      `<div class="finale-title">🛸 THE LAST STAND</div>` +
+      `<div class="finale-sub">${civ.lastStandWon ? '🏆 VICTORY ACHIEVED — replay' : 'Repel the invasion'}</div>`;
+    finale.onclick = () => cb.onPick({ biomeId: 'last_stand', tier: 8, finale: true }, []);
+    wrap.appendChild(finale);
+  }
 
   // --- Expedition cards (C6): biome swatch, enemy thumbnails, apex, reward, danger, best haul. ---
   const grid = document.createElement('div');

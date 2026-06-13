@@ -2,9 +2,9 @@ export type Resource = 'exploration' | 'science' | 'industry' | 'culture';
 export const RESOURCES: Resource[] = ['exploration', 'science', 'industry', 'culture'];
 export type ResourceBundle = Record<Resource, number>;
 
-export type AgeId = 'stone' | 'bronze' | 'iron' | 'classical' | 'medieval' | 'renaissance' | 'industrial' | 'modern';
-/** Ascending order; index = how advanced. */
-export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern'];
+export type AgeId = 'stone' | 'bronze' | 'iron' | 'classical' | 'medieval' | 'renaissance' | 'industrial' | 'modern' | 'space';
+/** Ascending order; index = how advanced. RC-041: space is a mini 9th age (4 techs) capping the tree. */
+export const AGE_ORDER: AgeId[] = ['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern', 'space'];
 
 // RC-031 — Forge & Fuse. A weapon's verb. Archetype presets (src/run/archetypes.ts) give each
 // archetype a trajectory + default on-hit; hybrids union their parents' shapes.
@@ -144,6 +144,10 @@ export interface BiomeDef {
   // unmerged rc-017 RunScene keeps compiling; once both land, RunScene reads `visual` for the
   // ground palette + themed obstacle sprites and falls back to `tint` + plain ellipses when absent.
   visual?: BiomeVisual;
+  // RC-042 — finale biomes never appear as normal expedition cards (availableExpeditions skips
+  // them); the Last Stand card launches them explicitly. Their spawnTable exists only so the
+  // apex/danger helpers stay total — the finale's formation system ignores it.
+  finale?: boolean;
 }
 
 /** RC-021 — per-biome in-run look: a readable hued ground (vs the near-black `tint`), faint
@@ -159,6 +163,8 @@ export interface Expedition {
   biomeId: string;
   tier: number;               // = AGE_ORDER index of the biome's age; reward = incomeMult(tier).
                               // Enemy stats are fixed per age (no continuous scaling) — RC-017.
+  finale?: boolean;           // RC-042: routes RunScene into Last Stand mode (formation waves +
+                              // mothership instead of the normal spawner/POI/dungeon systems).
 }
 
 export interface PlacedBuilding {
@@ -180,6 +186,8 @@ export interface CivState {
   biomeBests?: Record<string, number>; // RC-027: biomeId -> best single-run total haul. Optional, lazy-defaulted.
   kit?: string[];       // RC-031 Expedition Kit: up to 4 unlocked weapon ids draftable this run
   activeItem?: string;  // RC-031: chosen right-click active id (must be tech-unlocked)
+  lastStandWon?: boolean; // RC-042: set (never unset) by applyRunResult on a finaleVictory.
+                          // Optional additive field — no save-version bump.
 }
 
 export interface RunModifiers {
@@ -206,7 +214,10 @@ export interface RunResult {
   died: boolean;
   tier: number;              // run's tier (AGE_ORDER index) — scales building yields (RC-017)
   mutators?: string[];   // RC-029: active mutator ids this run (empty/absent = none)
+  kills?: number;        // per-run damage-kill count (the HUD ☠ counter) — victory-screen stat
   rewardMult?: number;   // RC-029: the additive-stack multiplier applied to `collected`
+  finaleVictory?: boolean; // RC-042: the Last Stand mothership was destroyed — main.ts routes this
+                           // to the victory screen and applyRunResult sets civ.lastStandWon.
 }
 
 // RC-031 — every passive is a sidegrade: at least one positive and one negative axis.

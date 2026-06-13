@@ -9,6 +9,7 @@ export const HERO_SPRITE_BY_AGE: Partial<Record<AgeId, string>> = {
   renaissance: 'hero_renaissance',
   industrial: 'hero_industrial',
   modern: 'hero_modern',
+  space: 'hero_space',
 };
 
 export function heroSpriteFor(age: AgeId): string {

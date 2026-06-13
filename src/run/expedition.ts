@@ -36,10 +36,16 @@ export function availableExpeditions(civ: CivState): Expedition[] {
   const curIdx = AGE_ORDER.indexOf(getAge(civ));
   const out: Expedition[] = [];
   for (const biome of Object.values(BIOMES)) {
+    if (biome.finale) continue; // RC-042: the finale never appears as a normal card
     const minIdx = AGE_ORDER.indexOf(biome.minAge);
     if (minIdx > curIdx) continue;
     if (biome.requiresTech && !isResearched(civ, biome.requiresTech)) continue;
     out.push({ biomeId: biome.id, tier: minIdx });
   }
   return out;
+}
+
+/** RC-042 — The Last Stand is unlocked by the space-age capstone tech. */
+export function lastStandUnlocked(civ: CivState): boolean {
+  return isResearched(civ, 'planetary_defense');
 }

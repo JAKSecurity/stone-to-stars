@@ -648,4 +648,78 @@ export const AIRFIELD: SpriteDef = {
   ],
 };
 
-export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK, FACTORY, POWERPLANT, ARSENAL, MOTOR_POOL, BARRACKS, AIRFIELD];
+// LAUNCH_PAD — RC-041: a rocket on its pad: hutBase(false) + concrete apron, gantry tower
+// with cross-braces, white rocket with crimson nose cone + fins, hazard pad striping.
+export const LAUNCH_PAD: SpriteDef = {
+  id: 'launch_pad',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // service building shell — the pad structures replace the door
+    // gunmetal cladding over the hut wall (service bunker)
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 2, color: PAL.gunmetal, role: 'bunkerFacade' },
+    // concrete launch apron across the base
+    { kind: 'rect', x: 10, y: 84, w: 76, h: 8, rx: 2, color: PAL.asphalt, role: 'apron' },
+    // hazard striping on the apron edge
+    { kind: 'rect', x: 14, y: 86, w: 28, h: 3, rx: 1, color: PAL.hazard, role: 'padStripe' },
+    { kind: 'rect', x: 54, y: 86, w: 28, h: 3, rx: 1, color: PAL.hazard, role: 'padStripe' },
+    // gantry tower — tall gunmetal mast on the left with cross-braces
+    { kind: 'rect', x: 26, y: 14, w: 6, h: 72, rx: 1, color: PAL.gunmetal, role: 'gantryMast' },
+    { kind: 'rect', x: 32, y: 24, w: 16, h: 3, rx: 1, color: PAL.suitShade, role: 'gantryArm' },
+    { kind: 'rect', x: 32, y: 42, w: 16, h: 3, rx: 1, color: PAL.suitShade, role: 'gantryArm' },
+    { kind: 'rect', x: 32, y: 60, w: 16, h: 3, rx: 1, color: PAL.suitShade, role: 'gantryArm' },
+    // warning beacon at the gantry top
+    { kind: 'circle', cx: 29, cy: 12, r: 3, color: PAL.crimson, role: 'beacon' },
+    // rocket — white body standing center-right of the gantry
+    { kind: 'rect', x: 48, y: 26, w: 16, h: 52, rx: 6, color: PAL.suit, role: 'rocketBody' },
+    // crimson nose cone
+    { kind: 'poly', points: [[48, 30], [56, 8], [64, 30]], color: PAL.crimson, role: 'noseCone' },
+    // porthole window — visor cyan
+    { kind: 'circle', cx: 56, cy: 38, r: 4, color: PAL.visor, role: 'porthole' },
+    // body seam bands
+    { kind: 'rect', x: 48, y: 50, w: 16, h: 3, rx: 1, color: PAL.suitShade, role: 'seam' },
+    { kind: 'rect', x: 48, y: 64, w: 16, h: 3, rx: 1, color: PAL.suitShade, role: 'seam' },
+    // crimson tail fins flaring at the base
+    { kind: 'poly', points: [[48, 62], [40, 84], [48, 80]], color: PAL.crimson, role: 'fin' },
+    { kind: 'poly', points: [[64, 62], [72, 84], [64, 80]], color: PAL.crimson, role: 'fin' },
+    // engine bell — gunmetal nozzle under the body
+    { kind: 'poly', points: [[51, 78], [61, 78], [64, 86], [48, 86]], color: PAL.gunmetal, role: 'engineBell' },
+    // ember glow at the nozzle mouth (pre-launch test fire)
+    { kind: 'rect', x: 51, y: 84, w: 10, h: 3, rx: 1, color: PAL.ember, role: 'nozzleGlow' },
+  ],
+};
+
+// MISSION_CONTROL — RC-041: a tracking station: hutBase(false) + gunmetal facade, radar dish
+// on the roof, cyan console-screen window row, comms antenna with hazard light.
+export const MISSION_CONTROL: SpriteDef = {
+  id: 'mission_control',
+  w: 96,
+  h: 96,
+  prims: [
+    ...hutBase(false), // control building — console facade replaces the door
+    // gunmetal facade over the hut wall
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 38, rx: 2, color: PAL.gunmetal, role: 'facade' },
+    // suit-white trim band along the facade top
+    { kind: 'rect', x: 24, y: 52, w: 48, h: 5, rx: 1, color: PAL.suit, role: 'trimBand' },
+    // console screen row — three visor-cyan windows (mission screens)
+    { kind: 'rect', x: 28, y: 62, w: 11, h: 9, rx: 1, color: PAL.visor, role: 'screen' },
+    { kind: 'rect', x: 42, y: 62, w: 11, h: 9, rx: 1, color: PAL.visor, role: 'screen' },
+    { kind: 'rect', x: 56, y: 62, w: 11, h: 9, rx: 1, color: PAL.visor, role: 'screen' },
+    // laser-bright trace line on the middle screen (telemetry plot)
+    { kind: 'rect', x: 43, y: 66, w: 9, h: 2, rx: 1, color: PAL.laser, role: 'telemetry' },
+    // entry door — asphalt slab with suitShade frame
+    { kind: 'rect', x: 42, y: 76, w: 12, h: 14, rx: 2, color: PAL.asphalt, role: 'door' },
+    { kind: 'rect', x: 42, y: 76, w: 12, h: 3, rx: 1, color: PAL.suitShade, role: 'doorFrame' },
+    // radar dish on the roof — suit-white bowl on a gunmetal strut, cyan feed horn
+    { kind: 'rect', x: 56, y: 30, w: 4, h: 16, color: PAL.gunmetal, role: 'dishStrut' },
+    { kind: 'circle', cx: 58, cy: 24, r: 11, color: PAL.suit, role: 'dish' },
+    { kind: 'circle', cx: 58, cy: 24, r: 7, color: PAL.suitShade, role: 'dishInner' },
+    { kind: 'line', x1: 58, y1: 24, x2: 66, y2: 14, width: 2, color: PAL.gunmetal, role: 'feedArm' },
+    { kind: 'circle', cx: 66, cy: 14, r: 2, color: PAL.visor, role: 'feedHorn' },
+    // comms antenna on the left roof slope
+    { kind: 'rect', x: 33, y: 30, w: 2, h: 16, color: PAL.gunmetal, role: 'antenna' },
+    { kind: 'circle', cx: 34, cy: 29, r: 2, color: PAL.hazard, role: 'antennaLight' },
+  ],
+};
+
+export const BUILDINGS: SpriteDef[] = [GRANARY, MINE, FORGE, SMELTER, FOUNDRY, DEEP_MINE, ACADEMY, MARKET, WORKSHOP, KEEP, CATHEDRAL, ARMORY, GUNSMITH, UNIVERSITY, BANK, FACTORY, POWERPLANT, ARSENAL, MOTOR_POOL, BARRACKS, AIRFIELD, LAUNCH_PAD, MISSION_CONTROL];

@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { AGE_ORDER } from '../src/game/types';
-import { availableExpeditions, pickEnemy, apexEnemyId, biomeDanger } from '../src/run/expedition';
+import { availableExpeditions, pickEnemy, apexEnemyId, biomeDanger, lastStandUnlocked } from '../src/run/expedition';
 import { ENEMIES } from '../src/run/enemyData';
 import { ageIndexOf } from '../src/game/economy';
 import { BIOMES } from '../src/run/biomeData';
 import { newCivState } from '../src/state/civState';
 import { research } from '../src/tech/tech';
+import { TECHS } from '../src/tech/techData';
 
 const RICH = { exploration: 99999, science: 99999, industry: 99999, culture: 99999 };
 
@@ -33,8 +34,8 @@ describe('expedition card helpers (RC-027)', () => {
 });
 
 describe('age order', () => {
-  it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern', () => {
-    expect(AGE_ORDER).toEqual(['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern']);
+  it('runs stone → bronze → iron → classical → medieval → renaissance → industrial → modern → space', () => {
+    expect(AGE_ORDER).toEqual(['stone', 'bronze', 'iron', 'classical', 'medieval', 'renaissance', 'industrial', 'modern', 'space']);
   });
 });
 
@@ -94,5 +95,21 @@ describe('requiresTech gate', () => {
       if (b.requiresTech) expect(fresh.researched).toContain(b.requiresTech);
     }
     expect(ids.length).toBeGreaterThan(0);
+  });
+});
+
+describe('RC-042 — The Last Stand entry', () => {
+  it('lastStandUnlocked flips on the planetary_defense capstone', () => {
+    const fresh = newCivState();
+    expect(lastStandUnlocked(fresh)).toBe(false);
+    expect(lastStandUnlocked({ ...fresh, researched: ['planetary_defense'] })).toBe(true);
+  });
+
+  it('availableExpeditions NEVER yields a finale biome, even for a fully researched civ', () => {
+    const civ = { ...newCivState(), researched: Object.keys(TECHS) }; // space age, everything unlocked
+    const exps = availableExpeditions(civ);
+    expect(exps.length).toBeGreaterThan(0);
+    expect(exps.map((e) => e.biomeId)).not.toContain('last_stand');
+    for (const e of exps) expect(BIOMES[e.biomeId].finale, e.biomeId).toBeUndefined();
   });
 });

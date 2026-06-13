@@ -45,7 +45,8 @@ describe('biomeData', () => {
       for (const c of [v.ground, v.grid, v.speck]) {
         expect(HEX.test(c), `biome ${key} color ${c} is a valid hex`).toBe(true);
       }
-      expect(v.obstacles.length, `biome ${key} should scatter at least one obstacle`).toBeGreaterThan(0);
+      // RC-042: the finale arena is deliberately flat — no obstacles. Every regular biome scatters some.
+      if (!biome.finale) expect(v.obstacles.length, `biome ${key} should scatter at least one obstacle`).toBeGreaterThan(0);
       for (const id of v.obstacles) {
         expect(SPRITES[id], `biome ${key} obstacle sprite ${id} should be registered`).toBeDefined();
       }
@@ -77,6 +78,7 @@ describe('biomeData — RC-033 science faucet', () => {
     // science-dropping enemy that survives the mini-boss de-trickle, or that age starves for science.
     for (const biome of Object.values(BIOMES)) {
       if (AGE_ORDER.indexOf(biome.minAge) < 1) continue; // Stone has no science demand
+      if (biome.finale) continue; // RC-042: the finale ignores its spawn table (formation waves drive spawns)
       expect(hasScienceDropper(biome.spawnTable), `${biome.id} (${biome.minAge}) needs a science dropper`).toBe(true);
     }
   });

@@ -18,7 +18,9 @@ export interface AgeUnlocks {
  */
 export function ageUnlocks(age: AgeId): AgeUnlocks {
   return {
-    biomes: Object.values(BIOMES).filter((b) => b.minAge === age).map((b) => b.name),
+    // RC-042: finale biomes are tech-gated surprises — the age-up celebration must not
+    // pre-announce The Last Stand.
+    biomes: Object.values(BIOMES).filter((b) => b.minAge === age && !b.finale).map((b) => b.name),
     weapons: Object.values(WEAPONS).filter((w) => w.tier === age).map((w) => w.name),
     techs: Object.values(TECHS).filter((t) => t.age === age).map((t) => t.name),
     buildings: Object.values(BUILDINGS).filter((b) => b.age === age).map((b) => b.name),

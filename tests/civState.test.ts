@@ -72,7 +72,7 @@ describe('civState', () => {
   it('applyRunResult also adds per-run building yields times level', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
-    civ = build(civ, 'granary', 0);
+    civ = build(civ, 'granary', 12); // tile 12 = center (rank 0), always unlocked in stone age
     const before = civ.banked.culture;
     const after = applyRunResult(civ, {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
@@ -84,12 +84,38 @@ describe('civState', () => {
   it('building yields scale by the run tier (RC-017)', () => {
     let civ = { ...newCivState(), banked: { ...RICH } };
     civ = research(civ, 'pottery');
-    civ = build(civ, 'granary', 0); // granary yields culture 3
+    civ = build(civ, 'granary', 12); // tile 12 = center (rank 0), granary yields culture 3
     const before = civ.banked.culture;
     const after = applyRunResult(civ, {
       collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
       survivedMs: 1, died: false, tier: 4,
     });
     expect(after.banked.culture).toBe(before + Math.round(3 * 20 * incomeMult(4))); // × YIELD_SCALE × incomeMult(4)
+  });
+});
+
+describe('RC-042 — lastStandWon flag', () => {
+  const result = (extra: object = {}) => ({
+    collected: { exploration: 0, science: 0, industry: 0, culture: 0 },
+    survivedMs: 1, died: false, tier: 8, ...extra,
+  });
+
+  it('a fresh civ has no lastStandWon, and ordinary runs never set it', () => {
+    let civ = newCivState();
+    expect(civ.lastStandWon).toBeUndefined();
+    civ = applyRunResult(civ, result());
+    expect(civ.lastStandWon).toBeUndefined();
+  });
+
+  it('applyRunResult sets lastStandWon on a finaleVictory result', () => {
+    const civ = applyRunResult(newCivState(), result({ finaleVictory: true }));
+    expect(civ.lastStandWon).toBe(true);
+  });
+
+  it('lastStandWon is never unset by later non-victory runs (set-never-unset)', () => {
+    let civ = applyRunResult(newCivState(), result({ finaleVictory: true }));
+    civ = applyRunResult(civ, result({ died: true }));      // a later death
+    civ = applyRunResult(civ, result());                    // a later ordinary clear
+    expect(civ.lastStandWon).toBe(true);
   });
 });
