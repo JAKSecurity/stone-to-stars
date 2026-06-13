@@ -57,8 +57,9 @@ Shipped:
 Economy watch: Prospector's Eye interacts with the standing RC-009 gem-value lever —
 observe in the next playtest.
 
+Art: `food_ration` sprite **ratified by Jeff 2026-06-12** (via the art-ratify page).
+
 Playtest watch list (final-review minors, none blocking):
-- `food_ration` sprite needs Jeff's in-game art ratification (redo = `src/art/sprites/food.ts` only)
 - Overcharge timer accrues/resets while fully charged — a full-charge player loses partial
   refund windows; alternative is holding the timer at cap until a charge is spent (tuning feel)
 - Food pickups aren't swept by the Zone-Cleared ceremony vacuum (gems are) — cosmetic asymmetry

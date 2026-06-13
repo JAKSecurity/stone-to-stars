@@ -25,8 +25,8 @@ biome-by-age fallbacks).
 Delivered per spec §B1. `'space'` is the 9th age; 4 techs (rocketry/computers/
 satellites/planetary_defense), 2 buildings (launch_pad/mission_control), and the
 laser_array weapon (+17% max-level DPS over sniper, the modern piercer) all data-driven;
-hero_space + building + projectile sprites in the house style (art ratification at
-playtest). Age sweep handled via compiler-forced `Record<AgeId>` entries plus a grep audit
+hero_space + building + projectile sprites in the house style (**art ratified by Jeff
+2026-06-12**). Age sweep handled via compiler-forced `Record<AgeId>` entries plus a grep audit
 (hero map, AGE_ERA music, enemyAttacks tier clamp kept at modern endpoints by design —
 space has no regular expeditions). 450 vitest green at delivery (477 after RC-042).
 planetary_defense intentionally grants nothing but the finale unlock (wired in RC-042).

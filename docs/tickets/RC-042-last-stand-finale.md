@@ -37,6 +37,9 @@ Built in 2 dispatches + a 6-finding review fix (formation floor cap so rows can'
 the wall; victory kills/waves stats; age-up no longer pre-announces the finale; finale
 music mood; deduped boss sfx; HUD wave-tag lag). 477 vitest green.
 
+Art: invader (drone/soldier/elite) + mothership sprites **ratified by Jeff 2026-06-12**
+(via the art-ratify page).
+
 **Playwright walkthrough (verified live):** capstone gates the card (absent→present);
 finale launches (finale arena, no spawner/POIs); wave 1 drones march + drop; formation
 floor cap holds (plateaus, never reaches the wall); waves advance 1→6; mothership spawns
