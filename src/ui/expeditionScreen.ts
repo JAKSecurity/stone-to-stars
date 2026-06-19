@@ -10,6 +10,7 @@ import { validateKit, KIT_SIZE } from '../run/kit';
 import { ACTIVES } from '../run/activeData';
 import { MUTATORS } from '../run/mutatorData';
 import { combineMutators } from '../run/mutators';
+import { isTouchDevice } from '../platform/device';
 import { spriteCanvas } from '../art/domSprite';
 
 const ICON: Record<Resource, string> = {
@@ -121,7 +122,8 @@ export function renderExpeditionScreen(root: HTMLElement, civ: CivState, cb: Exp
       ? civ.activeItem : actives[0];
     const arow = document.createElement('div');
     arow.className = 'active-row';
-    arow.innerHTML = '<h3>Active item <span class="kit-hint">right-click in-run</span></h3>';
+    const activeHint = isTouchDevice() ? 'tap ⚡ in-run' : 'right-click in-run';
+    arow.innerHTML = `<h3>Active item <span class="kit-hint">${activeHint}</span></h3>`;
     const acards = document.createElement('div');
     acards.className = 'wgrid';
     for (const id of actives) {

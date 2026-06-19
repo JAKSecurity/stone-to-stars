@@ -20,7 +20,7 @@ const ONE_LINER = 'Lead a civilization from the Stone Age to the stars — one d
 
 const BLURB =
   'Stone to Stars fuses a survivor-style auto-battler with an empire-building tech tree. Each expedition drops you ' +
-  'into the wilds: dodge the swarm with WASD while your weapons fire on their own, and haul back the gems ' +
+  'into the wilds: dodge the swarm while your weapons fire on their own, and haul back the gems ' +
   'you collect. Spend that haul on technology and buildings that carry your people through the ages — all ' +
   'the way to Space — making every future run deadlier in your favor. Death is never the end: whatever your ' +
   'civilization banks, it keeps. Climb high enough and you’ll face The Last Stand.';
