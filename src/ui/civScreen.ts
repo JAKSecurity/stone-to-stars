@@ -2,7 +2,7 @@ import { CivState, Resource, RESOURCES, AGE_ORDER, AgeId, TechNode } from '../ga
 import { TECHS } from '../tech/techData';
 import { BUILDINGS } from '../camp/buildingData';
 import { canResearch, isResearched, getAge, techCost, techEffectText, unmetRequirements } from '../tech/tech';
-import { buildableBuildings, firstEmptyTile, buildingEffectText, tileOccupied, upgradeCost, buildingCost, tileUnlocked } from '../camp/camp';
+import { buildableBuildings, buildingEffectText, upgradeCost, buildingCost, tileUnlocked } from '../camp/camp';
 import { TRADITIONS } from '../civics/traditionData';
 import { traditionRank, nextRankCost, canBuyTradition } from '../civics/traditions';
 import { canAfford } from '../economy/resources';
@@ -12,6 +12,7 @@ import { heroSpriteFor } from '../game/heroByAge';
 import { ageUnlocks } from '../game/ageUnlocks';
 import { SLOTS, SlotId, slotInfo, saveToSlot, loadSlot, exportSave, importSave } from '../state/saveSlots';
 import { relicForTradition } from '../run/relics';
+import { validTargetTiles, Selection } from './placement';
 
 const ICON: Record<Resource, string> = {
   exploration: '🧭', science: '🔬', industry: '🏭', culture: '🎭',
@@ -92,7 +93,29 @@ export function renderCivScreen(
   root: HTMLElement, civ: CivState, cb: CivCallbacks, celebrate?: AgeUpEvent,
 ): void {
   root.innerHTML = '';
-  let didDrag = false;
+  // RC-043: tap-to-place state (replaces native drag-and-drop). `armed` is the building/move
+  // currently picked; `cells` maps tile → its grid element so we can repaint highlights without
+  // a full civ re-render. State resets naturally on the next renderCivScreen (after a build/move).
+  let armed: Selection | null = null;
+  let armedEl: HTMLElement | null = null;
+  const cells = new Map<number, HTMLElement>();
+
+  function refreshHighlights() {
+    const targets = armed ? validTargetTiles(civ, armed) : new Set<number>();
+    for (const [tile, el] of cells) el.classList.toggle('place-target', targets.has(tile));
+  }
+  function setArmed(next: Selection | null, el: HTMLElement | null) {
+    armed = next;
+    if (armedEl && armedEl !== el) armedEl.classList.remove('armed');
+    armedEl = next ? el : null;
+    if (armedEl) armedEl.classList.add('armed'); else el?.classList.remove('armed');
+    refreshHighlights();
+  }
+  function commitTo(tile: number) {
+    if (!armed) return;
+    if (armed.kind === 'new') cb.onBuild(armed.id, tile);          // → re-render, armed resets
+    else if (armed.from !== tile) cb.onMoveBuilding(armed.from, tile);
+  }
   const wrap = document.createElement('div');
   wrap.className = 'civ-wrap';
 
@@ -214,30 +237,16 @@ export function renderCivScreen(
     const unlocked = tileUnlocked(civ, tile);
     const cell = document.createElement('div');
     cell.className = 'cell';
-    // Locked tiles (not yet unlocked for this age) are faint terrain — wilderness not yet settled.
+    cells.set(tile, cell);
+
+    // Locked, empty tiles are faint wilderness — not interactive.
     if (!unlocked && !placed) {
       cell.classList.add('locked-tile');
       cell.innerHTML = '';
       grid.appendChild(cell);
       continue;
     }
-    cell.addEventListener('dragover', (e) => { e.preventDefault(); cell.classList.add('drop-hover'); });
-    cell.addEventListener('dragleave', () => cell.classList.remove('drop-hover'));
-    cell.addEventListener('drop', (e) => {
-      e.preventDefault();
-      cell.classList.remove('drop-hover');
-      const raw = e.dataTransfer?.getData('text/plain');
-      if (!raw) return;
-      let payload: { kind: string; id?: string; from?: number };
-      try { payload = JSON.parse(raw); } catch { return; }
-      if (payload.kind === 'new' && payload.id && !tileOccupied(civ, tile)) {
-        cb.onBuild(payload.id, tile);
-      }
-      if (payload.kind === 'move' && payload.from !== undefined) {
-        if (payload.from === tile) return;
-        cb.onMoveBuilding(payload.from, tile);
-      }
-    });
+
     if (placed) {
       const def = BUILDINGS[placed.id];
       cell.innerHTML = '';
@@ -246,24 +255,18 @@ export function renderCivScreen(
       lvl.className = 'lvl';
       lvl.textContent = `${def.name} L${placed.level}`;
       cell.appendChild(lvl);
-      cell.title =
-        placed.level < def.maxLevel
-          ? `Upgrade — ${costLine(civ.banked, upgradeCost(placed.id, placed.level))}`
-          : 'Max level';
+      cell.title = 'Tap to move — upgrade from the list below';
+      // Tapping a placed building arms a MOVE from this tile (toggle). Upgrades live in the list.
       cell.onclick = () => {
-        if (didDrag) { didDrag = false; return; }
-        if (placed.level < def.maxLevel && canAfford(civ.banked, upgradeCost(placed.id, placed.level))) {
-          cb.onUpgrade(tile);
-        }
+        if (armed && armed.kind === 'move' && armed.from === tile) setArmed(null, cell);
+        else setArmed({ kind: 'move', from: tile }, cell);
       };
-      cell.draggable = true;
-      cell.addEventListener('dragstart', (e) => {
-        didDrag = true;
-        e.dataTransfer?.setData('text/plain', JSON.stringify({ kind: 'move', from: tile }));
-      });
-      cell.addEventListener('dragend', () => { didDrag = false; });
     } else {
       cell.innerHTML = '<span class="lvl">empty</span>';
+      // Tapping an empty, valid target commits the armed selection here.
+      cell.onclick = () => {
+        if (armed && validTargetTiles(civ, armed).has(tile)) commitTo(tile);
+      };
     }
     grid.appendChild(cell);
   }
@@ -275,12 +278,12 @@ export function renderCivScreen(
   // by its new level.
   const placedList = document.createElement('div');
   placedList.className = 'palette placed';
-  placedList.innerHTML = '<h3>Your Buildings — click to upgrade</h3>';
+  placedList.innerHTML = '<h3>Your Buildings — tap to upgrade</h3>';
   const placedSorted = [...civ.buildings].sort((a, b) => a.tile - b.tile);
   if (placedSorted.length === 0) {
     const note = document.createElement('div');
     note.className = 'empty-note';
-    note.textContent = 'No buildings yet — drag one from Available Buildings onto the grid.';
+    note.textContent = 'No buildings yet — tap one in Available Buildings, then tap a tile.';
     placedList.appendChild(note);
   } else {
     const pgrid = document.createElement('div');
@@ -339,14 +342,11 @@ export function renderCivScreen(
         `<div class="bcost">${costLine(civ.banked, buildingCost(def.id, 1))}</div>`;
       card.appendChild(text);
       if (affordable) {
+        // Tap to arm placing this building (toggle), then tap a highlighted empty tile.
         card.onclick = () => {
-          const tile = firstEmptyTile(civ);
-          if (tile !== null) cb.onBuild(def.id, tile);
+          if (armed && armed.kind === 'new' && armed.id === def.id) setArmed(null, card);
+          else setArmed({ kind: 'new', id: def.id }, card);
         };
-        card.draggable = true;
-        card.addEventListener('dragstart', (e) => {
-          e.dataTransfer?.setData('text/plain', JSON.stringify({ kind: 'new', id: def.id }));
-        });
       }
       bgrid.appendChild(card);
     }
