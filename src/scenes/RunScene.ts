@@ -28,6 +28,9 @@ import {
   bossFreeTable, bossJackpotGems, BOSS_HP_MULT, dropsCatalyst,
 } from '../run/bossEvent';
 import { playSfx } from '../audio';
+import { isTouchDevice } from '../platform/device';
+import { TouchControls } from './touchControls';
+import { activeAimPoint, Vec2 } from './touchMath';
 import {
   orbitAngle, orbitPosition, lobFlightMs, lobProgress, lobGroundPosition, lobArcHeight, withinRadius,
   ORBIT_RADIUS, ORBIT_HIT_INTERVAL_MS, LOB_BLAST_RADIUS, LOB_PEAK_HEIGHT,
@@ -133,6 +136,8 @@ export class RunScene extends Phaser.Scene {
   private gems!: Phaser.Physics.Arcade.Group;
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
   private keys!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
+  private touch?: TouchControls;
+  private lastMoveDir: Vec2 = { x: 0, y: -1 };
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
@@ -367,6 +372,16 @@ export class RunScene extends Phaser.Scene {
     this.input.on('pointerdown', onPointer);
     this.events.once('shutdown', () => this.input.off('pointerdown', onPointer));
 
+    // RC-043: enable a 2nd touch pointer so the joystick and a button can be held together
+    // (Phaser tracks one touch pointer by default), then mount the touch overlay on touch devices.
+    this.input.addPointer(2);
+    if (isTouchDevice()) {
+      this.touch = new TouchControls(this, {
+        onActive: () => this.useActiveAtNearest(),
+        onPause: () => this.togglePauseMenu(),
+      });
+    }
+
     // RC-039: ESC toggles the pause menu. Registered as a keydown listener (not a polled key) so the
     // edge fires once per press. Gated so it only acts when no draft overlay is up: a draft already
     // pauses via `paused`, and ESC must not close it (v1). The handler + shutdown cleanup mirror the
@@ -374,6 +389,7 @@ export class RunScene extends Phaser.Scene {
     const onEsc = () => this.togglePauseMenu();
     this.input.keyboard!.on('keydown-ESC', onEsc);
     this.events.once('shutdown', () => {
+      this.touch?.destroy(); this.touch = undefined;
       this.input.keyboard?.off('keydown-ESC', onEsc);
       this.onPauseMenu?.(false); // RC-039: ensure the DOM overlay is hidden if the scene tears down while paused
     });
@@ -728,6 +744,7 @@ export class RunScene extends Phaser.Scene {
       this.onComplete(r);
       return;
     }
+    this.touch?.update();
     if (this.paused || !this.player?.body) return;
     const dt = deltaMs;
     // Once the dungeon is cleared we hand off to the Zone-Cleared ceremony, which runs its own
@@ -738,10 +755,21 @@ export class RunScene extends Phaser.Scene {
     const speed = 180 * RUN_SCALE * this.stats.moveSpeedMult;
     const b = this.player.body;
     b.setVelocity(0);
-    if (this.keys.left.isDown) b.setVelocityX(-speed);
-    if (this.keys.right.isDown) b.setVelocityX(speed);
-    if (this.keys.up.isDown) b.setVelocityY(-speed);
-    if (this.keys.down.isDown) b.setVelocityY(speed);
+    const tv = this.touch?.moveVector();
+    if (tv && (tv.x !== 0 || tv.y !== 0)) {
+      // Touch: analog joystick (components already in [-1, 1]).
+      b.setVelocity(tv.x * speed, tv.y * speed);
+      this.lastMoveDir = { x: tv.x, y: tv.y };
+    } else {
+      // Desktop: unchanged WASD behavior.
+      if (this.keys.left.isDown) b.setVelocityX(-speed);
+      if (this.keys.right.isDown) b.setVelocityX(speed);
+      if (this.keys.up.isDown) b.setVelocityY(-speed);
+      if (this.keys.down.isDown) b.setVelocityY(speed);
+      if (b.velocity.x !== 0 || b.velocity.y !== 0) {
+        this.lastMoveDir = { x: Math.sign(b.velocity.x), y: Math.sign(b.velocity.y) };
+      }
+    }
 
     // RC-038: clamp the player every frame — a wall-collision bounce at the border can displace him
     // past the perimeter; re-seat him inside the playable field before anything reads his position.
@@ -1170,6 +1198,14 @@ export class RunScene extends Phaser.Scene {
       const _exhaustive: never = e;
       return _exhaustive;
     }
+  }
+
+  /** RC-043: the touch ⚡ button — fire the active at the nearest enemy (no cursor on touch),
+   *  falling back to the last movement direction, then straight up. */
+  private useActiveAtNearest(): void {
+    const t = this.nearestEnemy() as { x: number; y: number } | null;
+    const aim = activeAimPoint(this.player.x, this.player.y, t ? { x: t.x, y: t.y } : null, this.lastMoveDir);
+    this.useActive(aim.x, aim.y);
   }
 
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
