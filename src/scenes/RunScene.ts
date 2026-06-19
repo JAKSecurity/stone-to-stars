@@ -138,6 +138,11 @@ export class RunScene extends Phaser.Scene {
   private keys!: Record<'up' | 'down' | 'left' | 'right', Phaser.Input.Keyboard.Key>;
   private touch?: TouchControls;
   private lastMoveDir: Vec2 = { x: 0, y: -1 };
+  // RC-043 mobile: a second, un-zoomed camera renders the screen-fixed UI while the main camera is
+  // zoomed out. `pendingCam` holds newly-added objects awaiting camera classification (deferred one
+  // frame because scrollFactor is set after `add`). Both stay inert off touch.
+  private uiCam?: Phaser.Cameras.Scene2D.Camera;
+  private pendingCam: Phaser.GameObjects.GameObject[] = [];
 
   private collected: Record<Resource, number> = { exploration: 0, science: 0, industry: 0, culture: 0 };
   private elapsed = 0;
@@ -414,6 +419,29 @@ export class RunScene extends Phaser.Scene {
       .setOrigin(0, 0).setDepth(10).setScrollFactor(0).setStrokeStyle(1, 0x000000, 0.6);
     this.xpBarFill = this.add.rectangle(12, xpBarY, 0, XP_BAR_H, 0x4ea3ff, 1)
       .setOrigin(0, 0).setDepth(11).setScrollFactor(0);
+
+    // RC-043 mobile: ranged enemies were firing from off-screen on a phone's narrow view, so zoom the
+    // WORLD camera out (show ~50% more field). A second, un-zoomed UI camera renders the screen-fixed
+    // HUD + touch controls so they keep their on-screen size/position. Objects are split between the two
+    // cameras by scrollFactor: screen-fixed (scrollFactor 0) → UI camera (main ignores them); world
+    // (scrollFactor 1) → main camera (UI ignores them). New objects are classified one frame later
+    // (drainCamClassify in update) because scrollFactor is chained AFTER `add`, so it isn't set yet
+    // when ADDED_TO_SCENE fires. Touch-only — desktop keeps its single full-view camera.
+    if (this.touch) {
+      this.cameras.main.setZoom(1 / 1.5);
+      const uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
+      this.uiCam = uiCam;
+      // Current objects already have their scrollFactor set (create() built them above) — classify now.
+      for (const o of this.children.list.slice()) this.classifyForCameras(o);
+      const onAdd = (o: Phaser.GameObjects.GameObject) => this.pendingCam.push(o);
+      const onResize = (gs: Phaser.Structs.Size) => uiCam.setSize(gs.width, gs.height);
+      this.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, onAdd);
+      this.scale.on('resize', onResize);
+      this.events.once('shutdown', () => {
+        this.events.off(Phaser.Scenes.Events.ADDED_TO_SCENE, onAdd);
+        this.scale.off('resize', onResize);
+      });
+    }
 
     // RC-019: the biome's toughest enemy becomes an announced mini-boss — pull it from the random
     // spawn pool (the card threat-rating still reads it from the untouched biome.spawnTable).
@@ -745,6 +773,12 @@ export class RunScene extends Phaser.Scene {
       return;
     }
     this.touch?.update();
+    // RC-043 mobile: classify objects added since the last frame onto the world vs UI camera. Runs
+    // BEFORE the paused early-return so draft-overlay cards (added while paused) are split correctly.
+    if (this.uiCam && this.pendingCam.length) {
+      for (const o of this.pendingCam) this.classifyForCameras(o);
+      this.pendingCam.length = 0;
+    }
     if (this.paused || !this.player?.body) return;
     const dt = deltaMs;
     // Once the dungeon is cleared we hand off to the Zone-Cleared ceremony, which runs its own
@@ -1206,6 +1240,14 @@ export class RunScene extends Phaser.Scene {
     const t = this.nearestEnemy() as { x: number; y: number } | null;
     const aim = activeAimPoint(this.player.x, this.player.y, t ? { x: t.x, y: t.y } : null, this.lastMoveDir);
     this.useActive(aim.x, aim.y);
+  }
+
+  /** RC-043 mobile: route an object to the right camera. Screen-fixed UI (scrollFactor 0) renders only
+   *  on the un-zoomed UI camera; world objects render only on the zoomed main camera. No-op off touch. */
+  private classifyForCameras(o: Phaser.GameObjects.GameObject): void {
+    if (!this.uiCam) return;
+    if ((o as unknown as { scrollFactorX: number }).scrollFactorX === 0) this.cameras.main.ignore(o);
+    else this.uiCam.ignore(o);
   }
 
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
