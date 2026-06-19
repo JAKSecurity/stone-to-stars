@@ -2,6 +2,8 @@
 // Self-contained DOM (mirrors the audio-controls fixed-mount pattern); pure storage helpers
 // are unit-tested. Copy is the canonical pitch (see docs/superpowers/specs/2026-06-12-onboarding-help-design.md).
 
+import { isTouchDevice } from '../platform/device';
+
 export const HELP_SEEN_KEY = 'rogue-civ-seen-help-v1';
 
 /** True until the player has dismissed the help card once (drives the first-run auto-show). */
@@ -23,13 +25,22 @@ const BLURB =
   'the way to Space — making every future run deadlier in your favor. Death is never the end: whatever your ' +
   'civilization banks, it keeps. Climb high enough and you’ll face The Last Stand.';
 
-const CONTROLS: [string, string][] = [
+const CONTROLS_DESKTOP: [string, string][] = [
   ['Move', 'W A S D'],
   ['Attack', 'automatic — your weapons fire on their own'],
   ['Active item', 'right-click (aims at the cursor; if equipped)'],
   ['Pause', 'Esc'],
   ['Collect', 'walk near gems to vacuum them in'],
   ['Level up', 'choose one card from the draft'],
+];
+
+const CONTROLS_TOUCH: [string, string][] = [
+  ['Move', 'left thumb — drag anywhere on the left to steer'],
+  ['Attack', 'automatic — your weapons fire on their own'],
+  ['Active item', 'tap ⚡ (aims at the nearest enemy; if equipped)'],
+  ['Pause', 'tap ⏸'],
+  ['Collect', 'walk near gems to vacuum them in'],
+  ['Level up', 'tap one card from the draft'],
 ];
 
 const LOOP = 'Run → gather → research & grow your camp → return stronger → climb the ages → win The Last Stand.';
@@ -61,7 +72,7 @@ export function renderHelpCard(host: HTMLElement, opts: { onClose: () => void })
 
   const dl = document.createElement('dl');
   dl.className = 'help-controls';
-  for (const [term, desc] of CONTROLS) {
+  for (const [term, desc] of (isTouchDevice() ? CONTROLS_TOUCH : CONTROLS_DESKTOP)) {
     const dt = document.createElement('dt'); dt.textContent = term;
     const dd = document.createElement('dd'); dd.textContent = desc;
     dl.appendChild(dt); dl.appendChild(dd);

@@ -17,6 +17,7 @@ import { RunScene } from './scenes/RunScene';
 import { SLOTS } from './state/saveSlots';
 import { registerTextures } from './art/phaserTextures';
 import { renderHelpCard, mountHelpButton, shouldAutoShowHelp } from './ui/helpCard';
+import { isTouchDevice } from './platform/device';
 // RC-020 audio: additive integration. The audio module stands alone; these are the
 // only call-sites outside the hot run/weapon files (the remaining in-run hooks are
 // documented in src/audio/README.md for post-merge wiring).
@@ -30,6 +31,9 @@ const pauseEl = document.getElementById('pausemenu')!;
 const victoryEl = document.getElementById('victory')!; // RC-042 finale victory screen
 
 let civ: CivState = remapCampTiles(load() ?? newCivState());
+
+if (isTouchDevice()) document.body.classList.add('touch');
+let pauseMenuOpen = false; // RC-043: track pause state to drive the orientation gate
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -47,6 +51,17 @@ const game = new Phaser.Game({
 window.addEventListener('resize', () => {
   if (runEl.classList.contains('active')) game.scale.resize(window.innerWidth, window.innerHeight);
 });
+
+// RC-043: on a touch device, rotating to portrait pauses a live run (the rotate overlay covers it).
+function handleOrientation() {
+  if (!isTouchDevice()) return;
+  const portrait = window.matchMedia('(orientation: portrait)').matches;
+  if (portrait && runEl.classList.contains('active') && !pauseMenuOpen) {
+    (game.scene.getScene('run') as RunScene).togglePauseMenu();
+  }
+}
+window.addEventListener('orientationchange', handleOrientation);
+window.addEventListener('resize', handleOrientation);
 // Register the run scene WITHOUT auto-starting it. The first scene listed in the
 // Phaser config force-starts on boot (with no init data), which crashes RunScene.init;
 // adding it manually with autoStart=false keeps it dormant until startRun().
@@ -120,6 +135,10 @@ function launchExpedition(expedition: Expedition, mutators: string[] = []) {
   expEl.classList.remove('active');
   runEl.classList.add('active');
   game.scale.resize(window.innerWidth, window.innerHeight); // fill the window now that #run is visible
+  // RC-043: on touch, go fullscreen for the run (gesture-initiated via the expedition pick → allowed).
+  if (isTouchDevice() && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }
   const modifiers: RunModifiers = computeRunModifiers(civ);
   startAmbient('run', expedition.biomeId); // RC-020: mood music for the expedition's biome
   playSfx('run-start');
@@ -131,7 +150,7 @@ function launchExpedition(expedition: Expedition, mutators: string[] = []) {
     heroSprite: heroSpriteFor(getAge(civ)),
     onComplete: (result: RunResult) => onRunComplete(result),
     // RC-039: the scene drives the pause overlay's visibility (ESC opens/closes; abandon/finish hide).
-    onPauseMenu: (open: boolean) => { if (open) renderPauseMenu(); else hidePauseMenu(); },
+    onPauseMenu: (open: boolean) => { pauseMenuOpen = open; if (open) renderPauseMenu(); else hidePauseMenu(); },
   });
 }
 
