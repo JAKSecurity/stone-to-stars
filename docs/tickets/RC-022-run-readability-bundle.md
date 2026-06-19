@@ -1,6 +1,12 @@
 # RC-022: Run readability bundle (HUD, draft cards, gems, projectiles)
-**Status**: In Progress  **Priority**: P2  **Type**: Enhancement
-**Created**: 2026-06-09
+**Status**: Delivered  **Priority**: P2  **Type**: Enhancement
+**Created**: 2026-06-09  **Closed**: 2026-06-19
+
+## Resolution
+Closed 2026-06-19 as satisfied-via-playtest. The readability upgrades (HUD with XP bar +
+loadout, informative draft cards, value-scaled gems, distinct projectiles) shipped over the
+content arc; run readability reads as good to Jeff after extensive play through the public
+release. Remaining polish, if any surfaces, gets fresh tickets.
 
 ## Summary
 Four small readability upgrades to the run scene, bundled: a real HUD (XP bar, weapon loadout,

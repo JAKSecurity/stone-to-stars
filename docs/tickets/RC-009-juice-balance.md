@@ -1,7 +1,14 @@
 # RC-009: Juice + balance pass
-**Status**: In Progress  **Priority**: P2  **Type**: Feature
-**Created**: 2026-06-07
+**Status**: Delivered  **Priority**: P2  **Type**: Feature
+**Created**: 2026-06-07  **Closed**: 2026-06-19
 **Capability**: C3 (Content & ages)
+
+## Resolution
+Closed 2026-06-19 as satisfied-via-playtest. The juice elements landed incrementally
+across the content arc (hit-flash, floating damage, screen shake, death particles, pickup
+glow, draft queue, building picker), and after extensive play — including the public mobile
+release — the game's feel/balance reads as good to Jeff (the playtest authority). No further
+dedicated balance pass is warranted now; future balance concerns get fresh tickets.
 
 ## Summary
 The deferred P2 juice + balance pass, done **last** once the full Iron content set exists.
