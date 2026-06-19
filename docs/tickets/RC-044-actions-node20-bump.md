@@ -1,7 +1,14 @@
 # RC-044: Bump GitHub Actions off deprecated Node 20 in Pages deploy workflow
 
-**Status**: Open  **Priority**: P3  **Type**: Tech Debt
-**Created**: 2026-06-19
+**Status**: Delivered  **Priority**: P3  **Type**: Tech Debt
+**Created**: 2026-06-19  **Delivered**: 2026-06-19
+
+## Resolution
+Bumped the Pages workflow's pinned actions to their latest Node-24 majors (verified via the
+GitHub releases API): checkout v4→v7, setup-node v4→v6, configure-pages v5→v6,
+upload-pages-artifact v3→v5, deploy-pages v4→v5; build Node 20→22. Committed; pushed from
+Jeff's terminal (the `workflow` scope the sandbox account lacks). Verified by the deploy run
+completing with no Node 20 deprecation warning.
 
 ## Summary
 
@@ -28,9 +35,9 @@ Jeff's machine, not a delegated/sandbox session.
 
 ## Acceptance Criteria
 
-- [ ] Pages deploy workflow's pinned actions updated to Node 24-native versions
-      (checkout, configure-pages, deploy-pages, setup-node, upload-artifact).
-- [ ] A deploy run completes with no Node 20 deprecation warning.
+- [x] Pages deploy workflow's pinned actions updated to Node 24-native versions
+      (checkout v7, setup-node v6, configure-pages v6, upload-pages-artifact v5, deploy-pages v5).
+- [x] A deploy run completes with no Node 20 deprecation warning.
 
 ## References
 
