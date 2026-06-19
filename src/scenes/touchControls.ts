@@ -82,10 +82,23 @@ export class TouchControls {
 
   private onUp(p: Phaser.Input.Pointer): void {
     if (p.id !== this.joyPointerId) return;
+    this.resetJoystick();
+  }
+
+  private resetJoystick(): void {
     this.joyPointerId = null;
     this.vec = { x: 0, y: 0, magnitude: 0 };
     this.base.setVisible(false);
     this.thumb.setVisible(false);
+  }
+
+  /** Per-frame safety (call from the scene's update): if the tracked joystick pointer was
+   *  cancelled by a system gesture (notification pull-down, app switch) it never fires a
+   *  pointerup and Phaser leaves it !isDown — reset so the stick can't lock on. */
+  update(): void {
+    if (this.joyPointerId === null) return;
+    const p = this.scene.input.manager.pointers.find((pt) => pt.id === this.joyPointerId);
+    if (!p || !p.isDown) this.resetJoystick();
   }
 
   /** Movement vector for RunScene.update — components in [-1, 1] (analog). */
