@@ -62,3 +62,4 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-039 | ESC pause menu — abandon run, save/load, volume | Delivered | P2 | C3 | docs/tickets/RC-039-pause-menu.md |
 | RC-040 | Enemy attack arsenal — mid+ tier difficulty via attack variety | Delivered | P1 | C3 | docs/tickets/RC-040-enemy-attack-arsenal.md |
 | RC-043 | Mobile-friendly support — touch controls, landscape, tap-to-place, responsive menus, PWA | Delivered | P2 | C5 | docs/tickets/RC-043-mobile-friendly-support.md |
+| RC-044 | Bump GitHub Actions off deprecated Node 20 in Pages deploy workflow | Open | P3 |  | docs/tickets/RC-044-actions-node20-bump.md |
