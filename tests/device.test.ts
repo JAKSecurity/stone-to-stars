@@ -21,4 +21,9 @@ describe('isTouchDevice', () => {
     const win = { matchMedia: () => ({ matches: false }), navigator: { maxTouchPoints: 0 } };
     expect(isTouchDevice(win)).toBe(false);
   });
+
+  it('falls through safely when matchMedia returns null (exercises the ?.matches guard)', () => {
+    const win = { matchMedia: () => null as unknown as { matches: boolean }, navigator: { maxTouchPoints: 0 } };
+    expect(isTouchDevice(win)).toBe(false);
+  });
 });
