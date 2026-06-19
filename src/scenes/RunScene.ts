@@ -831,7 +831,11 @@ export class RunScene extends Phaser.Scene {
       if (e.getData('finaleControlled')) return;
       if (e.getData('asleep')) {
         const d = Phaser.Math.Distance.Between(e.x, e.y, this.player.x, this.player.y);
-        if (d > AGGRO_RADIUS) { e.body.setVelocity(0, 0); return; }
+        // Wake when within AGGRO_RADIUS AND roughly on-screen. The on-screen gate matters on the
+        // zoomed-out mobile view, where the fixed 720 ring reaches well past the (shorter) viewport
+        // and would wake — then swarm with — mobs from far off the top/bottom edges. On a desktop-
+        // sized view the margin keeps the whole ring on-screen, so wake distance is unchanged there.
+        if (d > AGGRO_RADIUS || !this.withinAggroView(e)) { e.body.setVelocity(0, 0); return; }
         this.wakeEnemy(e);
       }
       this.updateEnemyMovement(e, dt);
@@ -1248,6 +1252,17 @@ export class RunScene extends Phaser.Scene {
     if (!this.uiCam) return;
     if ((o as unknown as { scrollFactorX: number }).scrollFactorX === 0) this.cameras.main.ignore(o);
     else this.uiCam.ignore(o);
+  }
+
+  /** RC-043: is a sleeping mob roughly on-screen? Wake is gated on the camera's worldView (the actual
+   *  visible world, which already accounts for the mobile zoom-out) inflated by a margin so mobs start
+   *  moving just before they scroll into view. Margin ~ desktop view half-height so the 720 aggro ring
+   *  stays fully on a desktop-sized view (wake unchanged there); on the shorter mobile view it clips
+   *  the ring to near the edges. */
+  private withinAggroView(e: { x: number; y: number }): boolean {
+    const v = this.cameras.main.worldView;
+    const m = 160;
+    return e.x >= v.x - m && e.x <= v.right + m && e.y >= v.y - m && e.y <= v.bottom + m;
   }
 
   /** Orbit: keep `count` projectiles riding a ring around the player. Re-summoning (each cooldown)
