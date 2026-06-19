@@ -13,7 +13,7 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | C2 | Art pass | Delivered | Visuals | P1 | C1 | Claude-authored sprites via shape-data + render-pass pipeline (flat now, shaded as a later global toggle). |
 | C3 | Content & ages | In Progress | Depth | P2 | C1 | Iron->Space ages, more techs/buildings/enemies, weapon evolutions, juice + balance. |
 | C4 | The Last Stand finale | Delivered | Endgame | P3 | C3 | Space-invaders boss run + victory screen. |
-| C5 | Mobile Support | Planned | Platform | P2 | C1 | Polished mobile web: floating-joystick touch controls, landscape-only (rotate prompt), tap-to-place city building (retires drag-and-drop), responsive menus, installable PWA. Spec 2026-06-18. |
+| C5 | Mobile Support | Delivered | Platform | P2 | C1 | Polished mobile web: floating-joystick touch controls, landscape-only (rotate prompt), tap-to-place city building (retires drag-and-drop), responsive menus, installable PWA. Spec 2026-06-18. |
 
 ## Active
 
@@ -61,4 +61,4 @@ Hub tracking surface for the AI Assistant registry. Detailed design lives in
 | RC-038 | Entities escape the playable field — out-of-bounds mob soft-locks the clear | Delivered | P1 | C3 | docs/tickets/RC-038-out-of-bounds-softlock.md |
 | RC-039 | ESC pause menu — abandon run, save/load, volume | Delivered | P2 | C3 | docs/tickets/RC-039-pause-menu.md |
 | RC-040 | Enemy attack arsenal — mid+ tier difficulty via attack variety | Delivered | P1 | C3 | docs/tickets/RC-040-enemy-attack-arsenal.md |
-| RC-043 | Mobile-friendly support — touch controls, landscape, tap-to-place, responsive menus, PWA | Open | P2 | C5 | docs/tickets/RC-043-mobile-friendly-support.md |
+| RC-043 | Mobile-friendly support — touch controls, landscape, tap-to-place, responsive menus, PWA | Delivered | P2 | C5 | docs/tickets/RC-043-mobile-friendly-support.md |
