@@ -2645,7 +2645,7 @@ export class RunScene extends Phaser.Scene {
   /** ESC handler: open the pause menu, or close it if it's already open. A no-op while a draft is
    *  open (paused but not via the pause menu), during the victory ceremony, or after the run has
    *  finished — ESC there must not desync the pause state. */
-  private togglePauseMenu() {
+  togglePauseMenu() {
     if (this.pauseMenuOpen) { this.closePauseMenu(); return; }
     if (this.paused || this.ceremony || this.finished) return; // draft up / wrapping up — leave alone
     this.openPauseMenu();
