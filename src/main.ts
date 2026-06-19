@@ -135,6 +135,10 @@ function launchExpedition(expedition: Expedition, mutators: string[] = []) {
   expEl.classList.remove('active');
   runEl.classList.add('active');
   game.scale.resize(window.innerWidth, window.innerHeight); // fill the window now that #run is visible
+  // RC-043: on touch, go fullscreen for the run (gesture-initiated via the expedition pick → allowed).
+  if (isTouchDevice() && !document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }
   const modifiers: RunModifiers = computeRunModifiers(civ);
   startAmbient('run', expedition.biomeId); // RC-020: mood music for the expedition's biome
   playSfx('run-start');
