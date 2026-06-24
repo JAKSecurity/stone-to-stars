@@ -38,7 +38,7 @@ intensive AI pair-programming:
 ## Develop
 - `npm install`
 - `npm run dev` — play at the printed localhost URL
-- `npm test` — run the logic unit tests (477+ vitest cases)
+- `npm test` — run the logic unit tests (493 vitest cases)
 - `npm run build` — static build into `dist/` (no backend; hostable anywhere)
 
 With the dev server running you can also open `/art-preview.html` (every sprite, flat/shaded) and
